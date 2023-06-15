@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>长连接和服务端推送的选型和实现</title>
+<meta name="keywords" content="长连接和服务端推送的选型和实现, jffu&#39;s blog">
+<meta name="description" content="什么是长连接，与短连接的区别是什么？基于长连接如何实现服务端的推送？">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="长连接和服务端推送的选型和实现">
+<meta property="og:description" content="什么是长连接，与短连接的区别是什么？基于长连接如何实现服务端的推送？">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">长连接和服务端推送的选型和实现</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2018-11-28</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">
+              网络协议
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p><a name="1e98bfba"></a></p>
+<h1 id="1-长连接"><a href="#1-长连接" class="headerlink" title="1 长连接"></a>1 长连接</h1><p><a name="24bab3c7"></a></p>
+<h2 id="1-1-连接的概念"><a href="#1-1-连接的概念" class="headerlink" title="1.1 连接的概念"></a>1.1 连接的概念</h2><p>一般我们说网络连接时，提到的都是TCP连接，而称UDP为无连接协议。两者最大的区别我认为是对“连接”状态的管理上。</p>
+<blockquote>
+<p><strong>网络上的传输是没有连接的，包括TCP也是一样的</strong>。</p>
+</blockquote>
+<p>TCP所谓的“连接”，只不过是在通讯的双方维护一个“连接状态”，让它看上去好像有连接一样。TCP通过三次握手，四次挥手来建立和断开连接，实际上对应的是两端“连接状态”的变化，在这基础上，TCP协议使用确认-重传、流量控制、拥塞处理等机制保证数据传输的可靠性。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FtQuQS_REEXl8R0xaTf5VBv8nOHi.jpg"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FtQuQS_REEXl8R0xaTf5VBv8nOHi.jpg"  lazyload></a></p>
+<p><a name="55b957b6"></a></p>
+<h2 id="1-2-长连接-or-短连接"><a href="#1-2-长连接-or-短连接" class="headerlink" title="1.2 长连接 or 短连接"></a>1.2 长连接 or 短连接</h2><p>长连接和短连接的区别很好理解。</p>
+<ul>
+<li>短连接<br />每一次数据传输都会建立一个新的连接，在用完后连接就被关闭。连接不会重用。<br /><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Flh2KCOeSOBItUVm2IbqtK2W0HSw.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Flh2KCOeSOBItUVm2IbqtK2W0HSw.png"  lazyload></a> </li>
+<li>长连接<br />进行一次数据传输后，不关闭连接，长期保持连通状态。如果两个应用程序之间有新的数据需要传输，则直接复用这个连接，无需再建立一个新的连接。<br /><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmEx8v-zhBitL3GY3jnEZb44wnHv.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmEx8v-zhBitL3GY3jnEZb44wnHv.png"  lazyload></a></li>
+</ul>
+<p>相比短连接，长连接最大的优点是连接得到重用，一方面省去了每次建立和关闭连接的开销，（在高并发的情况下，频繁地创建和关闭连接很可能会成为性能瓶颈）。另一方面，由于TCP协议的慢启动等机制，从总体上来看，复用连接进行多次数据传输的总耗时会比新建连接更少。</p>
+<p>但长连接会带来一个额外的问题是如何保证链路的keepalive，因为网络抖动、服务器故障等都会导致这个连接不可用。所以在使用长连接时必须有对应的”保活“机制，常见的两种：</p>
+<ul>
+<li>TCP协议自身的keepalive机制<br />定时发送探测报文来识别对方是否可达。一般默认定时间隔是 2 小时，可以根据需要在操作系统层面去调整这个间隔。 </li>
+<li>心跳包<br />上层应用主动的定时发送一个小数据包作为“心跳”，探测是否能成功送达到另外一端。服务端和客户端都可以发送心跳包，大多数情况下由服务端发送来探测客户端，一旦识别客户端不可达，则断开连接，缓解服务端压力。</li>
+</ul>
+<p>选择长连接还是短连接取决于使用场景，长连接并不是所有场景下的最佳选择，短连接也不是一无是处。总体来看：</p>
+<ul>
+<li>长连接：两个进程之间需要高频通信并且具备服务端主动推送或者有状态（需串行）两者之一，例如聊天等场景。</li>
+<li>短连接：两个进程之间通信频率较低，或者属于无状态（可并行），例如只获取一次天气的请求。</li>
+</ul>
+<p>另外，在选择时也需要考虑单机最大端口数的限制（65535）和维护连接的开销。例如，有可能存在两种极端场景：</p>
+<ul>
+<li>客户端发起请求时所有连接都是长连接，占满了最大端口数，导致无法开启新端口发出新请求。</li>
+<li>所有连接都是短连接，会看到在连接主动关闭方存在大量处于”TIME_WAIT”状态的连接（参考4次挥手），占满端口后无法处理新请求。</li>
+</ul>
+<p><a name="53100d33"></a></p>
+<h2 id="1-3-TCP-or-HTTP"><a href="#1-3-TCP-or-HTTP" class="headerlink" title="1.3 TCP or HTTP"></a>1.3 TCP or HTTP</h2><p><a name="38aeecf7"></a></p>
+<h3 id="1-3-1-TCP"><a href="#1-3-1-TCP" class="headerlink" title="1.3.1 TCP"></a>1.3.1 TCP</h3><p>使用TCP实现长连接比较简单，一般配合心跳来做keepalive，适用于单个系统内部，集团中间件中大量使用了这种方式，例如：</p>
+<ul>
+<li>HSF：服务提供者和消费者之间，与注册中心之间的连接；</li>
+<li>ConfigServer：客户端与ConfigServer服务端之间的连接；</li>
+<li>MQ：producer-nameserver、consumer-nameserver等之间的连接；</li>
+</ul>
+<p>但TCP长连接无法用在前后端交互上，所以如果后台服务端要向前台推送消息，需要考虑使用HTTP、WebSocket等上层协议。</p>
+<p><a name="dd48355a"></a></p>
+<h3 id="1-3-2-HTTP"><a href="#1-3-2-HTTP" class="headerlink" title="1.3.2 HTTP"></a>1.3.2 HTTP</h3><p>我理解HTTP本身并没有长连接的概念，所谓的HTTP长连接指的其实是多个HTTP请求&#x2F;响应复用底层的TCP长连接。HTTP协议使用Keep-Alive模式（或者叫持久连接、连接重用）来复用底层的TCP长连接。</p>
+<ul>
+<li>非Keep-Alive模式：每个请求&#x2F;应答时客户段和服务器都要新建一个TCP连接，完成之后立即断开连接；</li>
+<li>Keep-Alive模式：客户端到服务器端之间的连接持续有效，当出现对服务器的后继HTTP请求时，复用同一条底层连接；</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FgIP059YrfbAYxO_Nw6ardNalMr4.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FgIP059YrfbAYxO_Nw6ardNalMr4.png"  lazyload></a></p>
+<p>Keep-Alive模式与HTTP协议版本和HTTP头相关：</p>
+<ul>
+<li>在HTTP&#x2F;1.0中，Keep-Alive默认关闭，需要在HTTP头加入<code>&quot;Connection: Keep-Alive&quot;</code>开启；</li>
+<li>HTTP&#x2F;1.1后默认启用Keep-Alive，关闭连接时使用<code>&quot;Connection: close&quot;</code>关闭；</li>
+</ul>
+<p>相比TCP，HTTP更适合用于前后端以及不同系统之间的交互。</p>
+<p><a name="4448e966"></a></p>
+<h1 id="2-服务端推送技术"><a href="#2-服务端推送技术" class="headerlink" title="2 服务端推送技术"></a>2 服务端推送技术</h1><p>这里主要讨论前后端交互时的服务端推送。</p>
+<p><a name="1a1790f8"></a></p>
+<h2 id="2-1-HTTP短轮询"><a href="#2-1-HTTP短轮询" class="headerlink" title="2.1 HTTP短轮询"></a>2.1 HTTP短轮询</h2><p>严格意义上来说，HTTP短轮询并不能算服务器推送，而是客户端通过不断地定时请求服务端来获取数据更新。在实现上，一般是前端用定时器，每间隔一段时间向服务端发送一个HTTP请求来获取数据是否更新。</p>
+<p>短轮询的缺陷在于：</p>
+<ul>
+<li>难以控制轮询的间隔。间隔太短，服务端数据可能还没更新，导致大量无效请求开销；间隔太长，又难以保证实时性； </li>
+<li>实时性较差；</li>
+</ul>
+<p>注意HTTP短轮询并不意味着使用了短连接。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmUFWn-BrC2umx7pzKoJb1MXIm-D.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmUFWn-BrC2umx7pzKoJb1MXIm-D.png"  lazyload></a></p>
+<p><a name="711396d6"></a></p>
+<h2 id="2-2-HTTP长轮询"><a href="#2-2-HTTP长轮询" class="headerlink" title="2.2 HTTP长轮询"></a>2.2 HTTP长轮询</h2><p>HTTP长轮询与短轮询的不同在于服务端会阻塞客户端请求直至有数据更新。</p>
+<ol>
+<li>客户端向服务端发送HTTP请求，例如浏览器发出<code>XMLHttpRequest</code>请求；</li>
+<li>服务端在收到客户端请求后，检查有无数据更新，如有则返回数据给客户端；如果没有新数据，并不会向短轮询一样发送空响应给客户端，而是阻塞请求直到有数据或者超时才返回；</li>
+<li>客户端收到服务端数据或者超时后再次发出请求；</li>
+</ol>
+<p>相比起短轮询，长轮询机制减少了无意义的轮询请求量，提高了轮询的效率；也降低了系统负载，提升了整个系统的资源利用率。但是在数据更新非常频繁时，客户端会不停地请求数据，每次都需要发送一次新的HTTP请求，会带来额外的开销。</p>
+<p>HTTP长轮询虽然不是最有效的推送机制，但是简单并且可靠，所以在实际中应用较广。例如Diamond中就通过HTTP长轮询实现由服务端伪实时地推送配置数据给客户端。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhqIb87ZvHHc75ViKOQgylovAlQd.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhqIb87ZvHHc75ViKOQgylovAlQd.png"  lazyload></a></p>
+<p><a name="4fca42ec"></a></p>
+<h2 id="2-3-HTTP-Streaming"><a href="#2-3-HTTP-Streaming" class="headerlink" title="2.3 HTTP Streaming"></a>2.3 HTTP Streaming</h2><p>HTTP长轮询中，为了保持客户端与服务端的HTTP连接采取的是服务端阻塞（保持响应不返回），在服务端数据更新后服务端返回响应，然后客户端继续轮询请求的方式。</p>
+<p>HTTP Streaming则是让客户端在一次请求中保持和服务端连接不断开，然后服务端源源不断传送数据给客户端。这种方式类似数据流，在整个通信过程客户端只发送一次请求，然后服务端保持与客户端的连接，并利用这个连接在回送数据给客户端。</p>
+<p>在实现上，可以通过在前端页面上嵌入一个隐藏的<code>iframe</code>，利用其<code>src</code>属性在服务器和客户端之间创建一条长连接，服务器向<code>iframe</code>传输数据（通常是HTML，内有负责插入信息的js），来实时更新页面。</p>
+<p>这种方式的缺点在于某些浏览器将其视为加载未完成，会在在进度栏中显示加载没有完成，或者页面标签上的图标会不停的转动，表示加载正在进行。</p>
+<p><a name="81fa966e"></a></p>
+<h2 id="2-4-SSE"><a href="#2-4-SSE" class="headerlink" title="2.4 SSE"></a>2.4 SSE</h2><p>无论是HTTP长轮询或者HTTP Streaming，本质上都存在一个局限，那就是HTTP&#x2F;1.1的一请求一响应模型，在这基础上做服务端推送更像是一种hack。SSE（Server-Sent Event，服务端推送事件）是一种允许服务端向客户端推送新数据的HTML5技术。客户端发送一次SSE请求后，服务端就可以推送多条数据给客户端。从本质上看，SSE并不是一种新的协议，而是基于HTTP的简单扩展，服务端发送的还是一个数据流。</p>
+<p>SSE的协议详细介绍参考 协议调优-SSE （&#x2F;&#x2F; TODO：施工中）。</p>
+<p>SSE的几个特点：</p>
+<ul>
+<li>“半双工”：客户端发送一次请求，而后服务端可以单向推送多次响应（客户端无法发送多次请求） </li>
+<li>简单：因为SSE基于HTTP的特性，在实现上比较简单。客户端浏览器可以使用<code>EventSource</code>API，服务端几乎不用做修改就可以支持（例如servlet 3.0直接提供SSE的API）。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FqQl4_rfGUZCQW9uFG97BZZckFDz.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FqQl4_rfGUZCQW9uFG97BZZckFDz.png"  lazyload></a></p>
+<p><a name="6fe024ef"></a></p>
+<h2 id="2-5-WebSocket"><a href="#2-5-WebSocket" class="headerlink" title="2.5 WebSocket"></a>2.5 WebSocket</h2><p>WebSocket是HTML5规范的一部分，相比单向推送的SSE，实现了真正的全双工通信。一些特点：</p>
+<ul>
+<li>全双工：在同一条通道上，既能从服务端向客户端推送数据，也能从客户端向服务端推送数据； </li>
+<li>基于帧，支持传输文本和二进制； </li>
+<li>握手时，借用HTTP协议的<code>101 switch protocol</code>来升级到WebSocket协议 </li>
+<li>提供无加密的ws和基于TLS的wss协议</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FoHcQueSXBGytYssiEePctDwDBQS.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FoHcQueSXBGytYssiEePctDwDBQS.png"  lazyload></a></p>
+<p><a name="8faf7bf4"></a></p>
+<h2 id="2-6-HTTP-x2F-2"><a href="#2-6-HTTP-x2F-2" class="headerlink" title="2.6 HTTP&#x2F;2"></a>2.6 HTTP&#x2F;2</h2><p>相比HTTP&#x2F;1.1，HTTP&#x2F;2提供很多新特性，例如支持请求与响应的多路复用，头部压缩，支持请求优先级。在服务端推送上，HTTP&#x2F;2最大的改进是增加了<code>Server Push</code>功能，服务器可以对一个客户端请求发送多个响应。</p>
+<p>与WebSocket相比，两种侧重点不同：</p>
+<ul>
+<li>HTTP&#x2F;2的服务器推送主要用在加速页面加载，当服务器接收一个请求时，可以响应多个资源；</li>
+<li>WebSocket更强调为Web应用提供一种双向的通讯机制以及API；</li>
+</ul>
+<blockquote>
+<p>In HTTP&#x2F;2, server-push is used behind the scene to improve resource loading by the client from the browser. As a developer, you don’t really care about it during your development. However, with Websocket, the developer is allowed to use API which is able to consume and push message with an unique full-duplex connection.</p>
+</blockquote>
+<p><a name="6e3a741f"></a></p>
+<h2 id="2-7-小结"><a href="#2-7-小结" class="headerlink" title="2.7 小结"></a>2.7 小结</h2><p>一个简单的比较：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>短轮询</th>
+<th>长轮询</th>
+<th>SSE</th>
+<th>WebSocket</th>
+<th>HTTP&#x2F;2</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>底层协议</td>
+<td>HTTP&#x2F;1.1</td>
+<td>HTTP&#x2F;1.1</td>
+<td>HTTP&#x2F;1.1</td>
+<td>基于TCP长连接通讯</td>
+<td>HTTP&#x2F;2</td>
+</tr>
+<tr>
+<td>触发方式</td>
+<td>轮询</td>
+<td>轮询</td>
+<td>事件</td>
+<td>事件</td>
+<td><code>PUSH_PROMISE</code><br />帧</td>
+</tr>
+<tr>
+<td>优点</td>
+<td>兼容性好，容错性强，实现简单</td>
+<td>效率相比短轮询更高，实现简单</td>
+<td>基于HTTP，实现简单</td>
+<td>全双工通讯，性能开销小、安全性高，有一定可扩展性</td>
+<td>基于HTTP，实现简单</td>
+</tr>
+<tr>
+<td>缺点</td>
+<td>轮询间隔难以控制，实时性与效率之间难以权衡</td>
+<td>伪实时，数据更新快时会频繁发送请求</td>
+<td>需要浏览器支持，客户端无法推送</td>
+<td>实现上较为复杂</td>
+<td>HTTP&#x2F;2还未真正普及</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>简单的数据更新场景</td>
+<td>需要一定的效率和实时性的推送场景</td>
+<td>服务端到客户端单向推送场景</td>
+<td>实时性要求高，双向通信场景</td>
+<td>一次推送多个资源加速页面加载</td>
+</tr>
+</tbody></table>
+<p><a name="e4607f27"></a></p>
+<h1 id="3-基于WebSocket的推送实现"><a href="#3-基于WebSocket的推送实现" class="headerlink" title="3 基于WebSocket的推送实现"></a>3 基于WebSocket的推送实现</h1><p>由于WebSocket在全双工、实时性、网络开销上的优势，选择WebSocket实现服务端推送是现在比较流行的做法。参考目前的业务场景，基于这个提供实现思路。</p>
+<p><a name="782cdd13"></a></p>
+<h2 id="3-1-客户端"><a href="#3-1-客户端" class="headerlink" title="3.1 客户端"></a>3.1 客户端</h2><p>WebSocket的客户端实现比较简单。如果客户端是浏览器，可以直接使用<code>WebSocket API</code>。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// open a new secure WebSocket connection (wss)</span></span><br><span class="line"><span class="keyword">var</span> ws = <span class="keyword">new</span> <span class="title class_">WebSocket</span>(<span class="string">&#x27;wss://example.com/socket&#x27;</span>); </span><br><span class="line"></span><br><span class="line"><span class="comment">// invoked if a connection error has occurred</span></span><br><span class="line">ws.<span class="property">onerror</span> = <span class="keyword">function</span> (<span class="params">error</span>) &#123; ... &#125; </span><br><span class="line"><span class="comment">// invoked when the connection is terminated</span></span><br><span class="line">ws.<span class="property">onclose</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123; ... &#125; </span><br><span class="line"><span class="comment">// invoked when a WebSocket connection is established</span></span><br><span class="line">ws.<span class="property">onopen</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123; </span><br><span class="line">  <span class="comment">// client-initiated message to the server</span></span><br><span class="line">  ws.<span class="title function_">send</span>(<span class="string">&quot;Connection established. Hello server!&quot;</span>); </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// a callback function invoked for each new message from the server                          </span></span><br><span class="line">ws.<span class="property">onmessage</span> = <span class="keyword">function</span>(<span class="params">msg</span>) &#123; </span><br><span class="line">  <span class="comment">// invoke binary or text processing logic for the received message</span></span><br><span class="line">  <span class="keyword">if</span>(msg.<span class="property">data</span> <span class="keyword">instanceof</span> <span class="title class_">Blob</span>) &#123; </span><br><span class="line">    <span class="title function_">processBlob</span>(msg.<span class="property">data</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="title function_">processText</span>(msg.<span class="property">data</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a name="ada71582"></a></p>
+<h2 id="3-2-单机服务端"><a href="#3-2-单机服务端" class="headerlink" title="3.2 单机服务端"></a>3.2 单机服务端</h2><p>单机服务端部署时，客户端与单个服务器建立WebSocket连接，不需要考虑数据同步等问题。在实现上有多种选择，可以使用容器提供的WebSocket能力（需要容器支持<code>JSR356</code>标准），也可以使用Netty这样的网络框架实现。</p>
+<p>以在Spring Boot中实现WebSocket为例：</p>
+<ol>
+<li><p>引入依赖 </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-websocket<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+</li>
+<li><p>实现控制层逻辑 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@ServerEndpoint(value = &quot;/websocket&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ServerEndpoint</span> &#123;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@OnOpen</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onOpen</span><span class="params">(Session session)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// Get session and WebSocket connection</span></span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@OnMessage</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onMessage</span><span class="params">(Session session, Message message)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// Handle new messages</span></span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@OnClose</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onClose</span><span class="params">(Session session)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// WebSocket connection closes</span></span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@OnError</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onError</span><span class="params">(Session session, Throwable throwable)</span> &#123;</span><br><span class="line">        <span class="comment">// Do error handling here</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p><a name="212c85a1"></a></p>
+<h2 id="3-3-分布式服务端"><a href="#3-3-分布式服务端" class="headerlink" title="3.3 分布式服务端"></a>3.3 分布式服务端</h2><p>WebSocket推送实现的难点主要在于分布式环境下，如何有效并可靠地进行数据同步。因为每个客户端与分布式集群中的一台机器建立WebSocket连接，在实际生产中会面临一些问题。</p>
+<p><strong>数据同步问题</strong></p>
+<p>如果服务端的数据更新依赖于某种通知机制，当集群中某台机器收到了数据更新事件（可能是收到MQ消息，接口被调用等），需要通知到集群中的其他节点，然后推送给与这些节点建立了WebSocket连接的客户端。</p>
+<blockquote>
+<p>设想如果Diamond使用WebSocket做服务端推送，在一个客户端发布配置数据时，需要同步给所有对这个配置感兴趣的客户端，不同客户端会与不同的服务器相连。</p>
+</blockquote>
+<p>通知的方式的几种可选方案：</p>
+<ol>
+<li>如果数据or事件来源方通过MQ广播数据，所有服务端节点订阅这个主题，那么数据更新时所有节点都能得到通知； </li>
+<li>数据or事件来源方只通知到一个节点，这个节点直接调用其他节点的接口（参考Diamond服务端实现：配置更新时，先落库，再调用其他节点的接口通知）； </li>
+<li>数据or事件来源方只通知到一个节点，这个节点再使用MQ异步通知给其他节点；</li>
+</ol>
+<p>以方案#3为例，流程大致如下：</p>
+<ol>
+<li>所有服务端节点订阅一个数据更新事件Topic</li>
+<li>其中一个节点收到数据更新时 <ul>
+<li>如果数据需要存储，则先写库或缓存，再通知其他节点；</li>
+<li>如果数据量大，不适合使用MQ直接传递，则只封装一个简单事件广播，由收到MQ消息的节点去数据库或者缓存读取；</li>
+<li>如果数据量很小，则可以通过MQ直接传递；</li>
+</ul>
+</li>
+<li>其他节点收到数据更新事件时，如果节点上有客户端连接，则读取数据并通过WebSocket通道发送给客户端；</li>
+</ol>
+<p>由于客户端感兴趣的事件类型可能不一样，因此必要时可以在MQ级别或者业务逻辑级别做过滤后发给对应的客户端。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FvfJ2zsC_ns7BzLnVWbFb8fEKU_I.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FvfJ2zsC_ns7BzLnVWbFb8fEKU_I.png"  lazyload></a></p>
+<p><strong>断开重连问题</strong></p>
+<p>如果与客户端相连的服务器挂了，该怎么处理？一种友好的方式是客户端进行重连（WebSocket本身提供重连的支持），重连到健康的服务器上。但重连过程中产生的数据更新客户端无法感知，解决思路：</p>
+<ol>
+<li>如果客户端只关心最终的数据状态，那么只要在每次连接时获取最新数据即可；</li>
+<li>如果客户端关系数据变化的中间状态，那么可以将最后一次收到消息的时间发给服务器，服务器推送这个时间点后产生的数据更新；</li>
+</ol>
+<p><strong>负载均衡问题</strong></p>
+<ul>
+<li>如果服务器前端部署了Tengine之类的proxy，那么负载均衡可以交给proxy解决；</li>
+<li>如果服务器直接与客户端相连，一种思路是引入地址服务器机制，实现上可以考虑zookeeper，ConfigServer等；</li>
+</ul>
+<p>分布式环境下的WebSocket服务端还存在其他一些问题，服务端在实现上需要尽量遵循“无状态”的设计原则。</p>
+<p><a name="36a163b0"></a></p>
+<h2 id="3-4-其他配置"><a href="#3-4-其他配置" class="headerlink" title="3.4 其他配置"></a>3.4 其他配置</h2><p>使用WebSocket时还有一些额外的配置，例如如果前端部署了Tengine（Nginx），则需要修改配置。参考<a target="_blank" rel="noopener" href="https://hpbn.co/websocket/">Nginx官方配置文档</a>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">location /chat/ &#123;</span><br><span class="line">    proxy_pass http://backend;</span><br><span class="line">    proxy_http_version 1.1;</span><br><span class="line">    proxy_set_header Upgrade $http_upgrade;</span><br><span class="line">    proxy_set_header Connection &quot;upgrade&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a name="05cefa56"></a></p>
+<h1 id="4-参考"><a href="#4-参考" class="headerlink" title="4 参考"></a>4 参考</h1><ol>
+<li><a target="_blank" rel="noopener" href="https://coolshell.cn/articles/11564.html">TCP 的那些事儿</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/UiKyF*4zxplSrpWZ5km1">跨进程通信，到底用长连接还是短连接</a></li>
+<li><a target="_blank" rel="noopener" href="http://enterprisewebbook.com/ch8_websockets.html#upgrading_http_to_websocket">Upgrading HTTP to WebSocket</a></li>
+<li><a target="_blank" rel="noopener" href="https://hpbn.co/websocket/">WebSocket</a></li>
+</ol>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#1-%E9%95%BF%E8%BF%9E%E6%8E%A5"><span class="top-box-text">1 长连接</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-1-%E8%BF%9E%E6%8E%A5%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="top-box-text">1.1 连接的概念</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-2-%E9%95%BF%E8%BF%9E%E6%8E%A5-or-%E7%9F%AD%E8%BF%9E%E6%8E%A5"><span class="top-box-text">1.2 长连接 or 短连接</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-3-TCP-or-HTTP"><span class="top-box-text">1.3 TCP or HTTP</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-3-1-TCP"><span class="top-box-text">1.3.1 TCP</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-3-2-HTTP"><span class="top-box-text">1.3.2 HTTP</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#2-%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%8E%A8%E9%80%81%E6%8A%80%E6%9C%AF"><span class="top-box-text">2 服务端推送技术</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-1-HTTP%E7%9F%AD%E8%BD%AE%E8%AF%A2"><span class="top-box-text">2.1 HTTP短轮询</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-2-HTTP%E9%95%BF%E8%BD%AE%E8%AF%A2"><span class="top-box-text">2.2 HTTP长轮询</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-3-HTTP-Streaming"><span class="top-box-text">2.3 HTTP Streaming</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-4-SSE"><span class="top-box-text">2.4 SSE</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-5-WebSocket"><span class="top-box-text">2.5 WebSocket</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-6-HTTP-x2F-2"><span class="top-box-text">2.6 HTTP&#x2F;2</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-7-%E5%B0%8F%E7%BB%93"><span class="top-box-text">2.7 小结</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#3-%E5%9F%BA%E4%BA%8EWebSocket%E7%9A%84%E6%8E%A8%E9%80%81%E5%AE%9E%E7%8E%B0"><span class="top-box-text">3 基于WebSocket的推送实现</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#3-1-%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="top-box-text">3.1 客户端</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#3-2-%E5%8D%95%E6%9C%BA%E6%9C%8D%E5%8A%A1%E7%AB%AF"><span class="top-box-text">3.2 单机服务端</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#3-3-%E5%88%86%E5%B8%83%E5%BC%8F%E6%9C%8D%E5%8A%A1%E7%AB%AF"><span class="top-box-text">3.3 分布式服务端</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#3-4-%E5%85%B6%E4%BB%96%E9%85%8D%E7%BD%AE"><span class="top-box-text">3.4 其他配置</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#4-%E5%8F%82%E8%80%83"><span class="top-box-text">4 参考</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

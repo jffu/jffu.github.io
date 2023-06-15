@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>Netty指北系列6-ByteBuf</title>
+<meta name="keywords" content="Netty指北系列6-ByteBuf, jffu&#39;s blog">
+<meta name="description" content="理解Netty内存模型的核心ByteBuf。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="Netty指北系列6-ByteBuf">
+<meta property="og:description" content="理解Netty内存模型的核心ByteBuf。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">Netty指北系列6-ByteBuf</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-06-24</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Netty-%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">
+              Netty, 网络协议
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>网络传输基于字节，而字节被保存在缓冲区内，在Java NIO类库中使用<code>ByteBuffer</code>作为字节的容器。Netty则使用<code>ByteBuf</code>扩展了<code>ByteBuffer</code>，主要是因为<code>ByteBuffer</code>有以下缺陷：</p>
+<ol>
+<li><code>ByteBuffer</code>缓冲区长度固定，在分配完后不能动态伸缩。这导致使用<code>ByteBuffer</code>往其中put数据时，都需要对剩余可用空间进行校验，如果剩余空间不足，则需要重新创建一个<code>ByteBuffer</code>，将旧<code>ByteBuffer</code>中的数据复制到新的<code>ByteBuffer</code>中去。如果直接写大于剩余空间的数据，则会发生索引越界异常；</li>
+<li><code>ByteBuffer</code>中只有一个位置指针<code>position</code>，在读写切换时需要手动调用<code>flip()</code>、<code>rewind()</code>等方法，麻烦且容易出错；</li>
+<li><code>ByteBuffer</code>的API功能有限，不支持一些高级和实用的特性；</li>
+</ol>
+<p>Netty中的<code>ByteBuf</code>针对<code>ByteBuffer</code>的缺陷进行了改进，并且提供了一些高级特性：</p>
+<ol>
+<li>支持动态扩容（就像JDK中的<code>ArrayList</code>和<code>StringBuilder</code>一样）；</li>
+<li>读和写都有一个位置指针，在读写模式间切换不需要手工调用<code>filp()</code>；</li>
+<li>支持引用计数；</li>
+<li>支持零拷贝；</li>
+<li>支持对象池；</li>
+</ol>
+<h1 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h1><h2 id="内部结构"><a href="#内部结构" class="headerlink" title="内部结构"></a>内部结构</h2><p><code>ByteBuf</code>是字节的容器，可以认为是一个字节数组（注：不一定对应一个Java中的<code>byte[]</code>，可能是一部分也可能是组合，也可能不在堆上），使用了两个位置指针，读位置指针<code>readerIndex</code>和写位置<code>writerIndex</code>，分别用于标识已读和已写的位置。</p>
+<ol>
+<li>在初始时，<code>readerIndex</code>和<code>writerIndex</code>位置都为0。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+---------------------------------------------------------+</span><br><span class="line">|             writable bytes                              |</span><br><span class="line">+---------------------------------------------------------+</span><br><span class="line">|                                                         |</span><br><span class="line"> 0 = readerIndex = writerIndex            &lt;=            capacity</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>在一系列顺序写&#x2F;顺序读之后，<code>ByteBuf</code>会产生一些可丢弃&#x2F;可读数据，并且可写位置也会发生变化。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">| discardable bytes |  readable bytes  |  writable bytes  |</span><br><span class="line">|                   |     (CONTENT)    |                  |</span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">|                   |                  |                  |</span><br><span class="line">0      &lt;=      readerIndex   &lt;=   writerIndex    &lt;=    capacity</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>discardable bytes - 已读的可丢弃字节数据，从位置0到<code>readrIndex</code></li>
+<li>readable bytes    - 可读的字节数据，<code>readerIndex</code>到<code>writerIndex</code>之间</li>
+<li>writable bytes    - 可写的字节数据，<code>writerIndex</code>到<code>capacity</code>之间</li>
+</ul>
+<ol start="3">
+<li>调用<code>discardReadBytes()</code>方法可以回收空间，<code>readerIndex</code>移动到0，<code>writerIndex</code>缩小，与<code>readerIndex</code>相对距离不变。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+------------------------+--------------------------------------+</span><br><span class="line">|  readable bytes        |    writable bytes (got more space)   |</span><br><span class="line">+------------------------+--------------------------------------+</span><br><span class="line">|                        |                                      |</span><br><span class="line">readerIndex (0) &lt;= writerIndex (decreased)        &lt;=    capacity</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>调用<code>clear()</code>方法可以清空整个<code>ByteBuf</code>，<code>readerIndex</code>和<code>writerIndex</code>归零。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+---------------------------------------------------------+</span><br><span class="line">|             writable bytes (got more space)             |</span><br><span class="line">+---------------------------------------------------------+</span><br><span class="line">|                                                         |</span><br><span class="line"> 0 = readerIndex = writerIndex            &lt;=            capacity</span><br></pre></td></tr></table></figure>
+
+<p>ByteBuf支持两类操作来创建新的视图（新的视图维护各自独立的写索引、读索引以及标记索引）：</p>
+<ul>
+<li>派生：与原有<code>ByteBuf</code>共享同一份底层存储数据，对应方法<code>duplicate()</code>，<code>slice()</code>以及<code>slice(int,int)</code>；</li>
+<li>复制：拷贝底层数据，对应方法<code>copy()</code>；</li>
+</ul>
+<h2 id="ByteBuf类型"><a href="#ByteBuf类型" class="headerlink" title="ByteBuf类型"></a>ByteBuf类型</h2><h3 id="Heap-ByteBuf"><a href="#Heap-ByteBuf" class="headerlink" title="Heap ByteBuf"></a>Heap ByteBuf</h3><p>最常用，数据存在堆上，因此分配和回收很快。</p>
+<p>在读取时可以直接获取底层的字节数组使用。使用时首先通过<code>hasArray()</code>判断是否存在字节数组，然后使用<code>array()</code>获取该字节数组。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ByteBuf</span> <span class="variable">heapBuf</span> <span class="operator">=</span> ...;</span><br><span class="line"><span class="keyword">if</span> (heapBuf.hasArray()) &#123;                   <span class="comment">// 只有在hasArray()返回true时才能直接读取array</span></span><br><span class="line">    <span class="type">byte</span>[] array = heapBuf.array();         <span class="comment">// 获得底层数组的引用</span></span><br><span class="line">    <span class="type">int</span> <span class="variable">offset</span> <span class="operator">=</span> heapBuf.arrayOffset() + heapBuf.readerIndex();  <span class="comment">// 计算可读位置的offset</span></span><br><span class="line">    <span class="type">int</span> <span class="variable">length</span> <span class="operator">=</span> heapBuf.readableBytes();   <span class="comment">// 获得可读字节数 </span></span><br><span class="line">    handleArray(array, offset, length);     <span class="comment">// 处理数据</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Direct-ByteBuf"><a href="#Direct-ByteBuf" class="headerlink" title="Direct ByteBuf"></a>Direct ByteBuf</h3><p>与NIO的<code>DirectByteBuffer</code>类似，数据存在直接内存（<code>Direct Memory</code>，或称堆外内存）上，通过本地方法分配在本地堆上，然后通过JVM堆上的对象引用这块内存。与<code>Heap ByteBuf</code>相比，优缺点其实是相对的，选择时需要根据需求取舍。</p>
+<ul>
+<li>优点：使用直接内存能够在I&#x2F;O操作时避免在JVM堆和本地堆间的数据拷贝，如果数据被分配在JVM堆上而不是直接内存中，在网络传输时把这些数据通过Socket传输时需要先从JVM堆上拷贝到本地堆上再发送出去；</li>
+<li>缺点：分配和回收比<code>Heap ByteBuf</code>慢。在Full GC时才会回收直接内存；需要使用<code>-XX:MaxDirectMemorySize</code>参数限制直接内存大小；</li>
+</ul>
+<blockquote>
+<p>可以通过<code>isDirect()</code>方法判断其是否为<code>Direct ByteBuf</code>。</p>
+</blockquote>
+<p>在读取<code>Direct ByteBuf</code>的内容时，如果需要转换为Java字节数组，则需要进行一次拷贝。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ByteBuf</span> <span class="variable">directBuf</span> <span class="operator">=</span> ...;</span><br><span class="line"><span class="keyword">if</span> (!directBuf.hasArray()) &#123;                  <span class="comment">// hasArray()返回false表示没有backing array</span></span><br><span class="line">    <span class="type">int</span> <span class="variable">length</span> <span class="operator">=</span> directBuf.readableBytes();   <span class="comment">// 获得可读字节数</span></span><br><span class="line">    <span class="type">byte</span>[] array = <span class="keyword">new</span> <span class="title class_">byte</span>[length];          <span class="comment">// 分配一个Java字节数组用于保存数据</span></span><br><span class="line">    directBuf.getBytes(directBuf.readerIndex(), array);  <span class="comment">// 将数据拷贝到array数组中</span></span><br><span class="line">    handleArray(array, <span class="number">0</span>, length);            <span class="comment">// 处理数据</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="COMPOSITE-ByteBuf"><a href="#COMPOSITE-ByteBuf" class="headerlink" title="COMPOSITE ByteBuf"></a>COMPOSITE ByteBuf</h3><p>复合的<code>ByteBuf</code>，由一组<code>ByteBuf</code>复合而成，对外提供一个抽象的单<code>ByteBuf</code>视图。</p>
+<blockquote>
+<p>COMPOSITE ByteBuf 内部的<code>ByteBuf</code>可能同时包含<code>Heap ByteBuf</code>或者<code>Direct ByteBuf</code>。</p>
+</blockquote>
+<p><code>COMPOSITE ByteBuf</code>的主要作用在于对<code>ByteBuf</code>的组合复用，例如在发送HTTP消息时，将请求头的<code>ByteBuf</code>和请求体的<code>ByteBuf</code>组合为一个<code>COMPOSITE ByteBuf</code>进行发送。</p>
+<h2 id="ByteBuf分配"><a href="#ByteBuf分配" class="headerlink" title="ByteBuf分配"></a>ByteBuf分配</h2><h3 id="ByteBufAllocator"><a href="#ByteBufAllocator" class="headerlink" title="ByteBufAllocator"></a>ByteBufAllocator</h3><p>使用<code>Channel.alloc()</code>和<code>ChannelHandlerContext.alloc()</code>会返回一个<code>ByteBufAllocator</code>，<code>ByteBufAllocator</code>中定义了一系列分配<code>ByteBuf</code>的方法，因此可以通过<code>Channel</code>和<code>ChannelHandlerContext</code>分配一个<code>ByteBuf</code>。</p>
+<p>Netty提供两个<code>ByteBufAllocator</code>的实现类：</p>
+<ul>
+<li><code>PooledByteBufAllocator</code> - 使用一个对象池保存<code>ByteBuf</code>实例，因此可以复用来减少<code>ByteBuf</code>分配和回收，提高内存使用效率。</li>
+<li><code>UnpooledByteBufAllocator</code> - 不使用对象池，每次都分配一个新的实例。</li>
+</ul>
+<blockquote>
+<p>Netty 4.1默认使用<code>PooledByteBufAllocator</code>，可以通过<code>Channel</code>对应的<code>ChannelConfig</code>的<code>setAllocator()</code>方法配置使用其他<code>ByteBufAllocator</code>，例如<code>UnpooledByteBufAllocator</code>。</p>
+</blockquote>
+<p><code>ByteBufAllocator</code>的主要方法如下。像buffer&#x2F;heapBuffer&#x2F;directBuffer还提供一些重载方法支持指定初始容量和最大容量。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>buffer()</td>
+<td>返回一个ByteBuf，根据具体实现，可能返回Heap或Direct ByteBuf</td>
+</tr>
+<tr>
+<td>heapBuffer()</td>
+<td>返回一个Heap ByteBuf</td>
+</tr>
+<tr>
+<td>directBuffer()</td>
+<td>返回一个Direct ByteBuf</td>
+</tr>
+<tr>
+<td>compositeBuffer&#x2F;compositeHeapBuffer&#x2F;compositeDirectBuffer</td>
+<td>返回一个CompositeByteBuf，可以通过添加Heap或Direct ByteBuf扩展</td>
+</tr>
+</tbody></table>
+<h3 id="Unpooled"><a href="#Unpooled" class="headerlink" title="Unpooled"></a>Unpooled</h3><p><code>Unpooled</code>类提供了一系列静态方法用于在没有<code>ByteBufAllocator</code>对象时分配新的<code>ByteBuf</code>。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>buffer()</td>
+<td>与UnpooledByteBufAllocator的heapBuffer()类似，返回一个Heap ByteBuf，重载方法支持指定初始和最大容量</td>
+</tr>
+<tr>
+<td>directBuffer()</td>
+<td>与UnpooledByteBufAllocator的directBuffer()类似，返回一个Direct ByteBuf，重载方法支持指定初始和最大容量</td>
+</tr>
+<tr>
+<td>wrappedBuffer()</td>
+<td>返回一个Heap ByteBuf，包裹（不复制）指定数据，支持传入byte[]、CharSequence、ByteBuf、ByteBuffer等类型</td>
+</tr>
+<tr>
+<td>copiedBuffer()</td>
+<td>返回一个Heap ByteBuf，复制指定数据，支持传入byte[]、CharSequence、ByteBuf、ByteBuffer等类型</td>
+</tr>
+</tbody></table>
+<h2 id="其他辅助类"><a href="#其他辅助类" class="headerlink" title="其他辅助类"></a>其他辅助类</h2><h3 id="ByteBufHolder"><a href="#ByteBufHolder" class="headerlink" title="ByteBufHolder"></a>ByteBufHolder</h3><p><code>ByteBufHolder</code>持有一个<code>ByteBuf</code>，并且提供其他一些辅助方法。可以扩展<code>ByteBufHolder</code>来存储除了<code>ByteBuf</code>数据以外的其他属性。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>content()</td>
+<td>返回ByteBufHolder持有的ByteBuf</td>
+</tr>
+<tr>
+<td>copy()</td>
+<td>返回一个深拷贝的ByteBufHolder</td>
+</tr>
+<tr>
+<td>duplicate()</td>
+<td>返回一个浅拷贝的ByteBufHolder</td>
+</tr>
+</tbody></table>
+<p><code>ByteBufHolder</code>继承了<code>ReferenceCounted</code>，因此它支持对<code>ByteBuf</code>进行引用计数。</p>
+<h3 id="ByteBufUtil"><a href="#ByteBufUtil" class="headerlink" title="ByteBufUtil"></a>ByteBufUtil</h3><p><code>ByteBufUtil</code>是一个<code>ByteBuf</code>的工具类，提供一系列静态方法。常用的有：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>hexDump()</td>
+<td>返回ByteBuf中数据的16进制打印值字符串，常用于日志输出和调试</td>
+</tr>
+<tr>
+<td>encodeString()&#x2F;decodeString</td>
+<td>使用指定的编码集进行编解码</td>
+</tr>
+<tr>
+<td>equals()</td>
+<td>比较两个ByteBuf中的字节数据，如果一致则返回true</td>
+</tr>
+</tbody></table>
+<h1 id="高级特性"><a href="#高级特性" class="headerlink" title="高级特性"></a>高级特性</h1><h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><p>这一部分参考<a target="_blank" rel="noopener" href="https://netty.io/wiki/reference-counted-objects.html">Netty Wiki</a>。</p>
+<p>为了尽可能地重用<code>ByteBuf</code>，在使用池化（Pooled）分配（例如<code>PooledByteBufAllocator</code>）时，当一个<code>ByteBuf</code>不再被使用时，可以快速地返回给对象池或者分配器用于再次分配，从而大大提高性能。相比之下，引用计数可以用微小的代价，换来比使用GC回收或者<code>ReferenceQueue</code>更高的效率和实时性。</p>
+<blockquote>
+<p>在Netty中，实现<code>ReferenceCounted</code>接口的类具有引用计数的能力。</p>
+<ul>
+<li>使用<code>retain()</code>和<code>release()</code>来增减引用计数值；</li>
+<li>使用<code>refCnt()</code>获取当前的引用计数值；</li>
+<li>使用引用计数值为0的对象会抛出<code>IllegalReferenceCountException</code>；</li>
+</ul>
+</blockquote>
+<p>在使用引用计数对象时，一个问题是什么时候释放对象。通用的原则是谁最后使用谁负责释放。例如Inbound消息由<code>ChannlePipeline</code>中最后一个使用<code>ByteBuf</code>对象的<code>ChannelHandler</code>释放；而Outbound消息则由Netty在写出后释放。</p>
+<p>引用计数的代价是可能会造成内存泄漏。由于JVM并不关心Netty实现的引用计数，Netty的引用计数对象会被JVM当做常规对象处理，当对象不可达时，即使其引用计数值不为0，仍然会被GC自动回收。一旦被GC回收，引用计数对象将不能被返回给创建它的对象池，导致内存泄露。</p>
+<p>为了防止内存泄漏，Netty提供了4个级别的检测机制，可以使用<code>-Dio.netty.leakDetection.level</code>参数配置：</p>
+<ul>
+<li><code>DISABLED</code> - 禁用内存泄漏检测。不推荐；</li>
+<li><code>SIMPLE</code> - 1%的抽样率进行检测。默认级别；</li>
+<li><code>ADVANCED</code> - 与<code>SIMPLE</code>一样1%抽样，区别是会打印详细的泄露报告，便于定位；</li>
+<li><code>PARANOID</code> - 同 <code>ADVANCED</code>一样会打印详细报告，100%抽样，常用于自动测试阶段；</li>
+</ul>
+<p>Netty Wiki给出了设置检测级别的最佳实践：</p>
+<ul>
+<li>在 <code>PARANOID</code>级别下跑单元测试和集成测试；</li>
+<li>在<code>SIMPLE</code>级别下运行足够长的时间，确定没有内存泄露，然后再部署应用；</li>
+<li>如果发现有内存泄露，调到<code>ADVANCED</code>级别来定位问题；</li>
+<li>不要将有内存泄露的应用部署到整个集群；</li>
+</ul>
+<h2 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h2><p>Netty的零拷贝体现在3方面：</p>
+<ol>
+<li><p>使用堆外直接内存进行 Socket 读写，不需要进行字节缓冲区的二次拷贝。省去了在堆内存和直接内存间的内存拷贝； </p>
+<blockquote>
+<p>常规IO操作的内存拷贝：JVM堆内存 – 堆外内存 – Socket缓冲区</p>
+</blockquote>
+</li>
+<li><p>Netty 提供了组合 Buffer 对象，可以聚合多个 ByteBuffer 对象，用户可以像操作一个 Buffer 那样方便的对组合 Buffer 进行操作，避免了传统通过内存拷贝的方式将几个小 Buffer 合并成一个大的 Buffer。 </p>
+</li>
+<li><p>Netty 的文件传输采用了 transferTo 方法，它可以直接将文件缓冲区的数据发送到目标 Channel，避免了传统通过循环 write 方式导致的内存拷贝问题。</p>
+</li>
+</ol>
+<h2 id="对象池"><a href="#对象池" class="headerlink" title="对象池"></a>对象池</h2><p>Netty支持两种类型的<code>ByteBuf</code>：</p>
+<ul>
+<li><code>UnpooledByteBuf</code><br>不使用对象池，不需要创建大量缓冲区对象时建议使用该类缓冲区。 </li>
+<li><code>PooledByteBuf</code><br>使用对象池，当对象释放后会归还给对象池，所以可循环使用。当需要大量且频繁创建缓冲区时，建议使用该类缓冲区。</li>
+</ul>
+<blockquote>
+<p>Netty4.1默认使用对象池缓冲区，4.0默认使用非对象池缓冲区。</p>
+</blockquote>
+<h1 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h1><h2 id="类图"><a href="#类图" class="headerlink" title="类图"></a>类图</h2><p>关键类的类图如下：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fl03COUhR7Ww7Ff3gTqKDydVYkHU.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fl03COUhR7Ww7Ff3gTqKDydVYkHU.png"  lazyload></a><br>从上往下看类图，关键的几点：</p>
+<ul>
+<li>顶层<code>ByteBuf</code>抽象类定义了几乎所有外部用到的方法，继承<code>ReferenceCounted</code>表示其支持引用计数；</li>
+<li>中间的<code>AbstractByteBuf</code>实现了与<code>ByteBuf</code>具体类型和分配方式无关的大部分方法，而<code>AbstractReferenceCountedByteBuf</code>则进一步实现<code>ReferenceCounted</code>接口定义的方法；</li>
+<li>底层的实现类按照具体类型（<code>HeapByteBuf</code>、<code>DirectByteBuf</code>）和分配方式（<code>Pooled</code>&#x2F;<code>Unpooled</code>）进一步细分。一个比较特殊的是<code>CompositeByteBuf</code>。</li>
+</ul>
+<h2 id="ByteBuf"><a href="#ByteBuf" class="headerlink" title="ByteBuf"></a>ByteBuf</h2><p><code>ByteBuf</code>定义了很多方法，主要分为几类。</p>
+<ol>
+<li><p>读写  </p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>用途</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>getXXX</td>
+<td>获取指定位置值</td>
+<td>不会修改读写指针，比如在指定位置以int类型获取值：int getInt(int index)</td>
+</tr>
+<tr>
+<td>setXXX</td>
+<td>替换指定位置值</td>
+<td>不会修改读写指针</td>
+</tr>
+<tr>
+<td>readXXX</td>
+<td>顺序读</td>
+<td>增加读指针索引，比如读int值对应readInt，readerIndex +&#x3D; 4</td>
+</tr>
+<tr>
+<td>writeXXX</td>
+<td>顺序写</td>
+<td>增加写指针索引，比如写int值对应writeInt，writerIndex +&#x3D; 4</td>
+</tr>
+<tr>
+<td>isReadable</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>isWritable</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>isReadOnly</td>
+<td>读写状态检查</td>
+<td></td>
+</tr>
+<tr>
+<td>readableBytes</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>writableBytes</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>capacity</td>
+<td>获取可读字节数&#x2F;可写字节数&#x2F;容量</td>
+<td><code>readableBytes</code></td>
+</tr>
+<tr>
+<td>较为常用</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>clear</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>discardReadBytes</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>resetReaderIndex</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>resetWriterIndex</td>
+<td>读写状态修改</td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+<li><p>ByteBuf类型检查<br>hasArray&#x2F;isDirect等 </p>
+</li>
+<li><p>ByteBuf操作  </p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>用途</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>duplicate</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>slice</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>readSlice</td>
+<td>派生，返回一个新的ByteBuf实例</td>
+<td>内部共享同一份存储数据</td>
+</tr>
+<tr>
+<td>copy</td>
+<td>复制，返回一个复制了内部数据的ByteBuf</td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+<li><p>查找，迭代  </p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>用途</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>indexOf</td>
+<td>指定区间查找</td>
+<td></td>
+</tr>
+<tr>
+<td>bytesBefore</td>
+<td>向前寻找</td>
+<td></td>
+</tr>
+<tr>
+<td>forEachByte&#x2F;forEachByteDes</td>
+<td>迭代处理</td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+</ol>
+<h2 id="AbstractByteBuf-x2F-AbstractReferenceCountedByteBuf"><a href="#AbstractByteBuf-x2F-AbstractReferenceCountedByteBuf" class="headerlink" title="AbstractByteBuf&#x2F;AbstractReferenceCountedByteBuf"></a>AbstractByteBuf&#x2F;AbstractReferenceCountedByteBuf</h2><p>这两个抽象类实现了绝大多数与具体ByteBuf类型无关的方法，源码也比较简单。</p>
+<p><code>AbstractByteBuf</code>的私有变量：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> readerIndex;	<span class="comment">// 读位置指针</span></span><br><span class="line"><span class="type">int</span> writerIndex;	<span class="comment">// 写位置指针</span></span><br><span class="line"><span class="keyword">private</span> <span class="type">int</span> markedReaderIndex;	<span class="comment">// 标记读位置指针</span></span><br><span class="line"><span class="keyword">private</span> <span class="type">int</span> markedWriterIndex;	<span class="comment">// 标记写位置指针</span></span><br><span class="line"><span class="keyword">private</span> <span class="type">int</span> maxCapacity;	<span class="comment">// 最大容量</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当对缓冲区进行读写操作时，可能需要对之前的操作进行回滚。ByteBuf可通过调用mark操作将当前的位置指针备份到markedReaderIndex、markedWriterIndex变量中，调用reset操作后，重新将指针的当前位置恢复为备份在mark变量的值。</p>
+</blockquote>
+<p>有读写位置指针，<code>readableBytes</code>的实现无比简单。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">readableBytes</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> writerIndex - readerIndex;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>常用的<code>readBytes</code>和<code>writeBytes</code>的流程也很简单：首先检查是否可读&#x2F;写，然后调用抽象方法进行具体的读写操作，最后更新位置指针。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ByteBuf <span class="title function_">readBytes</span><span class="params">(<span class="type">byte</span>[] dst, <span class="type">int</span> dstIndex, <span class="type">int</span> length)</span> &#123;</span><br><span class="line">    checkReadableBytes(length);	<span class="comment">// 检查是否有足够的可读字节数</span></span><br><span class="line">    getBytes(readerIndex, dst, dstIndex, length);	<span class="comment">// 抽象方法，具体实现交给子类</span></span><br><span class="line">    readerIndex += length;	<span class="comment">// 更新读位置指针</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ByteBuf <span class="title function_">writeBytes</span><span class="params">(<span class="type">byte</span>[] src, <span class="type">int</span> srcIndex, <span class="type">int</span> length)</span> &#123;</span><br><span class="line">    ensureAccessible();</span><br><span class="line">    ensureWritable(length);</span><br><span class="line">    setBytes(writerIndex, src, srcIndex, length);</span><br><span class="line">    writerIndex += length;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>AbstractReferenceCountedByteBuf</code>增加了引用计数的维护，采用<code>volatile</code> + <code>FieldUpdater</code>CAS的方式对引用计数值进行增减，相对<code>AtomicInteger</code>效率更高。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> AtomicIntegerFieldUpdater&lt;AbstractReferenceCountedByteBuf&gt; refCntUpdater =</span><br><span class="line">        AtomicIntegerFieldUpdater.newUpdater(AbstractReferenceCountedByteBuf.class, <span class="string">&quot;refCnt&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">refCnt</span> <span class="operator">=</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+
+<p>以<code>retain</code>方法为例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> ByteBuf <span class="title function_">retain</span><span class="params">(<span class="type">int</span> increment)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> retain0(checkPositive(increment, <span class="string">&quot;increment&quot;</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> ByteBuf <span class="title function_">retain0</span><span class="params">(<span class="type">int</span> increment)</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;	<span class="comment">// CAS死循环</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">refCnt</span> <span class="operator">=</span> <span class="built_in">this</span>.refCnt;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">int</span> <span class="variable">nextCnt</span> <span class="operator">=</span> refCnt + increment;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Ensure we not resurrect (which means the refCnt was 0) and also that we encountered an overflow.</span></span><br><span class="line">        <span class="keyword">if</span> (nextCnt &lt;= increment) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalReferenceCountException</span>(refCnt, increment);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (refCntUpdater.compareAndSet(<span class="built_in">this</span>, refCnt, nextCnt)) &#123;	<span class="comment">// CAS更新，成功时退出死循环</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="UnpooledHeapByteBuf-x2F-UnpooledDirectByteBuf"><a href="#UnpooledHeapByteBuf-x2F-UnpooledDirectByteBuf" class="headerlink" title="UnpooledHeapByteBuf&#x2F;UnpooledDirectByteBuf"></a>UnpooledHeapByteBuf&#x2F;UnpooledDirectByteBuf</h2><p><code>UnpooledHeapByteBuf</code>对应不使用对象池，分配在堆上的<code>ByteBuf</code>实现，是最简单的一种。</p>
+<p>底层的存储结构是一个字节数组，读&#x2F;写&#x2F;扩容等等操作都是基于这个数组。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">byte</span>[] array;</span><br></pre></td></tr></table></figure>
+
+<p>方法实现都比较简单，不做展开。</p>
+<p><code>UnpooledDirectByteBuf</code>对应不使用对象池，分配在堆外的<code>ByteBuf</code>实现。与<code>UnpooledHeapByteBuf</code>相比，底层是Java NIO的<code>ByteBuffer</code>对象，对数据的读写变成使用<code>ByteBuffer</code>的API进行。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ByteBuffer buffer;</span><br></pre></td></tr></table></figure>
+
+<p>以扩缩容方法<code>capacity</code>为例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ByteBuf <span class="title function_">capacity</span><span class="params">(<span class="type">int</span> newCapacity)</span> &#123;</span><br><span class="line">    checkNewCapacity(newCapacity);</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">readerIndex</span> <span class="operator">=</span> readerIndex();</span><br><span class="line">    <span class="type">int</span> <span class="variable">writerIndex</span> <span class="operator">=</span> writerIndex();</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">oldCapacity</span> <span class="operator">=</span> capacity;</span><br><span class="line">    <span class="keyword">if</span> (newCapacity &gt; oldCapacity) &#123;	<span class="comment">// 扩容</span></span><br><span class="line">        <span class="type">ByteBuffer</span> <span class="variable">oldBuffer</span> <span class="operator">=</span> buffer;</span><br><span class="line">        <span class="type">ByteBuffer</span> <span class="variable">newBuffer</span> <span class="operator">=</span> allocateDirect(newCapacity);	<span class="comment">// 使用新容量分配新的ByteBuffer</span></span><br><span class="line">        oldBuffer.position(<span class="number">0</span>).limit(oldBuffer.capacity());</span><br><span class="line">        newBuffer.position(<span class="number">0</span>).limit(oldBuffer.capacity());</span><br><span class="line">        newBuffer.put(oldBuffer);	<span class="comment">// 数据拷贝</span></span><br><span class="line">        newBuffer.clear();</span><br><span class="line">        setByteBuffer(newBuffer);	<span class="comment">// 切换到新的ByteBuffer</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (newCapacity &lt; oldCapacity) &#123;	<span class="comment">// 缩容</span></span><br><span class="line">        <span class="type">ByteBuffer</span> <span class="variable">oldBuffer</span> <span class="operator">=</span> buffer;</span><br><span class="line">        <span class="type">ByteBuffer</span> <span class="variable">newBuffer</span> <span class="operator">=</span> allocateDirect(newCapacity);</span><br><span class="line">        <span class="keyword">if</span> (readerIndex &lt; newCapacity) &#123;	<span class="comment">// 如果读指针值小于新容量</span></span><br><span class="line">            <span class="keyword">if</span> (writerIndex &gt; newCapacity) &#123;	<span class="comment">// 如果写指针值大于新容量，重置写指针位置到末尾</span></span><br><span class="line">                writerIndex(writerIndex = newCapacity);</span><br><span class="line">            &#125;</span><br><span class="line">            oldBuffer.position(readerIndex).limit(writerIndex);	<span class="comment">// 确定数据区间</span></span><br><span class="line">            newBuffer.position(readerIndex).limit(writerIndex);</span><br><span class="line">            newBuffer.put(oldBuffer);	<span class="comment">// 拷贝数据</span></span><br><span class="line">            newBuffer.clear();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            setIndex(newCapacity, newCapacity);	<span class="comment">// 读指针值大于新容量，说明没有可读数据，直接设置读写指针位置到末尾 </span></span><br><span class="line">        &#125;</span><br><span class="line">        setByteBuffer(newBuffer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Pooled池化分配"><a href="#Pooled池化分配" class="headerlink" title="Pooled池化分配"></a>Pooled池化分配</h2><p>相比Unpooled方式，Pooled对象池分配比较复杂，值得专门写一篇文章。这里只简单列下关键点：</p>
+<ul>
+<li>与非池化对象一样，Netty的池化对象分为<code>PooledDirectByteBuf</code>和<code>PooledHeapByteBuf</code>两种；</li>
+<li><code>PooledByteBufAllocator</code>采用了<code>jemalloc</code>算法来分配内存，<code>jemalloc</code>算法的优势在于多线程分配效率高，非常适合Netty的I&#x2F;O读写场景；</li>
+<li>对内存按大小进行分块管理，从小到大：<code>Tiny</code>、<code>Small</code>、<code>Normal</code>、<code>Huge</code>；</li>
+<li>关键类：<code>PoolArena</code> –&gt; <code>PoolChunk</code>&#x2F;<code>PoolChunkList</code> —&gt; <code>PoolSubpage</code> —&gt; <code>PoolThreadCache</code>；</li>
+</ul>
+<p>以<code>PooledByteBufAllocator#newDirectBuffer</code>为例，首先从线程Cache 中获取内存区域<code>PoolArena</code>，调用 <code>allocate</code> 方法进行内存分配。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> ByteBuf <span class="title function_">newDirectBuffer</span><span class="params">(<span class="type">int</span> initialCapacity, <span class="type">int</span> maxCapacity)</span> &#123;</span><br><span class="line">    <span class="comment">// 从线程cache中获取分配</span></span><br><span class="line">    <span class="type">PoolThreadCache</span> <span class="variable">cache</span> <span class="operator">=</span> threadCache.get();</span><br><span class="line">    PoolArena&lt;ByteBuffer&gt; directArena = cache.directArena;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> ByteBuf buf;</span><br><span class="line">    <span class="keyword">if</span> (directArena != <span class="literal">null</span>) &#123;</span><br><span class="line">      	<span class="comment">// 使用PoolArena分配内存</span></span><br><span class="line">        buf = directArena.allocate(cache, initialCapacity, maxCapacity);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      	<span class="comment">// 没有arena，则使用Unpooled分配</span></span><br><span class="line">        buf = PlatformDependent.hasUnsafe() ?</span><br><span class="line">                UnsafeByteBufUtil.newUnsafeDirectByteBuf(<span class="built_in">this</span>, initialCapacity, maxCapacity) :</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">UnpooledDirectByteBuf</span>(<span class="built_in">this</span>, initialCapacity, maxCapacity);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> toLeakAwareBuffer(buf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>分配的主要逻辑在<code>PoolArena#allocate</code>中，根据请求分配的大小采用不同的分配策略。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">allocate</span><span class="params">(PoolThreadCache cache, PooledByteBuf&lt;T&gt; buf, <span class="keyword">final</span> <span class="type">int</span> reqCapacity)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">int</span> <span class="variable">normCapacity</span> <span class="operator">=</span> normalizeCapacity(reqCapacity);</span><br><span class="line">    <span class="keyword">if</span> (isTinyOrSmall(normCapacity)) &#123; <span class="comment">// capacity &lt; pageSize</span></span><br><span class="line">        <span class="type">int</span> tableIdx;</span><br><span class="line">        PoolSubpage&lt;T&gt;[] table;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">tiny</span> <span class="operator">=</span> isTiny(normCapacity);</span><br><span class="line">        <span class="keyword">if</span> (tiny) &#123; <span class="comment">// &lt; 512</span></span><br><span class="line">            <span class="keyword">if</span> (cache.allocateTiny(<span class="built_in">this</span>, buf, reqCapacity, normCapacity)) &#123;</span><br><span class="line">                <span class="comment">// was able to allocate out of the cache so move on</span></span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            tableIdx = tinyIdx(normCapacity);</span><br><span class="line">            table = tinySubpagePools;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (cache.allocateSmall(<span class="built_in">this</span>, buf, reqCapacity, normCapacity)) &#123;</span><br><span class="line">                <span class="comment">// was able to allocate out of the cache so move on</span></span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            tableIdx = smallIdx(normCapacity);</span><br><span class="line">            table = smallSubpagePools;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">final</span> PoolSubpage&lt;T&gt; head = table[tableIdx];</span><br><span class="line"></span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * Synchronize on the head. This is needed as &#123;<span class="doctag">@link</span> PoolChunk#allocateSubpage(int)&#125; and</span></span><br><span class="line"><span class="comment">         * &#123;<span class="doctag">@link</span> PoolChunk#free(long)&#125; may modify the doubly linked list as well.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">synchronized</span> (head) &#123;</span><br><span class="line">            <span class="keyword">final</span> PoolSubpage&lt;T&gt; s = head.next;</span><br><span class="line">            <span class="keyword">if</span> (s != head) &#123;</span><br><span class="line">                <span class="keyword">assert</span> s.doNotDestroy &amp;&amp; s.elemSize == normCapacity;</span><br><span class="line">                <span class="type">long</span> <span class="variable">handle</span> <span class="operator">=</span> s.allocate();</span><br><span class="line">                <span class="keyword">assert</span> handle &gt;= <span class="number">0</span>;</span><br><span class="line">                s.chunk.initBufWithSubpage(buf, handle, reqCapacity);</span><br><span class="line">                incTinySmallAllocation(tiny);</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">synchronized</span> (<span class="built_in">this</span>) &#123;</span><br><span class="line">            allocateNormal(buf, reqCapacity, normCapacity);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        incTinySmallAllocation(tiny);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (normCapacity &lt;= chunkSize) &#123;</span><br><span class="line">        <span class="keyword">if</span> (cache.allocateNormal(<span class="built_in">this</span>, buf, reqCapacity, normCapacity)) &#123;</span><br><span class="line">            <span class="comment">// was able to allocate out of the cache so move on</span></span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">synchronized</span> (<span class="built_in">this</span>) &#123;</span><br><span class="line">            allocateNormal(buf, reqCapacity, normCapacity);</span><br><span class="line">            ++allocationsNormal;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// Huge allocations are never served via the cache so just call allocateHuge</span></span><br><span class="line">        allocateHuge(buf, reqCapacity);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ol>
+<li>Netty in Action </li>
+<li><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/netty-high-performance">Netty 系列之 Netty 高性能之道</a></li>
+</ol>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%A6%82%E8%BF%B0"><span class="top-box-text">概述</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8E%9F%E7%90%86"><span class="top-box-text">原理</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%86%85%E9%83%A8%E7%BB%93%E6%9E%84"><span class="top-box-text">内部结构</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ByteBuf%E7%B1%BB%E5%9E%8B"><span class="top-box-text">ByteBuf类型</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Heap-ByteBuf"><span class="top-box-text">Heap ByteBuf</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Direct-ByteBuf"><span class="top-box-text">Direct ByteBuf</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#COMPOSITE-ByteBuf"><span class="top-box-text">COMPOSITE ByteBuf</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ByteBuf%E5%88%86%E9%85%8D"><span class="top-box-text">ByteBuf分配</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ByteBufAllocator"><span class="top-box-text">ByteBufAllocator</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Unpooled"><span class="top-box-text">Unpooled</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%85%B6%E4%BB%96%E8%BE%85%E5%8A%A9%E7%B1%BB"><span class="top-box-text">其他辅助类</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ByteBufHolder"><span class="top-box-text">ByteBufHolder</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ByteBufUtil"><span class="top-box-text">ByteBufUtil</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%AB%98%E7%BA%A7%E7%89%B9%E6%80%A7"><span class="top-box-text">高级特性</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0"><span class="top-box-text">引用计数</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%9B%B6%E6%8B%B7%E8%B4%9D"><span class="top-box-text">零拷贝</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AF%B9%E8%B1%A1%E6%B1%A0"><span class="top-box-text">对象池</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="top-box-text">源码解析</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%B1%BB%E5%9B%BE"><span class="top-box-text">类图</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ByteBuf"><span class="top-box-text">ByteBuf</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#AbstractByteBuf-x2F-AbstractReferenceCountedByteBuf"><span class="top-box-text">AbstractByteBuf&#x2F;AbstractReferenceCountedByteBuf</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#UnpooledHeapByteBuf-x2F-UnpooledDirectByteBuf"><span class="top-box-text">UnpooledHeapByteBuf&#x2F;UnpooledDirectByteBuf</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Pooled%E6%B1%A0%E5%8C%96%E5%88%86%E9%85%8D"><span class="top-box-text">Pooled池化分配</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8F%82%E8%80%83"><span class="top-box-text">参考</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2019/05/21/Netty%E6%8C%87%E5%8C%97%E7%B3%BB%E5%88%975-EventLoop/">
+          <h3 class="post-title">
+            下一篇：Netty指北系列5-EventLoop
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

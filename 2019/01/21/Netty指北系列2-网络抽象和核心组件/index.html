@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>Netty指北系列2-网络抽象和核心组件</title>
+<meta name="keywords" content="Netty指北系列2-网络抽象和核心组件, jffu&#39;s blog">
+<meta name="description" content="从传统的Java网络编程方式过渡到Netty，需要理解Netty的网络抽象和核心组件。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="Netty指北系列2-网络抽象和核心组件">
+<meta property="og:description" content="从传统的Java网络编程方式过渡到Netty，需要理解Netty的网络抽象和核心组件。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">Netty指北系列2-网络抽象和核心组件</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-01-21</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Netty-%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">
+              Netty, 网络协议
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="从传统的Java网络编程过渡到Netty"><a href="#从传统的Java网络编程过渡到Netty" class="headerlink" title="从传统的Java网络编程过渡到Netty"></a>从传统的Java网络编程过渡到Netty</h1><h2 id="传统的Java网络I-x2F-O"><a href="#传统的Java网络I-x2F-O" class="headerlink" title="传统的Java网络I&#x2F;O"></a>传统的Java网络I&#x2F;O</h2><p>使用Java基于<code>Socket</code>的传统I&#x2F;O开发复杂度大，同步阻塞的模式性能也不高。虽然Java 1.4后推出了NIO支持非阻塞通信，但是编程复杂度并没有降低，使用NIO类库提供的API开发是件很麻烦的事情。</p>
+<p>写一个简单的HelloWorld服务端程序为例。</p>
+<ol>
+<li>接受客户端连接；</li>
+<li>写消息”Hello World”给客户端；</li>
+<li>关闭连接；</li>
+</ol>
+<p>OIO版本：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">OioHelloServer</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 由于传统OIO一个线程只能同时处理一个连接，服务端一般采用线程池</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">100</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// 打开一个Socket，绑定端口</span></span><br><span class="line">        <span class="type">ServerSocket</span> <span class="variable">serverSocket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerSocket</span>(port);</span><br><span class="line">        <span class="keyword">for</span> (; ; ) &#123;</span><br><span class="line">            <span class="comment">// 阻塞接收客户端的请求</span></span><br><span class="line">            <span class="keyword">final</span> <span class="type">Socket</span> <span class="variable">clientSocket</span> <span class="operator">=</span> serverSocket.accept();</span><br><span class="line">            System.out.println(<span class="string">&quot;Client connection from &quot;</span> + clientSocket);</span><br><span class="line">            <span class="comment">// 交由ThreadPool处理连接</span></span><br><span class="line">            executor.submit(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="comment">// 写消息给输出流</span></span><br><span class="line">                        <span class="type">OutputStream</span> <span class="variable">os</span> <span class="operator">=</span> clientSocket.getOutputStream();</span><br><span class="line">                        os.write(<span class="string">&quot;Hello World!\r\n&quot;</span>.getBytes(StandardCharsets.UTF_8));</span><br><span class="line">                        os.flush();</span><br><span class="line">                        <span class="comment">// 关闭连接</span></span><br><span class="line">                        clientSocket.close();</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                        <span class="keyword">try</span> &#123;</span><br><span class="line">                            clientSocket.close();</span><br><span class="line">                        &#125; <span class="keyword">catch</span> (IOException ignored) &#123;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>NIO版本：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NioHelloServer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// NIO使用ServerSocketChannel监听客户端连接，与OIO的ServerSocket作用类似</span></span><br><span class="line">        <span class="type">ServerSocketChannel</span> <span class="variable">serverChannel</span> <span class="operator">=</span> ServerSocketChannel.open();</span><br><span class="line">        serverChannel.configureBlocking(<span class="literal">false</span>); <span class="comment">// 设置channel的阻塞模式为非阻塞</span></span><br><span class="line">        <span class="comment">// 绑定指定端口</span></span><br><span class="line">        serverChannel.socket().bind(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port));</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 打开一个Selector用于多路复用I/O</span></span><br><span class="line">        <span class="type">Selector</span> <span class="variable">selector</span> <span class="operator">=</span> Selector.open();</span><br><span class="line">        <span class="comment">// 把Selector注册到ServerSocket上，并设置监听客户端连接事件</span></span><br><span class="line">        serverChannel.register(selector, SelectionKey.OP_ACCEPT);</span><br><span class="line">        <span class="type">ByteBuffer</span> <span class="variable">msg</span> <span class="operator">=</span> ByteBuffer.wrap(<span class="string">&quot;Hello World!\r\n&quot;</span>.getBytes()); <span class="comment">// NIO中使用ByteBuffer包装数据</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 阻塞等待客户端连接</span></span><br><span class="line">                selector.select();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 获取准备就绪的通道集合</span></span><br><span class="line">            Set&lt;SelectionKey&gt; selectedKeys = selector.selectedKeys();</span><br><span class="line">            Iterator&lt;SelectionKey&gt; iterator = selectedKeys.iterator();</span><br><span class="line">            <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">                <span class="type">SelectionKey</span> <span class="variable">key</span> <span class="operator">=</span> iterator.next();</span><br><span class="line">                iterator.remove();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="keyword">if</span> (key.isAcceptable()) &#123; <span class="comment">// 检查是否为客户端连接事件</span></span><br><span class="line">                        <span class="type">ServerSocketChannel</span> <span class="variable">server</span> <span class="operator">=</span> (ServerSocketChannel) key.channel();</span><br><span class="line">                        <span class="type">SocketChannel</span> <span class="variable">client</span> <span class="operator">=</span> server.accept();</span><br><span class="line">                        client.configureBlocking(<span class="literal">false</span>);</span><br><span class="line">                        client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE, msg.duplicate());</span><br><span class="line">                        System.out.println(<span class="string">&quot;Client connection from &quot;</span> + client);</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (key.isWritable()) &#123; <span class="comment">// 检查channel是否准备好写入数据</span></span><br><span class="line">                        <span class="type">SocketChannel</span> <span class="variable">client</span> <span class="operator">=</span> (SocketChannel) key.channel();</span><br><span class="line">                        <span class="comment">// 将消息写给客户端</span></span><br><span class="line">                        <span class="type">ByteBuffer</span> <span class="variable">buf</span> <span class="operator">=</span> (ByteBuffer) key.attachment();</span><br><span class="line">                        <span class="keyword">while</span> (buf.hasRemaining()) &#123;</span><br><span class="line">                            <span class="keyword">if</span> (client.write(buf) == <span class="number">0</span>) &#123;</span><br><span class="line">                                <span class="keyword">break</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="comment">// 关闭连接</span></span><br><span class="line">                        client.close();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                    key.cancel();</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        key.channel().close();</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (IOException ignored) &#123;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，NIO的编程十分复杂，如果要加上各种可靠性处理更是难上加难，还有一点就是从OIO迁移到NIO基本上需要重写全部的代码。</p>
+<h2 id="使用Netty代替传统Java网络I-x2F-O"><a href="#使用Netty代替传统Java网络I-x2F-O" class="headerlink" title="使用Netty代替传统Java网络I&#x2F;O"></a>使用Netty代替传统Java网络I&#x2F;O</h2><p>Netty使用了一套可快速上手的API类库来简化网络I&#x2F;O开发，使用Netty重写OIO和NIO的HelloWorld服务非常简单。</p>
+<p>Netty版本的OIO服务端程序：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NettyOioServer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// Netty使用ByteBuf类代替传统的ByteBuffer</span></span><br><span class="line">        <span class="keyword">final</span> <span class="type">ByteBuf</span> <span class="variable">buf</span> <span class="operator">=</span></span><br><span class="line">                Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(<span class="string">&quot;Hello World!\r\n&quot;</span>, StandardCharsets.UTF_8));</span><br><span class="line">        <span class="comment">// EventLoopGroup是一组EventLoop的集合，EventLoop是Netty事件处理的抽象核心</span></span><br><span class="line">        <span class="comment">// OIO模式使用OioEventLoopGroup，NIO模式使用NioEventLoopGroup</span></span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">group</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">OioEventLoopGroup</span>(); <span class="comment">// 1 EventLoopGroup group = new NioEventLoopGroup();</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// ServerBootstrap用来辅助引导启动一个Netty服务</span></span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();</span><br><span class="line">            b.group(group)</span><br><span class="line">                    <span class="comment">// 设置Netty的Channel类型，Channel是Netty网络传输的抽象核心</span></span><br><span class="line">                    <span class="comment">// OIO模式使用OioServerSocketChannel，NIO模式使用NioServerSocketChannel</span></span><br><span class="line">                    .channel(OioServerSocketChannel.class) <span class="comment">// 2 channel(NioServerSocketChannel.class)</span></span><br><span class="line">                    .localAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port))</span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                            ch.pipeline().addLast(</span><br><span class="line">                                    <span class="keyword">new</span> <span class="title class_">ChannelInboundHandlerAdapter</span>() &#123;</span><br><span class="line">                                        <span class="meta">@Override</span></span><br><span class="line">                                        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(</span></span><br><span class="line"><span class="params">                                                ChannelHandlerContext ctx)</span></span><br><span class="line">                                                <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                                            <span class="comment">// 在一句里面完成写消息给客户端和关闭连接的动作</span></span><br><span class="line">                                            ctx.writeAndFlush(buf.duplicate())</span><br><span class="line">                                                    .addListener(ChannelFutureListener.CLOSE);</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;);</span><br><span class="line">            <span class="comment">// 服务绑定，准备处理客户端连接</span></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind().sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="comment">// 优雅地退出</span></span><br><span class="line">            group.shutdownGracefully().sync();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从Netty的OIO版本迁移到对应的NIO版本非常简单，只需要做两处改动：</p>
+<ol>
+<li><code>EventLoopGroup group = new OioEventLoopGroup()</code> –&gt; <code>EventLoopGroup group = new NioEventLoopGroup();</code></li>
+<li><code>channel(OioServerSocketChannel.class)</code> –&gt; <code>channel(NioServerSocketChannel.class)</code></li>
+</ol>
+<h1 id="Netty网络抽象和核心组件"><a href="#Netty网络抽象和核心组件" class="headerlink" title="Netty网络抽象和核心组件"></a>Netty网络抽象和核心组件</h1><p>从示例代码延伸，网络编程中关心的东西基本上可以分为几块：</p>
+<ol>
+<li>应用的配置，启动以及最后的停止；</li>
+<li>传输用的网络通道，在通道上可以执行网络I&#x2F;O操作（连接、读、写…）；</li>
+<li>对网络事件的调度处理；</li>
+</ol>
+<p>其中涉及的核心概念主要有：</p>
+<ol>
+<li>网络程序的配置、启动、关闭，对应Netty的<code>Bootstrap</code>组件；</li>
+<li>网络通道，在这个通道上可以进行网络I&#x2F;O操作。对应Netty的<code>Channel</code>组件；</li>
+<li>事件和数据的处理，比如客户端连接事件，数据的编解码，网络I&#x2F;O读写等等。这是很关键的一部分，对应Netty的<code>ChannelHandler</code>，以及延伸的<code>ChannelPipeline</code>、<code>ChannelFuture</code>等组件；</li>
+<li>数据的封装，负责将在网络上传输的字节数据封装成实体供上层进行读写。对应Netty的<code>ByteBuf</code>组件；</li>
+<li>线程、事件的调度，对应Netty的<code>EventLoop</code>组件；</li>
+</ol>
+<h2 id="Bootstrap"><a href="#Bootstrap" class="headerlink" title="Bootstrap"></a><code>Bootstrap</code></h2><p><code>Bootstrap</code>在Netty中充当引导类的作用，它主要负责对应用进行配置和启停。客户端使用<code>BootStarp</code>，对应的，服务端使用 <code>ServerBootstrap</code>类。</p>
+<h2 id="Channel"><a href="#Channel" class="headerlink" title="Channel"></a><code>Channel</code></h2><p>Java网络编程使用<code>Socket</code>来完成基本的I&#x2F;O操作，例如绑定端口<code>bind()</code>、连接对端节点<code>connect()</code>、数据读<code>read()</code>、数据写<code>write()</code>。直接使用起来并不方便，即使切换到NIO类库的<code>SocketChannel</code>&#x2F;<code>ServerSocketChannel</code>，也没有太多改善。</p>
+<p>在Netty中，对应的类为<code>Channel</code>（与NIO类库中的<code>Channel</code>概念上类似，不是同一个类），<code>Channel</code>接口是Netty传输抽象的核心，一些重要的特性：</p>
+<ul>
+<li>提供诸多API实现网络I&#x2F;O，比如<code>read()</code>、<code>write()</code>、<code>connect()</code>、<code>bind()</code>、<code>close()</code>等；</li>
+<li>提供<code>metadata()</code>等方法用于设置TCP参数，比如TCP缓冲区大小、超时时间、是否重用地址等；</li>
+<li>屏蔽了<code>SocketChannel</code>和<code>ServerSocketChannel</code>的使用差异，提供了统一的操作视图；</li>
+<li>Netty预置了一系列<code>Channel</code>类型用于不同场合，例如常用的基于NIO的<code>NioServerSocketChannel</code>&#x2F;<code>NioSocketChannel</code>、基于Linux Epoll的<code>EpollServerSocketChannel</code>&#x2F;<code>EpollSocketChannel</code>，还有OIO版本的<code>OioServerSocketChannel</code>&#x2F;<code>OioSocketChannel</code>等；</li>
+<li>绑定了一个<code>ChannelPipeline</code>用于支持流水线式的事件处理；</li>
+</ul>
+<h2 id="ChannelHandler"><a href="#ChannelHandler" class="headerlink" title="ChannelHandler"></a><code>ChannelHandler</code></h2><p>Java的NIO类库使用了<code>Selector</code>来侦听多个<code>Channel</code>上发生的I&#x2F;O事件，然后从<code>selectedKeys</code>中取出事件，判断类型，一一处理。这个过程是比较繁琐的，Netty使用了<code>EventLoop</code>、<code>ChannelPipeline</code>、<code>ChannelHandler</code>等API对网络事件处理进行了抽象。</p>
+<p>一般业务代码会放在<code>ChannelHanlder</code>当中实现，<code>ChannelHandler</code>用于拦截和处理I&#x2F;O事件和操作，<code>ChannelHanlder</code>的事件处理函数，比如数据读写、连接建立断开，会被网络事件触发执行，<code>ChannelHandler</code>几乎可以用于执行任何操作，比如将数据转换为另一种格式，或者捕获处理异常。<br><code>ChannelHandler</code>的两个主要子接口<code>ChannelInboundHandler</code>和<code>ChannelOutboundHandler</code>，分别用于进出的数据处理。</p>
+<p>在<code>ChannelHanlder</code>上，还有一个核心组件是<code>ChannelPipeline</code>。</p>
+<p><code>ChannelPipeline</code>体现了Netty事件处理的灵活性，<code>ChannelPipeline</code>作为<code>ChannelHandler</code>的容器，运行机制类似JavaEE里的Filter链：</p>
+<ul>
+<li>在Netty的网络抽象里，<code>ChannelPipeline</code>代表<code>Channel</code>的数据管道，事件和消息在<code>ChannelPipeline</code>中流动和传递。<code>ChannelPipeline</code>相当于一张链表，链表的节点则是一个个<code>ChannelHandler</code>。</li>
+<li><code>ChannelPipeline</code>支持动态地安装或删除<code>ChannelHandler</code>，通过组合不同类型的<code>ChannelHandler</code>，来实现复杂的业务逻辑。</li>
+<li>当一个<code>Channel</code>被创建时，会自动地被分配一个独立的<code>ChannelPipeline</code>。</li>
+</ul>
+<p>Netty还提供了<code>ChannelHandlerContext</code>用来表示<code>ChannelHandler</code>和<code>ChannelPipeline</code>的绑定关系，在开发中经常使用<code>ChannelHandlerContext</code>来获取<code>Channel</code>然后写数据。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"  lazyload></a></p>
+<h2 id="ByteBuf"><a href="#ByteBuf" class="headerlink" title="ByteBuf"></a><code>ByteBuf</code></h2><p>在网络中流动的数据是字节，Netty使用<code>ByteBuf</code>代替NIO的<code>ByteBuffer</code>来封装字节数据。<code>ByteBuffer</code>的API使用较为复杂，Netty需要自定义的字节容器来为其框架服务，<code>ByteBuf</code>的功能更易用，更强大：</p>
+<ul>
+<li><code>ByteBuffer</code>在分配完成后长度是固定的，而<code>ByteBuf</code>支持动态伸缩；</li>
+<li><code>ByteBuffer</code>只有一个位置指针，读写切换的时候需要调用<code>flip()</code>和<code>rewind()</code>等方法，容易出错。<code>ByteBuf</code>有读写位置的两个独立位置指针，不需要手动切换模式；</li>
+<li><code>ByteBuf</code>支持普通的对象回收机制和基于对象池的回收机制</li>
+<li><code>ByteBuf</code>支持引用计数（Netty4之后）；</li>
+<li><code>ByteBuf</code>支持将对象分配到堆内存和直接内存（堆外内存）上，以方便不同场合使用；</li>
+</ul>
+<h2 id="EventLoop"><a href="#EventLoop" class="headerlink" title="EventLoop"></a><code>EventLoop</code></h2><p><code>EventLoop</code>是Netty对线程、事件调度的抽象，一个<code>EventLoop</code>可以简单地理解为在一个线程内进行阻塞等待事件和事件的循环处理，当然也可以处理定时任务和提交的普通任务。</p>
+<p>一组<code>EventLoop</code>组成一个<code>EventLoopGroup</code>，类似于线程池的概念。以服务端为例，Netty的线程模型通常有两个<code>EventLoopGroup</code>：<code>Boss EventLoopGroup</code>和<code>Worker EventLoopGroup</code>，其中Boss线程组用于监听和接收客户端连接，当客户端连接时，将其封装为一个<code>Channel</code>绑定到Worker线程组里的一个<code>EventLoop</code>。</p>
+<p>当一条<code>Channel</code>上产生I&#x2F;O或其他事件时，Netty使用<code>ChannelEvent</code>来封装事件，并将<code>ChannelEvent</code>交给<code>EventLoop</code>处理。由于<code>Channel</code>在其生命周期内只会与一个<code>EventLoop</code>绑定，因此所有发生在这一<code>Channel</code>上的I&#x2F;O操作都是在同一个线程中处理的，避免了线程安全问题。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"  lazyload></a></p>
+<p>Netty中最常用的<code>EventLoop</code>类是<code>NioEventLoop</code>，对应的<code>EventLoopGroup</code>即<code>NioEventLoopGroup</code>。一个<code>NioEventLoop</code>包含了一个<code>Selector</code>（就是Java NIO三大组件之一的<code>Selector</code>）。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>一图胜万言。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"  lazyload></a></p>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%BB%8E%E4%BC%A0%E7%BB%9F%E7%9A%84Java%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%BF%87%E6%B8%A1%E5%88%B0Netty"><span class="top-box-text">从传统的Java网络编程过渡到Netty</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%BC%A0%E7%BB%9F%E7%9A%84Java%E7%BD%91%E7%BB%9CI-x2F-O"><span class="top-box-text">传统的Java网络I&#x2F;O</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%BD%BF%E7%94%A8Netty%E4%BB%A3%E6%9B%BF%E4%BC%A0%E7%BB%9FJava%E7%BD%91%E7%BB%9CI-x2F-O"><span class="top-box-text">使用Netty代替传统Java网络I&#x2F;O</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Netty%E7%BD%91%E7%BB%9C%E6%8A%BD%E8%B1%A1%E5%92%8C%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6"><span class="top-box-text">Netty网络抽象和核心组件</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Bootstrap"><span class="top-box-text">Bootstrap</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Channel"><span class="top-box-text">Channel</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ChannelHandler"><span class="top-box-text">ChannelHandler</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ByteBuf"><span class="top-box-text">ByteBuf</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#EventLoop"><span class="top-box-text">EventLoop</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%80%BB%E7%BB%93"><span class="top-box-text">总结</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2019/01/09/Netty%E6%8C%87%E5%8C%97%E7%B3%BB%E5%88%971-%E5%85%A5%E9%97%A8/">
+          <h3 class="post-title">
+            下一篇：Netty指北系列1-入门
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+
