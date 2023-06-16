@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>云原生入门指北-ServiceMesh</title>
+<meta name="keywords" content="云原生入门指北-ServiceMesh, jffu&#39;s blog">
+<meta name="description" content="云原生入门指北系列第三篇，ServieMesh的前世今生，面临的挑战。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="云原生入门指北-ServiceMesh">
+<meta property="og:description" content="云原生入门指北系列第三篇，ServieMesh的前世今生，面临的挑战。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">云原生入门指北-ServiceMesh</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2021-10-17</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+              云原生
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="由问题说起"><a href="#由问题说起" class="headerlink" title="由问题说起"></a>由问题说起</h1><p>以SpringCloud、Dubbo等技术栈为基础的微服务开发模式是目前的主流，中间件等基础组件的能力一般都会通过SDK的方式进行集成。在实践中存在以下问题（参考<a target="_blank" rel="noopener" href="https://www.servicemesher.com/istio-handbook/concepts/overview.html">Istio Handbook</a>）：</p>
+<blockquote>
+<ul>
+<li><strong>侵入性强</strong>。想要集成 SDK 的能力，除了需要添加相关依赖，往往还需要在业务代码中增加一部分的代码、或注解、或配置；业务代码与治理层代码界限不清晰。 </li>
+<li><strong>升级成本高</strong>。每次升级都需要业务应用修改 SDK 版本，重新进行功能回归测试，并且对每一台机器进行部署上线，而这对于业务方来说，与业务的快速迭代开发是有冲突的，大多不愿意停下来做这些与业务目标不太相关的事情。 </li>
+<li><strong>版本碎片化严重</strong>。由于升级成本高，而中间件却不会停止向前发展的步伐，久而久之，就会导致线上不同服务引用的 SDK 版本不统一、能力参差不齐，造成很难统一治理。 </li>
+<li><strong>中间件演变困难</strong>。由于版本碎片化严重，导致中间件向前演进的过程中就需要在代码中兼容各种各样的老版本逻辑，带着 “枷锁” 前行，无法实现快速迭代。 </li>
+<li><strong>多语言支持的负担。</strong>对于异构的系统，需要为不同语言开发对应的SDK。 </li>
+<li><strong>内容多、门槛高</strong>。Spring Cloud 被称为微服务治理的全家桶，包含大大小小几十个组件，内容相当之多，往往需要几年时间去熟悉其中的关键组件。而要想使用 Spring Cloud 作为完整的治理框架，则需要深入了解其中原理与实现，否则遇到问题还是很难定位。 </li>
+<li><strong>治理功能不全</strong>。不同于 RPC 框架，Spring Cloud 作为治理全家桶的典型，也不是万能的，诸如协议转换支持、多重授权机制、动态请求路由、故障注入、灰度发布等高级功能并没有覆盖到。而这些功能往往是企业大规模落地不可获缺的功能，因此公司往往还需要投入其它人力进行相关功能的自研或者调研其它组件作为补充。</li>
+</ul>
+</blockquote>
+<p><a target="_blank" rel="noopener" href="https://philcalcado.com/2017/08/03/pattern_service_mesh.html">Pattern: Service Mesh</a>一文描述了service mesh出现的自然演进过程。有种说法是，Service Mesh是微服务时代的TCP协议：正如TCP协议将网络通信的技术栈从应用的实现中抽离出来下移到网络层，Service Mesh则是将分布式服务间的网络通信从服务的实现中抽离到了单独的一层代理中。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlaZokiTT-TRaGX_smzoCfgVKq09.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlaZokiTT-TRaGX_smzoCfgVKq09.png"  lazyload></a></p>
+<h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><p>Linkerd（ServiceMesh的开源框架）最早提出了ServiceMesh（服务网格）的概念：</p>
+<blockquote>
+<p>A service mesh is a dedicated <strong>infrastructure layer for handling service-to-service communication</strong>. It’s responsible for the <strong>reliable delivery of requests through the complex topology</strong> <strong>of services</strong> that comprise a modern, cloud native application. In practice, the service mesh is typically implemented as an <strong>array of lightweight network proxies</strong> that are deployed alongside application code, <strong>without the application needing to be aware.</strong></p>
+</blockquote>
+<p>这其中有几个关键词：</p>
+<ul>
+<li>本质：基础设施层，微服务架构支撑、网络通信、治理等相关能力下沉到基础设施层。</li>
+<li>功能：请求分发。</li>
+<li>部署形式：轻量网络代理（sidecar）。</li>
+<li>特点：对应用透明。</li>
+</ul>
+<p>ServiceMesh能给我们带来的：</p>
+<ul>
+<li>屏蔽分布式系统通信的复杂性(负载均衡、服务发现、认证授权、监控追踪、流量控制等等)，服务只用关注业务逻辑；</li>
+<li>真正的语言无关，服务可以用任何语言编写，只需和Service Mesh 通信即可；</li>
+<li>对应用透明，Service Mesh 组件可以单独升级，解耦架构和业务团队。</li>
+</ul>
+<p>Linkerd的请求处理流程很好地体现了service mesh的作用：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fg15RuRAJVSxmQHxjEsow_RfJaDG.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fg15RuRAJVSxmQHxjEsow_RfJaDG.png"  lazyload></a></p>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvx1gSK8Ts8yrPvZhX176VMew1_k.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvx1gSK8Ts8yrPvZhX176VMew1_k.png"  lazyload></a></p>
+<p>ServiceMesh从总体架构上来讲比较简单：</p>
+<ul>
+<li>数据平面(data plane)：一堆紧挨着各项服务的用户代理，负责截获不同服务之间的调用并对其进行“处理”。</li>
+<li>控制平面(control plane)：一组任务管理流程组成负责协调代理的行为，并提供运维API。</li>
+</ul>
+<p>控制平面的特点：</p>
+<ul>
+<li>不直接解析数据包。 </li>
+<li>与控制平面中的代理通信，下发策略和配置。 </li>
+<li>负责网络行为的可视化。 </li>
+<li>通常提供 API 或者命令行工具可用于配置版本化管理，便于持续集成和部署。</li>
+</ul>
+<p>数据平面的特点：</p>
+<ul>
+<li><p>通常是按照无状态目标设计的 </p>
+<blockquote>
+<p>但实际上为了提高流量转发性能，需要缓存一些数据，因此无状态也是有争议的。</p>
+</blockquote>
+</li>
+<li><p>直接处理入站和出站数据包，转发、路由、健康检查、负载均衡、认证、鉴权、产生监控数据等。 </p>
+</li>
+<li><p>对应用来说透明，即可以做到无感知部署。</p>
+</li>
+</ul>
+<h2 id="开源项目"><a href="#开源项目" class="headerlink" title="开源项目"></a>开源项目</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjrIiTMlydfKJIkIjVncbWsUEffQ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjrIiTMlydfKJIkIjVncbWsUEffQ.png"  lazyload></a></p>
+<p>目前Service Mesh领域比较火热的当属<a target="_blank" rel="noopener" href="https://istio.io/">Istio</a>、<a target="_blank" rel="noopener" href="https://linkerd.io/">Linkerd</a>和<a target="_blank" rel="noopener" href="https://www.consul.io/">Consul</a>，还有一般当做数据平面代理用的<a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a>（当然还有蚂蚁的<a target="_blank" rel="noopener" href="https://github.com/mosn/mosn">MOSN</a>）。相比较而言，Istio的社区活跃度更高一些，国内用Istio+Envoy多一点。</p>
+<blockquote>
+<p>一个简单不严谨的比较参考：<a target="_blank" rel="noopener" href="https://platform9.com/blog/kubernetes-service-mesh-a-comparison-of-istio-linkerd-and-consul/">Kubernetes Service Mesh: A Comparison of Istio, Linkerd, and Consul</a></p>
+</blockquote>
+<h1 id="Istio"><a href="#Istio" class="headerlink" title="Istio"></a>Istio</h1><h2 id="架构-1"><a href="#架构-1" class="headerlink" title="架构"></a>架构</h2><p>从微服务通信的视角看，一个简化的Istio设计原型长这样：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmmGxMf-TuAJuy4ebvXINBwDKu14.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmmGxMf-TuAJuy4ebvXINBwDKu14.png"  lazyload></a></p>
+<p>Istio默认使用 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 作为 sidecar 代理。Istio 利用了 Envoy 内建的大量特性，例如服务发现与负载均衡、流量拆分、故障注入、熔断器以及分阶段发布等功能。</p>
+<p>如果把控制平面拆开看，Istio的架构长这样（参考<a target="_blank" rel="noopener" href="https://istio.io/latest/docs/ops/deployment/architecture/">istio官网</a>）：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsv1CiFKuApvCYLgAZmZ86RlmxA7.svg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsv1CiFKuApvCYLgAZmZ86RlmxA7.svg"  lazyload></a></p>
+<p>Istio 1.5版本后，对控制平面的架构做了重构，将原来分散的、独立部署的几个组件整合为一个单体结构 istiod ，istiod分为三个主要模块：</p>
+<ol>
+<li>Pilot： 为 sidecar 提供服务发现功能，为智能路由（例如A&#x2F;B测试、金丝雀部署等）和弹性（超时、重试、熔断器等）提供流量管理功能；它将控制流量行为的高级路由规则转换为特定于 Envoy 的配置，并在运行时将它们传播到 sidecar； </li>
+<li>Citadel： 通过内置身份和证书管理赋能强大的服务间和最终用户身份验证；可用于升级服务网格中未加密的流量，并为运维人员提供基于服务标识而不是网络控制的强制执行策略的能力； </li>
+<li>Galley： 用来验证用户编写的 Istio API 配置；未来的版本中 Galley 将接管获取配置、处理和分配组件的顶级责任，从而将其他的 Istio 组件与从底层平台（例如 k8s）获取用户配置的细节中隔离开来；</li>
+</ol>
+<h2 id="核心能力"><a href="#核心能力" class="headerlink" title="核心能力"></a>核心能力</h2><ul>
+<li>流量控制 </li>
+<li><ul>
+<li>为 HTTP、gRPC、WebSocket 和 TCP 流量自动负载均衡。</li>
+<li>通过丰富的路由规则、重试、故障转移和故障注入对流量行为进行细粒度控制。</li>
+</ul>
+</li>
+<li>可观察性 </li>
+<li><ul>
+<li>提供完善的可观察性方面的能力，包括对所有网格控制下的流量进行自动化度量、日志记录和追踪。</li>
+</ul>
+</li>
+<li>安全 </li>
+<li><ul>
+<li>提供身份验证和授权策略，在集群中实现安全的服务间通信。</li>
+</ul>
+</li>
+</ul>
+<h2 id="入门"><a href="#入门" class="headerlink" title="入门"></a>入门</h2><h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>参考<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/setup/getting-started">官方文档</a>完成istio和示例应用的安装。</p>
+<p>istio提供了一个非常简单的示例应用<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/examples/bookinfo/">Bookinfo</a>，它包含四个单独的用不同语言开发的微服务（以及对应的Envoy sidecar），实现了书籍信息（Details）、评论（Reviews）和评级（Ratings）的展示，3个不同版本的Reviews服务展示不同的评论。示意图如下：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrQtyWdIOMbqm4atxLn4oqwtLn7A.svg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrQtyWdIOMbqm4atxLn4oqwtLn7A.svg"  lazyload></a></p>
+<p>部署完示例应用后，可以通过以下命令打开浏览器查看效果。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">minikube service productpage</span><br></pre></td></tr></table></figure>
+
+<h3 id="流量控制"><a href="#流量控制" class="headerlink" title="流量控制"></a>流量控制</h3><p><a target="_blank" rel="noopener" href="https://www.servicemesher.com/istio-handbook/GLOSSARY.html#istio">Istio</a> 中的流量控制功能主要分为三个方面（参考<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/">Istio官方文档</a>）：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/request-routing/">请求路由</a>和<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/traffic-shifting/">流量转移</a></li>
+<li>弹性功能，包括<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/circuit-breaking/">熔断</a>、<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/request-timeouts/">超时</a>、重试等</li>
+<li>调试能力，包括<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/fault-injection/">故障注入</a>和<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/mirroring/">流量镜像</a>等</li>
+</ul>
+<p>以最常用的请求路由来做入门的范例，默认情况下istio没有创建任何流量规则，所以使用默认的随机(round robin)模式在不同的 reviews 版本之间切换。</p>
+<blockquote>
+<p>在设置流量规则之前，先了解下istio的两个概念：</p>
+<ul>
+<li>虚拟服务（virtual service）：用于配置如何在服务网格内将请求路由到服务，每个虚拟服务包含一组路由规则，Istio 按顺序评估它们，然后将每个给定的请求匹配到虚拟服务指定的实际目标地址。</li>
+<li>目标规则（destination rules）：虚拟服务将流量路由到给定的目标地址，然后目标规则被用来配置该目标的流量。在评估虚拟服务路由规则之后，目标规则将应用于流量的“真实”目标地址。</li>
+</ul>
+</blockquote>
+<p>首先创建默认的目标规则，用来定义每个版本对应的 subset：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml</span></span><br><span class="line">destinationrule.networking.istio.io/productpage created</span><br><span class="line">destinationrule.networking.istio.io/reviews created</span><br><span class="line">destinationrule.networking.istio.io/ratings created</span><br><span class="line">destinationrule.networking.istio.io/details created</span><br></pre></td></tr></table></figure>
+
+<p>目标规则的示例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">DestinationRule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">subsets:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v1</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v2</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v2</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v3</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v3</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>case1：将所有流量都指向v1</strong> - 让所有访问 reviews 服务的流量只访问 v1 版本（刷新页面，会发现评论都是无星的了）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml</span></span><br><span class="line">virtualservice.networking.istio.io/productpage created</span><br><span class="line">virtualservice.networking.istio.io/reviews created</span><br><span class="line">virtualservice.networking.istio.io/ratings created</span><br><span class="line">virtualservice.networking.istio.io/details created</span><br></pre></td></tr></table></figure>
+
+<p>对应的虚拟服务配置如下，可以看到只有一条目的规则指向v1的subset。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>可以使用以下命令查询已定义的虚拟服务：</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get virtualservices -o yaml</span><br></pre></td></tr></table></figure>
+
+<p><strong>case2：实现金丝雀发布</strong> - 80%流量访问v1版本，20%流量访问v2版本：</p>
+<blockquote>
+<p>注意：这和使用容器编排平台的部署功能来进行版本迁移完全不同，后者使用了实例扩容来对流量进行管理。</p>
+<p>使用 Istio，两个版本的 reviews 服务可以独立地进行扩容和缩容，而不会影响这两个服务版本之间的流量分发。</p>
+</blockquote>
+<p>对应的虚拟服务配置如下，可以看到对应了两条目标规则，分别设置了权重值weight 80&#x2F;20。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">80</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v2</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">20</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>case3：基于用户身份进行路由</strong> - 来自名为 Jason 的用户的所有流量将被路由到服务 reviews:v2</p>
+<blockquote>
+<p>productpage 服务在所有到 reviews 服务的 HTTP 请求中都增加了一个自定义的 end-user 请求头，从而达到了本例子的效果。这就是Istio的L7路由能力。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml</span><br></pre></td></tr></table></figure>
+
+<p>对应的虚拟服务配置如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">headers:</span></span><br><span class="line">        <span class="attr">end-user:</span></span><br><span class="line">          <span class="attr">exact:</span> <span class="string">jason</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v2</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="安全"><a href="#安全" class="headerlink" title="安全"></a>安全</h3><p>Istio 的安全功能提供了强大的身份、策略、透明的 TLS 加密以及认证、授权和审计（AAA）。这块我不太感兴趣没有细看，详细的可以参考<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/concepts/security/">官方介绍</a>。</p>
+<h3 id="可视化"><a href="#可视化" class="headerlink" title="可视化"></a>可视化</h3><p>Istio 常见的遥测应用做了集成。 遥测能帮你了解服务网格的结构、展示网络的拓扑结构、分析网格的健康状态。例如 <a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/ops/integrations/kiali/">Kiali</a> 仪表板、以及 <a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/ops/integrations/prometheus/">Prometheus</a><strong>、</strong> <a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/ops/integrations/grafana">Grafana</a>、<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/ops/integrations/jaeger/">Jaeger</a>等。</p>
+<h1 id="挑战与一些想法"><a href="#挑战与一些想法" class="headerlink" title="挑战与一些想法"></a>挑战与一些想法</h1><p>目前ServiceMesh仍未成为主流，它的优点很多，但是目前成熟度确实不高。个人感觉，ServiceMesh面前还有几座大山：</p>
+<ul>
+<li>运维复杂度</li>
+<li>性能和资源消耗</li>
+<li>成熟度和适用场景</li>
+</ul>
+<p>首先说运维复杂度。分布式环境下面，众多的微服务和各种配套的组件（日志、监控等等）已经够复杂了，再引入代理sidecar会使得整体链路变得更长，运维复杂度更大，导致可能开发的时候很爽，线上运维和定位链路问题的时候很痛苦。当然随着ServiceMesh框架成熟度的提高，必然会跟现有的基础设施层结合得越来越紧密，运维会越来越简单。</p>
+<p>其次是性能和资源消耗问题。由于进出微服务的流量被sidecar代理劫持，与原来服务间直接调用相比，链路上多了两次调用，必然带来性能的下降。另外，额外引入的组件肯定也会增加CPU和内存的资源消耗。</p>
+<p>Istio每个版本都会做Benchmark性能测试，最新版本的性能测试报告可以参考<a target="_blank" rel="noopener" href="https://istio.io/latest/docs/ops/deployment/performance-and-scalability/">Istio Performance and Scalability</a>，总体的情况如下：</p>
+<blockquote>
+<p><strong>1000</strong> 个服务和 <strong>2000</strong> 个 sidecar，全网格范围内，QPS 为 70000。</p>
+<ul>
+<li>通过代理的 QPS 有 1000 时，Envoy 使用了 <strong>0.35 vCPU</strong> 和 <strong>40 MB 内存</strong>。 </li>
+<li>Istiod 使用了 1 vCPU 和 1.5 GB 内存。 </li>
+<li>90% 的情况 Envoy 代理会增加了 2.65 ms 的延迟。</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>这里比较迷的是Istio的中文文档和英文文档对于性能数据有比较大的出入，例如中文文档上写的延迟是6.3 ms。考虑到中文文档的性能报告里还出现了Mixer的字眼（而Mixer这个被人诟病很久的组件在Istio新版本中已经被干掉了），中文文档我猜应该是错误的。</p>
+</blockquote>
+<p>以最关键的延迟指标为例：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fl7nb0fIMJlNGwjso6yEnjgrm1rA.svg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fl7nb0fIMJlNGwjso6yEnjgrm1rA.svg"  lazyload></a><br>最底下的baseline绿线表示端到端直连的延迟，none_both蓝线表示没有配置Istio Filter的情况，两者的差距随着连接数的增加而增加，默认情况下Istio还会配置一些过滤器，延迟会更高一些。总的来说，两个sidecar的引入会增加2.65 ms（90%）和 2.91 ms（99%）的延迟，应该是还算可以接受的一个值。</p>
+<blockquote>
+<p>PS. Linkered<a target="_blank" rel="noopener" href="https://linkerd.io/2021/05/27/linkerd-vs-istio-benchmarks/">号称比Istio更快</a>。</p>
+</blockquote>
+<p>不过，大部分情况下网络通信本身的开销会远小于业务逻辑的处理时间。同时，在ServiceMesh本身做性能优化相比原来在SDK中做更容易，因为不用考虑SDK的多语言支持、整个链路的SDK升级等等问题，蚂蚁的一个报告里甚至提到了在实际性能数据里发现引入Proxy比没有Proxy延迟更小的情况，参考<a target="_blank" rel="noopener" href="https://www.infoq.cn/video/ohrn9atvjpssaiacbkcr">蚂蚁金服ServiceMesh深度实践</a>。</p>
+<p>最后是成熟度和适用场景问题，目前ServiceMesh还属于“看上去很美好”的阶段，离大规模落地还有一定距离。以Istio为例，在实际落地时还有一系列问题要面对，比如：</p>
+<ul>
+<li>大规模集群的性能问题</li>
+<li>产品生态问题，跟原有架构如何整合（Istio 更像是一套技术方案，却并不是一套产品方案）</li>
+<li>对非Kubernetes的环境支持有限</li>
+<li>原有系统的平滑升级问题</li>
+</ul>
+<p>目前的ServiceMesh还主要是关注于服务间通信的mesh，而广义上，所有需要网络通信的中间件都可以被mesh化，例如数据库、消息队列等等。未来的中间件SDK会演化成云基础设施提供的mesh层。像<a target="_blank" rel="noopener" href="https://dapr.io/">Dapr</a>就是一个很好的例子。</p>
+<p>这里分享一张图片，来自<a target="_blank" rel="noopener" href="https://skyao.io/talk/201905-servicemesh-development-trend/">Service Mesh发展趋势：云原生中流砥柱
+</a>。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fl50iteaVaGaYiWfQUnEbXbTjLpO.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fl50iteaVaGaYiWfQUnEbXbTjLpO.png"  lazyload></a></p>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%94%B1%E9%97%AE%E9%A2%98%E8%AF%B4%E8%B5%B7"><span class="top-box-text">由问题说起</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%A6%82%E5%BF%B5"><span class="top-box-text">概念</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AE%9A%E4%B9%89"><span class="top-box-text">定义</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%9E%B6%E6%9E%84"><span class="top-box-text">架构</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE"><span class="top-box-text">开源项目</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Istio"><span class="top-box-text">Istio</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%9E%B6%E6%9E%84-1"><span class="top-box-text">架构</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%A0%B8%E5%BF%83%E8%83%BD%E5%8A%9B"><span class="top-box-text">核心能力</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%85%A5%E9%97%A8"><span class="top-box-text">入门</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%89%E8%A3%85"><span class="top-box-text">安装</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6"><span class="top-box-text">流量控制</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%89%E5%85%A8"><span class="top-box-text">安全</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%8F%AF%E8%A7%86%E5%8C%96"><span class="top-box-text">可视化</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%8C%91%E6%88%98%E4%B8%8E%E4%B8%80%E4%BA%9B%E6%83%B3%E6%B3%95"><span class="top-box-text">挑战与一些想法</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2021/10/16/%E4%BA%91%E5%8E%9F%E7%94%9F%E5%85%A5%E9%97%A8%E6%8C%87%E5%8C%97-Kubernetes/">
+          <h3 class="post-title">
+            下一篇：云原生入门指北-Kubernetes
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

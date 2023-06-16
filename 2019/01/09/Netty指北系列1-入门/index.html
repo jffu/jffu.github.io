@@ -95,12 +95,12 @@
         <div class="post-content">
           <p>  之前的工作中Netty框架用得比较多，现在做的更加偏向于上层业务，不再与底层网络打交道，Netty相关的东西已经基本忘得差不多了。打算写一系列Netty相关的入门指南文章，算是温故而知新。</p>
 <ol>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/129603">Netty指北-入门</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/130427">Netty指北-网络抽象和核心组件</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/135121">Netty指北-Channel</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/139625">Netty指北-ChannelHandler和ChannelPipeline</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/141072">Netty指北-EventLoop</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/143222">Netty指北-ByteBuf</a></li>
+<li>Netty指北-入门</li>
+<li>Netty指北-网络抽象和核心组件</li>
+<li>Netty指北-Channel</li>
+<li>Netty指北-ChannelHandler和ChannelPipeline</li>
+<li>Netty指北-EventLoop</li>
+<li>Netty指北-ByteBuf</li>
 </ol>
 <hr>
 <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1 前言"></a>1 前言</h1><h2 id="Netty是什么，用来解决什么问题"><a href="#Netty是什么，用来解决什么问题" class="headerlink" title="Netty是什么，用来解决什么问题"></a>Netty是什么，用来解决什么问题</h2><p>参考Netty的<a target="_blank" rel="noopener" href="http://netty.io/">官网</a>介绍：</p>
@@ -201,7 +201,7 @@
 </li>
 <li>Netty提供了<code>shutdownGracefully()</code>用于优雅地退出并清理资源。</li>
 </ol>
-<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>如果不需要Netty客户端的话，一个简单的HelloWorld服务器已经可用了，直接运行<code>main()</code>方法就可以启动。<br>使用Windows&#x2F;Linux自带的telnet可以对其进行测试，以linux为例：运行telnet，可以看到服务端返回了”Hello World”消息后连接断开。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"  lazyload></a></p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>如果不需要Netty客户端的话，一个简单的HelloWorld服务器已经可用了，直接运行<code>main()</code>方法就可以启动。<br>使用Windows&#x2F;Linux自带的telnet可以对其进行测试，以linux为例：运行telnet，可以看到服务端返回了”Hello World”消息后连接断开。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"  lazyload></a></p>
 <h2 id="客户端"><a href="#客户端" class="headerlink" title="客户端"></a>客户端</h2><p>与服务端程序一样，Netty客户端的组成也有两部分，而且结构上基本一致：</p>
 <ol>
 <li><code>ChannelHandler</code>接口的实现：对响应进行处理，一般业务代码都放在这里；</li>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>云原生入门指北-Serverless</title>
+<meta name="keywords" content="云原生入门指北-Serverless, jffu&#39;s blog">
+<meta name="description" content="云原生入门指北系列第五篇，Serverless到底是个什么less。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="云原生入门指北-Serverless">
+<meta property="og:description" content="云原生入门指北系列第五篇，Serverless到底是个什么less。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">云原生入门指北-Serverless</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2021-10-19</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+              云原生
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p>Serverless，顾名思义，Serverless &#x3D; Server（服务端） + less（较少关心），组合起来便是“较少关心服务端”，（也有称无服务器架构）。</p>
+<p>就像无线互联网实际有的地方也需要用到有线连接一样，无服务器架构仍然在某处有服务器。开发者无需关注服务器，只需关注代码即可。而供应商负责部署Serverless平台。</p>
+<p>提到Serverless时经常会出现FaaS（Functions-as-a-Service）和BaaS（Backend-as-a-Service）这两个概念：</p>
+<ul>
+<li>FaaS：函数即服务。从开发的维度看，开发者开发的不再是应用，而是函数，通过事件或HTTP请求等触发器来触发。 开发者将函数部署到云服务商提供的FaaS平台，然后被按需执行，无需管理服务器或任何其他底层基础设施即可进行扩展。</li>
+<li>BaaS：后端即服务。基于API的第三方服务，可替代应用程序中的核心功能子集，例如文件存储、数据存储、推送服务、身份验证服务等。在开发者看来，这些API是作为可以自动扩展和透明操作的服务而提供的，所以对于开发人员表现为是serverless。</li>
+</ul>
+<p>Serverless平台通常会提供FaaS和BaaS之一或两者同时提供，由BaaS为FaaS平台运行的函数实例提供服务支撑，例如FaaS函数在运行时调用BaaS的对象存储服务来持久化状态。</p>
+<p>经典的serverless开发模式特点：</p>
+<ol>
+<li>开发者不关心服务端的部署运维，只负责自身的业务逻辑实现<br>传统的开发流程，开发者需要关心代码开发、构建、部署、运维等工作，而serverless让开发者专注于业务逻辑，其他工作交给云基础设施。<br>远古时代，我们需要购买物理机、带宽、域名等等，然后装系统配环境，最后上传应用包启动应用（可能还有配套的Nginx、数据库、监控服务等等）对外提供服务。到近现代换成虚拟机，再后面到容器，到通过K8S自动化编排，开发者需要关心和运维的越来越少，到Serverless，开发者要做的可能仅仅是：到云上开通函数服务（一次性的），然后编写函数代码（调用云服务商提供的各类BaaS服务），选择一个触发器就完成了。</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsCEfKabokC26OSAN4N3gaOfNFpr.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsCEfKabokC26OSAN4N3gaOfNFpr.png"  lazyload></a></p>
+<ol start="2">
+<li>业务状态则存储在数据库或其他介质中<br>存储和计算之间一般是分离的（不过开发者也不用关心这一点），两者分开部署和收费。这样做的好处是可以使得计算变得无状态化，更容易调度和扩缩容，同时也降低了数据丢失的风险。 </li>
+<li>运行在无状态的计算容器中<br>存储和计算分离后，应用本身应该是无状态的。由云基础设施管理容器。 </li>
+<li>服务端逻辑由事件触发，完全被第三方管理<br>Serverless是由事件（event）驱动（例如 HTTP、pub&#x2F;sub）的全托管计算服务。用户无需管理服务器等基础设施，只需编写代码和选择触发器（trigger)，比如 RPC 请求、定时器等并上传，其余的工作（如实例选择、扩缩容、部署、容灾、监控、日志、安全补丁等）全部由 serverless 系统托管。用户只需要为代码实际运行消耗的资源付费——代码未运行则不产生费用。</li>
+</ol>
+<h1 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h1><p>Serverless是一种思想，而目前还没有一个标准的Serverless架构定义。</p>
+<p>从宏观上看，Serverless应该是基础设施层提供的能力：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fgjac5l6SSx3NxxRIcUSKFIaWerf.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fgjac5l6SSx3NxxRIcUSKFIaWerf.png"  lazyload></a></p>
+<p>这是阿里云函数计算架构：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtxHWiU1mn3r-Wd_8pBoda1tlXKF.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtxHWiU1mn3r-Wd_8pBoda1tlXKF.png"  lazyload></a></p>
+<h1 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h1><p>Serverless的优点是很明显的，我认为也必然是未来云原生的发展方向。</p>
+<ol>
+<li>降低开发和运维成本 - 只需要关注业务逻辑，其他交给Serverless平台 </li>
+<li>自动弹性伸缩 </li>
+<li>按需付费</li>
+</ol>
+<p>但现状是，Serverless目前也有很多限制：</p>
+<ol>
+<li>冷启动的时间长，延迟相对更大<br>从整体上看一个FaaS函数执行的时间跟很多因素有关。以AWS Lambda为例，用Javascript或者Python开发的小程序（例如小于几千行代码），延迟一般不会超过10-100ms。但如果Lambda功能运行在JVM上，就会显著增加。冷启动和延迟这一块一直是云厂商努力优化的方向。也有像<a target="_blank" rel="noopener" href="https://www.graalvm.org/">grallVM</a>这样在语言编译执行方面发力的项目。 </li>
+<li>服务（或者说函数）要求是无状态的<br>最关键的原因是要实现弹性伸缩。FaaS功能如果使用本地状态，会有很多严格限制。考虑到这些限制，一般来说FaaS功能要么是自然无状态，也就是提供纯功能调用，要么会使用数据库，跨进程见cache（例如Redis），或者共享文件系统（或者S3）来存放状态或者提供处理请求所需的更多输入信息。 </li>
+<li>执行时间限制<br>一般来说FaaS功能一般会限制每个功能允许运行多长。目前AWS Lambda功能允许最多运行5分钟，如果超出就被强行退出。 </li>
+<li>本地测试<br>虽然可以在测试环境下使用各种数据库和消息队列来模拟生产环境，但是对于无服务应用的集成或者端到端测试尤其困难，很难在本地模拟应用程序的各种连接，并与性能和缩放的特性结合起来测试，并且 serverless 应用本身也是分布式的，简单的将无数的 FaaS 和 BaaS 组件粘合起来也是有挑战性的。</li>
+</ol>
+<p>正因为这些限制，在CNCF的<a target="_blank" rel="noopener" href="https://github.com/cncf/wg-serverless/tree/master/whitepapers/serverless-overview">Serverless白皮书</a>里，建议在这些场景中使用Serverless技术：</p>
+<ul>
+<li>异步，并发，可以用独立的工作单元并行化 </li>
+<li>接收的请求量是不经常或者零星的，很难预测什么时候进行伸缩 </li>
+<li>无状态，短暂的，对瞬间冷启动时间要求不高 </li>
+<li>需要快速响应业务需求变更，快速开发</li>
+</ul>
+<p>一些具体场景的例子：</p>
+<ul>
+<li>执行逻辑以响应数据库更改（insert, update, trigger, delete） </li>
+<li>对IoT传感器输入消息（例如MQTT消息）执行分析 </li>
+<li>流处理（分析或修改动态数据） </li>
+<li>管理单次提取，转换和加载的作业，这些作业需要在短时间内进行大量处理（ETL） </li>
+<li>通过聊天机器人界面提供认知计算（异步，但有关联） </li>
+<li>调度执行时间很短的任务，例如cron或批处理样式调用 </li>
+<li>服务于机器学习和AI模型（检索一个或多个数据元素，如表格，NLP或图像，并与预先学习的数据模型匹配，以识别文本，面孔，异常等） </li>
+<li>持续集成pipeline，按需为构建作业提供资源，而不是保留构建从属主机池等待作业分派</li>
+</ul>
+<h1 id="框架-x2F-平台"><a href="#框架-x2F-平台" class="headerlink" title="框架&#x2F;平台"></a>框架&#x2F;平台</h1><p>参考<a target="_blank" rel="noopener" href="https://landscape.cncf.io/serverless">CNCF Landscape</a>。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fp9yB4ijS_bqjOAqDUlBSm9x8k5v.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fp9yB4ijS_bqjOAqDUlBSm9x8k5v.png"  lazyload></a><br>左下角的Hosted Platform是云厂商提供的平台：AWS Lambda，Google Cloud Function，Azure Function，阿里云函数计算，腾讯云 Serverless Cloud Function，华为云 FunctionStage等。</p>
+<p>右下角的Installable Platform则列了一些开源的框架，包括KEDA、OPENFASS、Knative、Kubeless等等。我看的是Knative居多，因此以后面拿Knative作为实践示例。</p>
+<h1 id="Knative"><a href="#Knative" class="headerlink" title="Knative"></a>Knative</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p><a target="_blank" rel="noopener" href="https://github.com/knative">Knative</a>由Google在2018年发布，是“基于“Kubernetes 的平台，用来构建、部署和管理现代 serverless 工作负载”，参与的大厂包括<a target="_blank" rel="noopener" href="https://content.pivotal.io/blog/knative-powerful-building-blocks-for-a-portable-function-platform"> Pivotal </a>、<a target="_blank" rel="noopener" href="https://www.ibm.com/blogs/cloud-computing/2018/07/24/ibm-cloud-google-knative-serverless/"> IBM </a>、<a target="_blank" rel="noopener" href="https://blog.openshift.com/state-of-serverless-in-kubernetes-knative-and-openshift-cloud-functions/"> Red Hat </a> 和<a target="_blank" rel="noopener" href="https://blogs.sap.com/?p=696354"> SAP </a>等，阵容非常豪华。</p>
+<blockquote>
+<p>按照谷歌云平台的博客文章“<a target="_blank" rel="noopener" href="https://cloudplatform.googleblog.com/2018/07/bringing-the-best-of-serverless-to-you.html">为您提供最好的 serverless </a>”的说法，Knative 专注于在<a target="_blank" rel="noopener" href="https://www.cncf.io/about/charter/">云原生</a>平台上构建和运行应用的通用任务，比如编排源码到容器构建、将服务绑定到事件生态系统、管理部署期间的路由和流量管理以及工作负载的自动扩展。该框架为工程师提供了“部署任何负载都需要的熟悉的、惯用的语言支持以及标准化的模式，这些负载包括传统的应用，也包括函数或容器。”</p>
+</blockquote>
+<p>Knative提供了3个核心组件：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/knative/build">Build </a>：从源码到容器的构建编排（从0.8版本后，<a target="_blank" rel="noopener" href="https://github.com/knative/build/issues/614">Build组件被废弃</a>了，改为建议使用<a target="_blank" rel="noopener" href="https://tekton.dev/">Tekton</a>）</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/knative/serving">Serving </a>：Serverless 应用或函数的部署能力，并通过 istio 实现服务管理，同时提供了容器扩缩容能力</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/knative/eventing">Eventing </a>：管理和交付事件</li>
+</ul>
+<blockquote>
+<p>Knative 的这三个组件提供了一套完善的 Serverless 方案，让开发者可以只关心自己的代码。提交代码以后，Build 会将源码构建成镜像，Serving 会自动实现应用部署，Eventing 提供事件触发入口，接下来就可以访问到最新应用了。对使用者来说，从源码直接到应用，省去了中间复杂的环节。</p>
+</blockquote>
+<h2 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h2><p>环境准备工作（for MAC）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装kind（Kubernetes <span class="keyword">in</span> Docker），用于运行本地的Kubernetes环境</span></span><br><span class="line">brew install kind</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装kubectl（Kubernetes命令行工具）</span></span><br><span class="line">brew install kubectl </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装kn（Knative命令行工具）</span></span><br><span class="line">brew install kn</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装Knative Quickstart环境</span></span><br><span class="line">brew install knative-sandbox/kn-plugins/quickstart</span><br><span class="line">kn quickstart kind</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">确认安装OK，如果一切正常应该会有一个knative的集群被创建</span></span><br><span class="line">kind get clusters</span><br></pre></td></tr></table></figure>
+
+<p>准备好环境之后，就可以开始部署Knative的HelloWorld服务了。这个服务很简单，它接收一个<code>TARGET</code>的环境变量，并且打印”<code>Hello $&#123;TARGET&#125;!</code>.”。</p>
+<p>部署的第一步是准备一份Knative Service的yaml文件：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="comment"># This is the name of our new &quot;Revision,&quot; it must follow the convention &#123;service-name&#125;-&#123;revision-name&#125;</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">hello-world</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">gcr.io/knative-samples/helloworld-go</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">8080</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">              <span class="attr">value:</span> <span class="string">&quot;World&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>Knative Service是Knative的定义的Kubernetes CRD之一，用于管理 Knative 应用的整个生命周期。HelloWorld的示例定义非常简单，可以看到主要就是制定了容器的镜像和环境变量的值。</p>
+<p>接下来就可以创建和测试Knative service了：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f hello-world-service.yaml</span></span><br><span class="line">service.serving.knative.dev/hello created</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kn service list</span></span><br><span class="line">NAME    URL                                     LATEST   AGE   CONDITIONS   READY     REASON</span><br><span class="line">hello   http://hello.default.127.0.0.1.nip.io            8s    0 OK / 3     Unknown   RevisionMissing : Configuration &quot;hello&quot; is waiting for a Revision to become ready.</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">curl http://hello.default.127.0.0.1.nip.io</span></span><br><span class="line">Hello World!</span><br></pre></td></tr></table></figure>
+
+<p>相比起直接使用k8s的原生能力部署，使用Knative Serving部署屏蔽了很多底层的细节，节省了很多基础资源层面的工作。</p>
+<h2 id="自动伸缩"><a href="#自动伸缩" class="headerlink" title="自动伸缩"></a>自动伸缩</h2><p>如果只是创建一个Knatvie Service，没有任何出奇之处。Knative（同时也是Serverless）最关键的能力之一就是对服务做自动的水平伸缩。</p>
+<p>在开始前，可以先看下当前运行的pod列表。结果是没有一个pod在运行！这正是因为Knative所号称的能力：可以缩放至0。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl get pods</span></span><br><span class="line">No resources found in default namespace.</span><br></pre></td></tr></table></figure>
+
+<p>尝试着访问服务并持续观察pod的情况，可以发现pod被自动地创建出来，随着请求结束，又被自动地销毁。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">新开一个控制台窗口，访问服务</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">curl http://hello.default.127.0.0.1.nip.io</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在原窗口持续观察pod的情况</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl get pod -l serving.knative.dev/service=hello -w</span></span><br><span class="line">NAME                                      READY   STATUS    RESTARTS   AGE</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     Pending   0          0s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     Pending   0          0s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     ContainerCreating   0          0s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   1/2     Running             0          3s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   2/2     Running             0          3s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   2/2     Terminating         0          63s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   1/2     Terminating         0          65s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     Terminating         0          94s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     Terminating         0          95s</span><br><span class="line">hello-world-deployment-5b89bbf6d5-fpj4g   0/2     Terminating         0          95s</span><br></pre></td></tr></table></figure>
+
+<p>Knative使用了KPA(Knative Pod Autoscaler)组件来支持自动伸缩。Autoscaler组件会监控服务的流量，然后根据配置的规则来自动增加或删除实例数。具体实现上，Knative Serving为每个Pod注入一个queue-proxy容器，用来向Autoscaler汇报业务容器的并发指标。Autoscaler接收到这些指标之后，会根据并发请求数及相应的算法，调整Deployment的Pod数量，从而实现自动扩缩容。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtOG1Y9LQAodwtSbvg9okQAIeI23.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtOG1Y9LQAodwtSbvg9okQAIeI23.png"  lazyload></a><br>简单地加个<code>autoscaling.knative.dev/target</code>的注解就可以把helloworld的示例设置并发请求数为10：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">autoscale-go</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">autoscale-go</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">autoscaling.knative.dev/target:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">        <span class="comment"># 设置最大和最小的实例数</span></span><br><span class="line">        <span class="comment"># autoscaling.knative.dev/minScale: &quot;1&quot;</span></span><br><span class="line">        <span class="comment"># autoscaling.knative.dev/maxScale: &quot;3&quot;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">registry.cn-hangzhou.aliyuncs.com/knative-sample/autoscale-go:0.1</span></span><br></pre></td></tr></table></figure>
+
+<p>创建后，可以通过模拟并发请求（比如：<code>hey -z 30s -c 50 &quot;http://hello.default.127.0.0.1.nip.io&quot;</code>）来观察pod的伸缩情况。如果在空闲时维持最小的实例数，也可以通过配置<code>autoscaling.knative.dev/minScale</code>这样的参数实现。</p>
+<blockquote>
+<p>关于自动伸缩的更多内容，可以参考<a target="_blank" rel="noopener" href="https://knative.dev/docs/serving/autoscaling/">官方文档</a>。</p>
+</blockquote>
+<h2 id="多版本管理"><a href="#多版本管理" class="headerlink" title="多版本管理"></a>多版本管理</h2><p>现在创建hello-world的一个新版本（Revision）：hello-knative，区别只在于hello-native要输出的环境变量值变成了Knative。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">hello-knative</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">gcr.io/knative-samples/helloworld-go</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">8080</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">              <span class="attr">value:</span> <span class="string">&quot;Knative&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>通过命令<code>kn revision list</code>查看当前的版本情况，可以看到当前的流量TRAFFIC都会流到hello-knative。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f hello-knative.yaml</span></span><br><span class="line">service.serving.knative.dev/hello configured</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kn revision list</span></span><br><span class="line">NAME            SERVICE   TRAFFIC   TAGS   GENERATION   AGE   CONDITIONS   READY   REASON</span><br><span class="line">hello-knative   hello     100%             2            50s   4 OK / 4     True</span><br><span class="line">hello-world     hello                      1            20m   3 OK / 4     True</span><br></pre></td></tr></table></figure>
+
+<p>Knative提供了流量的配置能力，来支持像蓝绿部署、金丝雀部署等功能。比如设置每个版本分配的流量比例，apply后再观察就会看到流量的变化。</p>
+<blockquote>
+<p>如果看过前面的istio，是不是会感觉很眼熟。Knative默认就会用到istio做流量管理。</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">serving.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">hello-knative</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">gcr.io/knative-samples/helloworld-go</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">8080</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">TARGET</span></span><br><span class="line">              <span class="attr">value:</span> <span class="string">&quot;Knative&quot;</span></span><br><span class="line">  <span class="attr">traffic:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">latestRevision:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">percent:</span> <span class="number">50</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">revisionName:</span> <span class="string">hello-world</span></span><br><span class="line">    <span class="attr">percent:</span> <span class="number">50</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Serving小结"><a href="#Serving小结" class="headerlink" title="Serving小结"></a>Serving小结</h2><p>Knative Serving实现了应用的直接部署，弹性伸缩，滚动升级，蓝绿发布，多版本流量控制，多endpoint独立入口等功能，并且屏蔽了底层的细节。Serving中涉及的关键资源包括：</p>
+<ul>
+<li>Service：service.serving.knative.dev 资源管理着工作负载的整个生命周期。它控制其他对象（Route、Configration、Revison）的创建，并确保每次对 Service 的更新都作用到其他对象。</li>
+<li>Route: route.serving.knative.dev 资源将网络端点映射到一个或多个 Revision。可以通过配置 Route 实现多种流量管理方式，包括部分流量和命名路由。</li>
+<li>Configuration：configuration.serving.knative.dev 资源保持部署所需的状态。它提供了代码和配置之间的清晰分离，并遵循十二要素应用程序方法。修改 Configuration 将创建新的 Revision。</li>
+<li>Revision：revision.serving.knative.dev 资源是对工作负荷所做的每个修改的代码和配置的时间点快照。修订是不变的对象，只要有用就可以保留。Revision 可以根据进入的流量自动扩缩容。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsNvhMSrYQF0Rc68kCZK6DMS8b4x.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsNvhMSrYQF0Rc68kCZK6DMS8b4x.png"  lazyload></a></p>
+<h2 id="Eventing"><a href="#Eventing" class="headerlink" title="Eventing"></a>Eventing</h2><p>按Knative的说法，Eventing在系统的独立组件之间扮演了“胶水”的工作。它遵循<a target="_blank" rel="noopener" href="https://cloudevents.io/">CloudEvents</a>规范，事件处理模型如下所示，其中包含了Source-Broker-Trigger-Sink这4个主要的对象，与消息队列的概念是非类似。简单来说，Source是事件源，Broker与消息队列中的Broker类似，Trigger则充当过滤器，Sink是事件目的地。对于Knative Service而言，既可以是触发事件的Source，也可以是处理事件的Sink。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjMOi8VYWyJJlWgrxcw2f6msGLnh.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjMOi8VYWyJJlWgrxcw2f6msGLnh.png"  lazyload></a><br>Eventing的示例也非常简单，首先做一些环境准备工作。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">创建一个命名空间用于示例</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl create namespace event-example</span></span><br><span class="line">namespace/event-example created</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在命名空间内创建一个default的broker</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"> kubectl apply -f broker.yaml</span></span><br><span class="line">broker.eventing.knative.dev/default created</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看创建出来的broker资源</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl -n event-example get broker</span></span><br><span class="line">NAME      URL                                                                              AGE   READY   REASON</span><br><span class="line">default   http://broker-ingress.knative-eventing.svc.cluster.local/event-example/default   25s   True</span><br></pre></td></tr></table></figure>
+
+<p>其中broker.yaml的定义非常简单：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">eventing.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">broker</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"> <span class="attr">name:</span> <span class="string">default</span></span><br><span class="line"> <span class="attr">namespace:</span> <span class="string">event-example</span></span><br></pre></td></tr></table></figure>
+
+<p>有了broker之后，再创建需要消费事件的消费者。示例创建了两个普通的服务hello-display和goodbye-display，yaml定义分别如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span> <span class="meta">&amp;labels</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello-display</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span> <span class="meta">*labels</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">event-display</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/knative-releases/knative.dev/eventing/cmd/event_display</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello-display</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">goodbye-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span> <span class="meta">&amp;labels</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">goodbye-display</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span> <span class="meta">*labels</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">event-display</span></span><br><span class="line">          <span class="comment"># Source code: https://github.com/knative/eventing/tree/main/cmd/event_display</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">gcr.io/knative-releases/knative.dev/eventing/cmd/event_display</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">goodbye-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">goodbye-display</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>有了消费者后，再定义每个消费者对应的Trigger资源，Broker会使用Trigger将事件分发给对应的消费者。每个Trigger可以指定一个过滤器来根据CloudEvent属性来选择过滤。</p>
+<p>hello-display对应的Trigger如下，在spec中，它指定了使用default的broker，并且过滤规则是事件的type为greeting，同时subscriber指定了hello-display的Service（注意这个Service是Kubernetes的Service概念，不是Knative Service）。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">eventing.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Trigger</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">broker:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">filter:</span></span><br><span class="line">    <span class="attr">attributes:</span></span><br><span class="line">      <span class="attr">type:</span> <span class="string">greeting</span></span><br><span class="line">  <span class="attr">subscriber:</span></span><br><span class="line">    <span class="attr">ref:</span></span><br><span class="line">     <span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line">     <span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line">     <span class="attr">name:</span> <span class="string">hello-display</span></span><br></pre></td></tr></table></figure>
+
+<p>goodbye-display对应的Trigger如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">eventing.knative.dev/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Trigger</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">goodbye-display</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">broker:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">filter:</span></span><br><span class="line">    <span class="attr">attributes:</span></span><br><span class="line">      <span class="attr">source:</span> <span class="string">sendoff</span></span><br><span class="line">  <span class="attr">subscriber:</span></span><br><span class="line">    <span class="attr">ref:</span></span><br><span class="line">     <span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line">     <span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line">     <span class="attr">name:</span> <span class="string">goodbye-display</span></span><br></pre></td></tr></table></figure>
+
+<p>命令过程：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">创建trigger资源</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f trigger-hello-display.yaml -n event-example</span></span><br><span class="line">trigger.eventing.knative.dev/hello-display created</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl apply -f trigger-goodbye-display.yaml -n event-example</span></span><br><span class="line">trigger.eventing.knative.dev/goodbye-display created</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看创建的trigger</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl -n event-example get triggers</span></span><br><span class="line"></span><br><span class="line">NAME              BROKER    SUBSCRIBER_URI                                           AGE   READY   REASON</span><br><span class="line">goodbye-display   default   http://goodbye-display.event-example.svc.cluster.local   14s   True</span><br><span class="line">hello-display     default   http://hello-display.event-example.svc.cluster.local     48s   True</span><br></pre></td></tr></table></figure>
+
+<p>有了broker、consumer以及consumer对应的trigger后，再创建一个producer就齐活了。producer比较简单，它就是一个可以执行curl命令的镜像，通过发送HTTP事件给broker，再经由broker分发给consumer。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">run:</span> <span class="string">curl</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">curl</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="comment"># This could be any image that we can SSH into and has curl.</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">radial/busyboxplus:curl</span></span><br><span class="line">    <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">curl</span></span><br><span class="line">    <span class="attr">resources:</span> &#123;&#125;</span><br><span class="line">    <span class="attr">stdin:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">terminationMessagePath:</span> <span class="string">/dev/termination-log</span></span><br><span class="line">    <span class="attr">terminationMessagePolicy:</span> <span class="string">File</span></span><br><span class="line">    <span class="attr">tty:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>完成了以上环节准备之后，就可以使用producer发送HTTP请求了。示例中分别发送了3个HTTP请求，注意请求头的”Ce-Type”和”Ce-Source”属性。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">需要到集群内访问</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl -n event-example attach curl -it</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">发送<span class="string">&quot;Ce-Type: greeting&quot;</span>+<span class="string">&quot;Ce-Source: not-sendoff&quot;</span></span> </span><br><span class="line">[ root@curl:/ ]$ curl -v &quot;http://broker-ingress.knative-eventing.svc.cluster.local/event-example/default&quot; \</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">  -X POST \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Id: say-hello&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Specversion: 1.0&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Type: greeting&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Source: not-sendoff&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -d <span class="string">&#x27;&#123;&quot;msg&quot;:&quot;Hello Knative!&quot;&#125;&#x27;</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">发送<span class="string">&quot;Ce-Type: not-greeting&quot;</span>+<span class="string">&quot;Ce-Source: sendoff&quot;</span></span></span><br><span class="line">[ root@curl:/ ]$ curl -v &quot;http://broker-ingress.knative-eventing.svc.cluster.local/event-example/default&quot; \</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">  -X POST \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Id: say-goodbye&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Specversion: 1.0&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Type: not-greeting&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Source: sendoff&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -d <span class="string">&#x27;&#123;&quot;msg&quot;:&quot;Goodbye Knative!&quot;&#125;&#x27;</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">发送<span class="string">&quot;Ce-Type: greeting&quot;</span>+<span class="string">&quot;Ce-Source: sendoff&quot;</span></span></span><br><span class="line">[ root@curl:/ ]$ curl -v &quot;http://broker-ingress.knative-eventing.svc.cluster.local/event-example/default&quot; \</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">  -X POST \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Id: say-hello-goodbye&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Specversion: 1.0&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Type: greeting&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Ce-Source: sendoff&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span></span><br><span class="line"><span class="language-bash">&gt;   -d <span class="string">&#x27;&#123;&quot;msg&quot;:&quot;Hello Knative! Goodbye Knative!&quot;&#125;&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>预期结果是hello-display和goodbye-display服务分别收到两个事件，从服务的日志打印中可以得到验证：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl -n event-example logs -l app=hello-display --<span class="built_in">tail</span>=100</span></span><br><span class="line">☁️  cloudevents.Event</span><br><span class="line">Context Attributes,</span><br><span class="line">  specversion: 1.0</span><br><span class="line">  type: greeting</span><br><span class="line">  source: not-sendoff</span><br><span class="line">  id: say-hello</span><br><span class="line">  datacontenttype: application/json</span><br><span class="line">Extensions,</span><br><span class="line">  knativearrivaltime: 2021-10-28T06:46:38.818375782Z</span><br><span class="line">Data,</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;msg&quot;: &quot;Hello Knative!&quot;</span><br><span class="line">  &#125;</span><br><span class="line">☁️  cloudevents.Event</span><br><span class="line">Context Attributes,</span><br><span class="line">  specversion: 1.0</span><br><span class="line">  type: greeting</span><br><span class="line">  source: sendoff</span><br><span class="line">  id: say-hello-goodbye</span><br><span class="line">  datacontenttype: application/json</span><br><span class="line">Extensions,</span><br><span class="line">  knativearrivaltime: 2021-10-28T06:47:27.10862785Z</span><br><span class="line">Data,</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;msg&quot;: &quot;Hello Knative! Goodbye Knative!&quot;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ol>
+<li><a target="_blank" rel="noopener" href="https://github.com/cncf/wg-serverless/tree/master/whitepapers/serverless-overview">CNCF Serverless Whitepaper</a> </li>
+<li><a target="_blank" rel="noopener" href="https://www.infoq.cn/theme/30">Knative从入门到实践</a></li>
+</ol>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%A6%82%E5%BF%B5"><span class="top-box-text">概念</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%9E%B6%E6%9E%84"><span class="top-box-text">架构</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="top-box-text">适用场景</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%A1%86%E6%9E%B6-x2F-%E5%B9%B3%E5%8F%B0"><span class="top-box-text">框架&#x2F;平台</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Knative"><span class="top-box-text">Knative</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%AE%80%E4%BB%8B"><span class="top-box-text">简介</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Hello-World"><span class="top-box-text">Hello World</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%87%AA%E5%8A%A8%E4%BC%B8%E7%BC%A9"><span class="top-box-text">自动伸缩</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%A4%9A%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86"><span class="top-box-text">多版本管理</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Serving%E5%B0%8F%E7%BB%93"><span class="top-box-text">Serving小结</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Eventing"><span class="top-box-text">Eventing</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8F%82%E8%80%83"><span class="top-box-text">参考</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2021/10/18/%E4%BA%91%E5%8E%9F%E7%94%9F%E5%85%A5%E9%97%A8%E6%8C%87%E5%8C%97-Dapr/">
+          <h3 class="post-title">
+            下一篇：云原生入门指北-Dapr
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

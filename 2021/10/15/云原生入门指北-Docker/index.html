@@ -11,12 +11,12 @@
 
 <title>云原生入门指北-Docker</title>
 <meta name="keywords" content="云原生入门指北-Docker, jffu&#39;s blog">
-<meta name="description" content="云原生入门第一篇，关于Docker。">
+<meta name="description" content="云原生入门指北系列第一篇，先讲讲Docker。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta property="og:title" content="云原生入门指北-Docker">
-<meta property="og:description" content="云原生入门第一篇，关于Docker。">
+<meta property="og:description" content="云原生入门指北系列第一篇，先讲讲Docker。">
 
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="stylesheet" href="/style/main.css">
@@ -83,8 +83,8 @@
           <span>
           <i class="icon icon-pricetags-outline"></i>
             
-              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F-Docker/">
-              云原生, Docker
+              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+              云原生
                 
               </a>
             
@@ -93,8 +93,7 @@
       </div>
       <div class="post-content-wrapper">
         <div class="post-content">
-          <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://aws1.discourse-cdn.com/docker/original/2X/8/8351f7d7a14db3035713b6ef8fdd7484088e03fb.png#id=bhB9j&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="><img   src="/images/loading.svg" data-src="https://aws1.discourse-cdn.com/docker/original/2X/8/8351f7d7a14db3035713b6ef8fdd7484088e03fb.png#id=bhB9j&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="  lazyload></a></p>
-<p>网上讲Docker的文章已经够多了。这里记录下我自己学习时的一些笔记记录和心得。</p>
+          <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fv5YqrKjKZbVhjkWWX2D9qbezLRD.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fv5YqrKjKZbVhjkWWX2D9qbezLRD.png"  lazyload></a><br>网上讲Docker的文章已经够多了。这里记录下我自己学习时的一些笔记记录和心得。</p>
 <p>我个人觉得，云原生的体系如此庞大，作为平常只写业务代码的门外汉，光看<a target="_blank" rel="noopener" href="https://landscape.cncf.io/">CNCF给出来的大图</a>绝对会眼花缭乱不知所措，但换个角度看，其主要的发展脉络还是很清晰的，从Docker引领的容器化，到K8S的编排，再到ServiceMesh和Serverless等等各种理念的百花齐放。所以从Docker开始理解云原生是非常适合的。</p>
 <h2 id="Docker是什么"><a href="#Docker是什么" class="headerlink" title="Docker是什么"></a>Docker是什么</h2><p>Docker的<a target="_blank" rel="noopener" href="https://docs.docker.com/get-started/overview/">官方文档</a>给出了一个Docker的简介：</p>
 <blockquote>
@@ -129,20 +128,20 @@
 <li>虚拟机的Guest OS层和Hypervisor层（Hypervisor是一种运行在物理服务器和操作系统之间的中间软件层，可允许多个操作系统和应用共享一套基础物理硬件）在Docker中被Docker Engine层所替代。虚拟机的Guest OS即为虚拟机安装的操作系统，它是一个完整操作系统内核；虚拟机的Hypervisor层可以简单理解为一个硬件虚拟化平台，它在Host OS是以内核态的驱动存在。</li>
 <li>虚拟机实现资源隔离的方法是利用独立的OS，并利用Hypervisor虚拟化CPU、内存、IO设备等实现的。 对比虚拟机实现资源和环境隔离的方案，docker就显得简练很多。docker Engine可以简单看成对Linux的NameSpace、Cgroup、镜像管理文件系统操作的封装。docker并没有和虚拟机一样利用一个完全独立的Guest OS实现环境隔离，它利用的是目前Linux内核本身支持的容器方式实现资源和环境隔离。简单的说，docker利用namespace实现系统环境的隔离；利用Cgroup实现资源限制；利用镜像实现根目录环境的隔离。</li>
 </ul>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"  lazyload></a></p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"  lazyload></a></p>
 <h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>Docker的三个基本概念：</p>
 <ul>
 <li>镜像（Image）</li>
 <li>容器（Container）</li>
 <li>仓库（Repository）</li>
 </ul>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"  lazyload></a></p>
 <h3 id="镜像"><a href="#镜像" class="headerlink" title="镜像"></a>镜像</h3><p>Docker 镜像是一个特殊的文件系统，除了提供容器运行时所需的程序、库、资源、配置等文件外，还包含了一些为运行时准备的一些配置参数（如匿名卷、环境变量、用户等）。镜像不包含任何动态数据，其内容在构建之后也不会被改变。<br>docker提供了多种存储驱动来实现不同的方式存储镜像，比如常用的Union FS。镜像被设计为分层存储的架构。每一层构建好后就不会在变（后一层上的任何改变只发生在自己这一层。比如，删除前一层文件的操作，实际不是真的删除前一层的文件，而是仅在当前层标记为该文件已删除。），一层层构建，前一层是后一层的基础，由多层文件系统联合组成。</p>
 <h3 id="容器"><a href="#容器" class="headerlink" title="容器"></a>容器</h3><p>镜像（Image）和容器（Container）的关系，就像是面向对象程序设计中的 类 和 实例 一样，镜像是静态的定义，容器是镜像运行时的实体。容器可以被创建、启动、停止、删除、暂停等。<br>Docker Container是真正跑项目程序、消耗机器资源、提供服务的地方，Docker Container通过Docker Images启动，在Docker Images的基础上运行你需要的代码。 可以认为Docker Container提供了系统硬件环境，然后使用了Docker Images这些制作好的系统盘，再加上项目代码，跑起来就可以提供服务了。<br>容器的实质是进程，但与直接在宿主执行的进程不同，容器进程运行于属于自己的独立的 Namespace。因此容器可以拥有自己的 root 文件系统、自己的网络配置、自己的进程空间，甚至自己的用户 ID 空间。</p>
 <h3 id="仓库"><a href="#仓库" class="headerlink" title="仓库"></a>仓库</h3><p>仓库（Repository）用于集中存储、分发镜像文件。<br>一个 Docker Registry 中可以包含多个仓库（Repository）；每个仓库可以包含多个标签（Tag）；每个标签对应一个镜像。可以通过<code>&lt;仓库名&gt;:&lt;标签&gt;</code>的格式来指定具体是这个软件哪个版本的镜像。如果不给出标签，将以 latest 作为默认标签。<br>仓库分为公开仓库（Public）和私有仓库（Private）两种形式。<br>最大的公开仓库：<a target="_blank" rel="noopener" href="https://hub.docker.com/">Docker Hub</a>。<br>国内的公开仓库：阿里云 、网易云 等。</p>
 <p>镜像与容器的转换及与registry关系：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"  lazyload></a></p>
 <h1 id="入门实践"><a href="#入门实践" class="headerlink" title="入门实践"></a>入门实践</h1><h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><blockquote>
 <p>（如果没安装过Docker）开始前：</p>
 </blockquote>
@@ -152,7 +151,7 @@
 <p>开始后：<a target="_blank" rel="noopener" href="https://docs.docker.com/engine/reference/commandline/docker/">Docker基础命令大全</a></p>
 </blockquote>
 <p>一张图展示docker命令：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"  lazyload></a></p>
 <blockquote>
 <p>左边的swarm cluster集群管理命令基本上可以不用看了。如果是自己本地环境玩，基本上只需要了解Image和Container相关的命令就行。</p>
 </blockquote>
@@ -237,12 +236,12 @@
 <li>再基于刚提交的镜像运行一个新的容器； </li>
 <li>执行Dockerfile中的下一条指令直到所有指令都执行完成；</li>
 </ol>
-<h3 id="指令"><a href="#指令" class="headerlink" title="指令"></a>指令</h3><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"  lazyload></a></p>
+<h3 id="指令"><a href="#指令" class="headerlink" title="指令"></a>指令</h3><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"  lazyload></a></p>
 <blockquote>
 <p>可以参考着自己应用的Dockerfile来理解。</p>
 </blockquote>
 <h2 id="阿里Docker实践"><a href="#阿里Docker实践" class="headerlink" title="阿里Docker实践"></a>阿里Docker实践</h2><h3 id="Docker目录结构"><a href="#Docker目录结构" class="headerlink" title="Docker目录结构"></a>Docker目录结构</h3><p>使用默认的Pandora Boot代码模板生成后，Docker相关的目录结构长这样：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"  lazyload></a></p>
 <p>dockerfile中包含那些内容：</p>
 <ol>
 <li>应用的基础镜像 比如5u&#x2F;6u&#x2F;7u的alios，最最基础的镜像 </li>
@@ -258,7 +257,7 @@
 <li>镜像构建：构建Docker镜像，会根据环境标签使用对应的dockerfile； </li>
 <li>重要的一步是将应用包打到镜像中： <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COPY $&#123;APP_NAME&#125;.tgz /home/admin/$&#123;APP_NAME&#125;/target/$&#123;APP_NAME&#125;.tgz</span><br></pre></td></tr></table></figure></li>
 </ol>
-<h1 id="进阶"><a href="#进阶" class="headerlink" title="进阶"></a>进阶</h1><h2 id="Docker架构"><a href="#Docker架构" class="headerlink" title="Docker架构"></a>Docker架构</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"  lazyload></a><br>Docker 是一个 C&#x2F;S 模式的架构，主要的模块：</p>
+<h1 id="进阶"><a href="#进阶" class="headerlink" title="进阶"></a>进阶</h1><h2 id="Docker架构"><a href="#Docker架构" class="headerlink" title="Docker架构"></a>Docker架构</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"  lazyload></a><br>Docker 是一个 C&#x2F;S 模式的架构，主要的模块：</p>
 <ul>
 <li>Docker Client: Docker提供给用户的客户端。Docker Client提供给用户一个终端，用户输入Docker提供的命令来管理本地或者远程的服务器。</li>
 <li>Docker Daemon: Docker服务的守护进程，负责接受并处理Docker Client发送的请求。</li>
@@ -351,7 +350,7 @@
 <h3 id="镜像分层"><a href="#镜像分层" class="headerlink" title="镜像分层"></a>镜像分层</h3><p>在讲Docker的存储驱动前，需要先理解Docker镜像的分层机制。Docker的一个镜像可以启动多个容器，我们不禁要问：这些个容器是共用一个image，还是各自将这个image复制了一份，然后各自独立运行呢？</p>
 <p>答案是，通过同一个镜像启动的容器，全部都共享这个镜像，而并不复制。这样做的好处是避免了为每个容器复制一份镜像的空间浪费，不过问题又随之而来：既然所有的容器都共用这一个镜像，那么岂不是我在任意一个容器中所做的修改，在其他容器中都可见？如果我一个容器要将一个配置文件修改成A，而另一个容器同样要将这个文件修改成B，两个容器岂不是会产生冲突？</p>
 <p>在使用Docker pull命令拉取镜像时，已经看到拉取镜像是一层一层拉取的，借用网上比较常见的一张图：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"  lazyload></a><br>从最底层的内核到上层的Apache或者BusyBox，中间的每一个镜像层都是建立在另一个镜像层之上的，同时所有的镜像层都是只读的，只有每个容器最顶层的容器层才可以被用户直接读写，所有的容器都建立在一些底层服务（Kernel）上，包括Namespcae、CGroup、rootfs 等等，这种容器的组装方式提供了非常大的灵活性，只读的镜像层通过共享也能够减少磁盘的占用。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"  lazyload></a><br>从最底层的内核到上层的Apache或者BusyBox，中间的每一个镜像层都是建立在另一个镜像层之上的，同时所有的镜像层都是只读的，只有每个容器最顶层的容器层才可以被用户直接读写，所有的容器都建立在一些底层服务（Kernel）上，包括Namespcae、CGroup、rootfs 等等，这种容器的组装方式提供了非常大的灵活性，只读的镜像层通过共享也能够减少磁盘的占用。</p>
 <p>镜像本身是只读的，但上面这张图里，在镜像的最上层，还有一个writable的读写层。Docker会在容器启动时为当前容器单独挂载这个读写层。这样看来<strong>容器&#x3D;镜像+读写层</strong>。用户针对容器的所有操作都在读写层中完成。一旦容器销毁，这个读写层也随之销毁。</p>
 <p>Docker使用了写时复制和用时分配技术实现对读写层的操作：</p>
 <ul>
@@ -459,9 +458,9 @@
 
     
       <div class="next-post">
-        <a class="purple-link" href="/2019/08/07/%E4%B8%80%E4%B8%AASpring%E4%BA%8B%E4%BB%B6%E8%A7%A6%E5%8F%91%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9A%E4%BD%8D%E8%BF%87%E7%A8%8B/">
+        <a class="purple-link" href="/2020/12/09/%E5%A4%A7%E5%9E%8B%E4%BA%A4%E6%98%93%E8%AE%A2%E5%8D%95%E6%95%B0%E6%8D%AE%E5%BA%93%E6%BC%94%E8%BF%9B%E7%9A%84%E5%8F%82%E8%80%83/">
           <h3 class="post-title">
-            下一篇：一个Spring事件触发问题的定位过程
+            下一篇：大型交易订单数据库演进的参考
           </h3>
         </a>
       </div>

@@ -141,7 +141,7 @@
 <li><code>Channel</code>接口继承了<code>ChannelOutboundInvoker</code>，其中中定义了一系列I&#x2F;O操作相关的方法；</li>
 <li><code>Channel</code>自身定义的方法，主要的是获取跟当前<code>Channel</code>绑定的一些对象，例如<code>EventLoop</code>、<code>ChannelPipeline</code>、<code>SocketAddress</code>等；</li>
 </ol>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FkzTeQd-mArQdYIYRJj7E1V-kAQK.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FkzTeQd-mArQdYIYRJj7E1V-kAQK.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkzTeQd-mArQdYIYRJj7E1V-kAQK.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkzTeQd-mArQdYIYRJj7E1V-kAQK.png"  lazyload></a></p>
 <p>在<code>ChannelOutboundInvoker</code>中定义的所有I&#x2F;O方法都是异步的，方法返回<code>ChannelFuture</code>。<code>ChannelFuture</code>是Netty对JDK原生<code>Future</code>的增强，因为原生的<code>Future</code>接口只支持轮询（<code>isDone</code>）或者阻塞式等待结果（<code>get</code>），而<code>ChannelFuture</code>支持设置监听器回调，可以通过<code>ChannelFuture</code>处理异步操作的结果。</p>
 <p><code>Channel</code>中又定义了一些方法，主要的有：</p>
 <table>
@@ -290,7 +290,7 @@
 <li>OIO：<code>OioServerSocketChannel</code>&#x2F;<code>OioSocketChannel</code></li>
 </ul>
 <p>从最常用的<code>NioServerSocketChannel</code>往上看，继承树是这样的：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fsf5bW0iBJ9OxNlEjEHfqLv_i5Jr.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/Fsf5bW0iBJ9OxNlEjEHfqLv_i5Jr.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsf5bW0iBJ9OxNlEjEHfqLv_i5Jr.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsf5bW0iBJ9OxNlEjEHfqLv_i5Jr.png"  lazyload></a></p>
 <h3 id="2-1-AbstractChannel"><a href="#2-1-AbstractChannel" class="headerlink" title="2.1 AbstractChannel"></a>2.1 AbstractChannel</h3><p><code>AbstractChannel</code>是大多数<code>Channel</code>实现类的父类，里面实现了一些通用的<code>Channel</code>接口方法。同时也提供了一些protected方法（不一定是抽象方法，某些方法有默认的实现）交由具体的功能子类去实现。</p>
 <p>主要成员变量：</p>
 <ul>
@@ -420,7 +420,7 @@
 </ol>
 <h2 id="3-Unsafe接口和子类"><a href="#3-Unsafe接口和子类" class="headerlink" title="3 Unsafe接口和子类"></a>3 Unsafe接口和子类</h2><p><code>Unsafe</code>接口是<code>Channel</code>接口的辅助接口，在<code>Channel</code>的子类实现里，也带了<code>Unsafe</code>接口的子类实现，例如<code>AbstractUnsafe</code>。</p>
 <p>与<code>Channel</code>的类继承图一样，NIO部分的<code>Unsafe</code>的继承树主干是这样的：</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FnHfRA0obWkymAyt1Fhif5MDHp9f.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FnHfRA0obWkymAyt1Fhif5MDHp9f.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnHfRA0obWkymAyt1Fhif5MDHp9f.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnHfRA0obWkymAyt1Fhif5MDHp9f.png"  lazyload></a></p>
 <p><code>Unsafe</code>接口命名与JUC里的<code>Unsafe</code>有点像，都不是给用户直接调用的。<code>Channel</code>接口的I&#x2F;O方法调用<code>ChannelPipeline</code>的I&#x2F;O方法，进一步调用<code>Unsafe</code>的方法触发I&#x2F;O操作，做一些状态检查、设置状态之类的通用操作，里面进一步调用具体<code>Channel</code>类的<code>doXXX()</code>方法。流程大体上相似：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Channel I/O func --&gt; ChannelPipeline I/O func --&gt; Unsafe I/O func --&gt; Channel(Detailed) I/O func</span><br></pre></td></tr></table></figure>
 
@@ -450,9 +450,9 @@
 
     
       <div class="next-post">
-        <a class="purple-link" href="/2019/01/21/Netty%E6%8C%87%E5%8C%97%E7%B3%BB%E5%88%972-%E7%BD%91%E7%BB%9C%E6%8A%BD%E8%B1%A1%E5%92%8C%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        <a class="purple-link" href="/2019/02/13/%E6%96%B0%E4%B8%9A%E5%8A%A1%E7%9A%84%E7%BB%9F%E4%B8%80%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E8%B7%B5/">
           <h3 class="post-title">
-            下一篇：Netty指北系列2-网络抽象和核心组件
+            下一篇：新业务的统一异常处理实践
           </h3>
         </a>
       </div>

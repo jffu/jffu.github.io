@@ -150,7 +150,7 @@
 <li>当一个<code>Channel</code>被创建时，会自动地被分配一个独立的<code>ChannelPipeline</code>。</li>
 </ul>
 <p>Netty还提供了<code>ChannelHandlerContext</code>用来表示<code>ChannelHandler</code>和<code>ChannelPipeline</code>的绑定关系，在开发中经常使用<code>ChannelHandlerContext</code>来获取<code>Channel</code>然后写数据。</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhyunXD2O4IjjRAbtin6PXhYQR9b.png"  lazyload></a></p>
 <h2 id="ByteBuf"><a href="#ByteBuf" class="headerlink" title="ByteBuf"></a><code>ByteBuf</code></h2><p>在网络中流动的数据是字节，Netty使用<code>ByteBuf</code>代替NIO的<code>ByteBuffer</code>来封装字节数据。<code>ByteBuffer</code>的API使用较为复杂，Netty需要自定义的字节容器来为其框架服务，<code>ByteBuf</code>的功能更易用，更强大：</p>
 <ul>
 <li><code>ByteBuffer</code>在分配完成后长度是固定的，而<code>ByteBuf</code>支持动态伸缩；</li>
@@ -162,9 +162,9 @@
 <h2 id="EventLoop"><a href="#EventLoop" class="headerlink" title="EventLoop"></a><code>EventLoop</code></h2><p><code>EventLoop</code>是Netty对线程、事件调度的抽象，一个<code>EventLoop</code>可以简单地理解为在一个线程内进行阻塞等待事件和事件的循环处理，当然也可以处理定时任务和提交的普通任务。</p>
 <p>一组<code>EventLoop</code>组成一个<code>EventLoopGroup</code>，类似于线程池的概念。以服务端为例，Netty的线程模型通常有两个<code>EventLoopGroup</code>：<code>Boss EventLoopGroup</code>和<code>Worker EventLoopGroup</code>，其中Boss线程组用于监听和接收客户端连接，当客户端连接时，将其封装为一个<code>Channel</code>绑定到Worker线程组里的一个<code>EventLoop</code>。</p>
 <p>当一条<code>Channel</code>上产生I&#x2F;O或其他事件时，Netty使用<code>ChannelEvent</code>来封装事件，并将<code>ChannelEvent</code>交给<code>EventLoop</code>处理。由于<code>Channel</code>在其生命周期内只会与一个<code>EventLoop</code>绑定，因此所有发生在这一<code>Channel</code>上的I&#x2F;O操作都是在同一个线程中处理的，避免了线程安全问题。</p>
-<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjH-Nbo8KQcuV3z9bXz1vpuJinw_.png"  lazyload></a></p>
 <p>Netty中最常用的<code>EventLoop</code>类是<code>NioEventLoop</code>，对应的<code>EventLoopGroup</code>即<code>NioEventLoopGroup</code>。一个<code>NioEventLoop</code>包含了一个<code>Selector</code>（就是Java NIO三大组件之一的<code>Selector</code>）。</p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>一图胜万言。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"><img   src="/images/loading.svg" data-src="https://raw.githubusercontent.com/jffu/jffu-blog-images/main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"  lazyload></a></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>一图胜万言。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlI60DAk-uPf6T8ODEBbDFnlON1O.png"  lazyload></a></p>
 
         </div>
         <div class="top-div">

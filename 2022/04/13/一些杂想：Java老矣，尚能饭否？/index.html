@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>一些杂想：Java老矣，尚能饭否？</title>
+<meta name="keywords" content="一些杂想：Java老矣，尚能饭否？, jffu&#39;s blog">
+<meta name="description" content="Java的“落寞”，演进的历史，未来的方向，以及队友们的助攻。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="一些杂想：Java老矣，尚能饭否？">
+<meta property="og:description" content="Java的“落寞”，演进的历史，未来的方向，以及队友们的助攻。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">一些杂想：Java老矣，尚能饭否？</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2022-04-13</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Java/">
+              Java
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <blockquote>
+<p>本文同步发布于 阿里开发者 等媒体上，这是原始版本，与对外发布版本略有不同。</p>
+</blockquote>
+<p>最近抽空看了Go、Rust等一些语言的新版本特性，还有云原生的一些基础设施（<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/217108">Docker</a>，<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/217110">Kubernetes</a>，<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/217113">ServiceMesh</a>，<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/217119">Dapr</a>，<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/217869">Serverless</a>），有点感慨Go真的是云原生的“一等公民”，像是启动速度快、依赖少、内存占用少、Goroutine 并发等无一不是击中Java的软肋。然后突发奇想在Google上搜了下“Java老矣”，能搜出520,000条结果。不禁想问：Java真的老了吗？</p>
+<h1 id="“落寞”的Java"><a href="#“落寞”的Java" class="headerlink" title="“落寞”的Java"></a>“落寞”的Java</h1><p>自1995年出生以来，Java已经有27年历史了，曾经的风流雨打风吹去，一些优秀的设计在今天看来似乎并不那么重要甚至过时了。比方说：</p>
+<ul>
+<li>“Write Once, Run Everywhere”的平台无关特性在当年确实是真香，但现在这种部署的便利性已经完全可以交由Docker为代表的的容器提供了（从某种意义上说，JVM也是字节码的容器），而且做得更好，可以将整个运行环境进行打包。想想Docker的口号也是：”Build Once, Run Anywhere”。</li>
+<li>Java 总体上是面向大规模、长时间运行的服务端应用而设计的。在语法层面，Java+Spring框架写出的代码一致性很高；在运行期，有JIT编译、GC等组件保障应用稳定可靠。这些特性对于企业级应用十分关键，曾经是Java最大的优势之一。但在微服务化甚至Serverless化的部署形态下，有了高可用的服务集群，也无须追求单个服务要 7×24 小时不可间断地运行，它们随时可以中断和更新，Java的这一优势无形中被削弱了。</li>
+</ul>
+<p>另一个广为诟病的是Java的资源占用问题，这主要包含两方面：静态的程序大小和动态的内存占用。</p>
+<ul>
+<li>不管多大的应用，都要随身带一个臃肿的JRE环境（这里先不讨论模块化改造），加上各种复杂的Jar包依赖，看了下我们团队的每个Java应用的容器镜像大小都轻松上G。</li>
+<li>应用的运行期内存占用居高不下，这个是Java天生的缺陷，很难克服。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrBOriSD1R3X4J7Ao4RxpvJWDOch.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrBOriSD1R3X4J7Ao4RxpvJWDOch.png"  lazyload></a></p>
+<p>Java的启动时间也是一大心病，主要原因在于启动时虚拟机初始化和大量类加载的时间开销（当然还有一个罪魁祸首是Spring的bean初始化，我之前写了个异步初始化Spring Bean的starter <a target="_blank" rel="noopener" href="https://yuque.antfin-inc.com/docs/share/5ea096d3-4004-4e4f-9b53-9898a5cc44cc">rhino-boot-turbo</a>，把串行改并行启动速度会快很多）。本身镜像体积大，拉取时间就长，再加上分钟级的启动时间，部署应用就更显得慢了。传统的企业应用更看重长时间运行的稳定性，重启和发布频率相对较低，对启动时间相对没那么敏感，然而对于需要快速迭代、水平扩展的微服务应用而言，更快的的启动速度就意味着更高的交付效率和更加快速的回滚。尤其是对于Serverless应用或函数，冷启动速度至关重要，之前看AWS Lambda函数允许最多运行5分钟，很难想象还要花一分钟时间先启动。</p>
+<p>云原生的潮流滚滚而来，Java的这些缺陷在要求快速交付的大环境下显得格格不入，难怪Java与Go、Rust等原生语言相比，会显得“落寞”了。</p>
+<p>作为一个Java程序员，肯定想问，Java还有机会吗？想起有位长者说过：一个人的命运啊，当然要靠自我的奋斗，另一方面，也要考虑历史的进程。我想把它改成：Java的命运啊，当然要靠自身的努力，另一方面，也要考虑队友们给不给力。</p>
+<h1 id="JDK的演进"><a href="#JDK的演进" class="headerlink" title="JDK的演进"></a>JDK的演进</h1><p>我们的大部分系统都还跑在Java 8之上，因此作为开发同学对Java 8也是最熟悉的。从Java 9开始，JDK的版本号堪比版本狂魔Chrome涨得飞快，除去开发者能够肉眼感知的语法和API的变动（Productivity）之外，Java也在性能（Performance）上一直努力。</p>
+<p>我捋了一下<a target="_blank" rel="noopener" href="https://openjdk.java.net/">OpenJDK官网</a>从Java 9开始的JEP列表，按照个人理解列出了关键的一些特性。</p>
+<h2 id="Java-9：难产的模块化"><a href="#Java-9：难产的模块化" class="headerlink" title="Java 9：难产的模块化"></a>Java 9：难产的模块化</h2><p>在数次delay之后，Java 9终于正式引入了Java平台模块系统（JPMS），项目代号Jigsaw。在这之前，Java以<code>package</code>对代码进行组织，再将<code>package</code>和资源打成Jar包，模块则在<code>package</code>的概念上将多个逻辑上、功能上相关的包以及相关的资源文件封装成模块。关于模块的详细介绍，可以参考下官方的介绍文档：<a target="_blank" rel="noopener" href="https://www.oracle.com/corporate/features/understanding-java-9-modules.html">Understanding Java 9 Modules</a>。</p>
+<p>此前，Java Runtime的庞大臃肿一直为人诟病（一个<code>rt.jar</code>就有60多M，整个JRE环境可以达到上百M），瘦身正是<a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/jigsaw/">Project Jigsaw的目标</a>之一。此外，还有Jar Hell、安全性等等问题。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fm2iaNuGYms2AJbVelc0GfujO267.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fm2iaNuGYms2AJbVelc0GfujO267.png"  lazyload></a></p>
+<p>不过模块化看着很好，也隐藏着陷阱：</p>
+<ul>
+<li>不可忽视的改造成本<br>虽然提供了未命名模块和自动模块，Oracle也提供了<a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/9/migrate/">迁移指南和工具</a>供参考，但改造的成本依旧很大，特别是梳理模块之间的依赖关系，较为繁琐。 </li>
+<li>小心使用内部API<br>模块化的最大卖点之一是强大的封装性，它确保非public类以及非导出包中的类无法从模块外部访问。但在这之前，jar包中类的访问是没有限制的（即使是private也可以通过反射访问）。比如JDK中的大部分<code>com.sun.*</code> 和 <code>sun.*</code>包是内部无法访问的，但这之前被用得很多（出于性能&#x2F;向前兼容等等原因），虽然Oracle的建议是不要使用这些类：<a target="_blank" rel="noopener" href="https://www.oracle.com/java/technologies/faq-sun-packages.html">Why Developers Should Not Write Programs That Call ‘sun’ Packages</a>。 </li>
+<li>小心使用内部JAR<br>像_lib&#x2F;rt.jar_和_lib&#x2F;tools.jar_等内部 JAR不能再访问了。不过正常来说，应该只有IDE或类似工具会直接依赖？ </li>
+<li>小心使用JAR中的资源<br>一些API会在运行期获取JAR中的资源文件（例如通过<code>ClassLoader.getSystemResource</code>），在Java9之前会拿到<code>jar:file:&lt;path-to-jar&gt;!&lt;path-to-file-in-jar&gt;</code>这类格式的URL Schema，而Java9之后则变成了<code>jrt:/&lt;module-name&gt;/&lt;path-to-file-in-module&gt;</code> </li>
+<li><a target="_blank" rel="noopener" href="https://nipafx.dev/java-9-migration-guide/#">其他一些问题</a></li>
+</ul>
+<p>对于新的项目，使用模块构建似乎是值得的，但现状是，大多数开发者会忽略模块系统，尤其是对于已经运行了多年的大型项目，改造的成本令人望而却步。我猜测肯定会有人吐槽类似的问题：</p>
+<ul>
+<li>我已经分成不同jar包了，我感觉这样就可以了，有必要更进一步吗？</li>
+<li>我又不是开发中间件和框架的，我开发业务应用，为什么要关心这些？</li>
+<li>就算我有二方包要开放出去，为二方包维护模块定义似乎也带不来多少收益？</li>
+<li>该如何分离每个模块，基于什么原则？就跟DDD一样，我知道这东西很美好，有最佳实践可以参考吗？</li>
+</ul>
+<p>搜了一下，似乎国外网友也有<a target="_blank" rel="noopener" href="https://www.reddit.com/r/java/comments/djycls/is_anyone_actually_using_modules_jigsaw/">一样的疑惑</a>。不过，我认为让程序员可以定义应用程序的模块是什么，它们将如何被其他模块使用，以及它们依赖于哪些其他模块，这些事情还是有必要做的。</p>
+<p>当然Java9除了模块化之外，还有一些<strong>其他特性</strong>也值得关注：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/254">compact strings</a>，通过对底层存储的优化来减少<code>String</code>的内存占用。<code>String</code>对象往往是堆内存的大头（通常来说可以达到25%），compact string可以减少最多一倍的内存占用； </li>
+<li><a target="_blank" rel="noopener" href="http://openjdk.java.net/jeps/295">AOT编译</a>，一个实验性的AOT编译工具<a target="_blank" rel="noopener" href="http://openjdk.java.net/jeps/295"><em>jaotc</em></a>。它借助了Graal编译器，将所输入的Java类文件转换为机器码，并存放至生成的动态共享库之中。_jaotc_的一大应用便是编译<code>java.base module</code>（也就是模块化后Java核心类库中最为基础的类）。这些类很有可能会被应用程序所调用，但调用频率未必高到能够触发即时编译。 </li>
+<li><a target="_blank" rel="noopener" href="http://openjdk.java.net/jeps/243">JVMCI</a>（ JVM 编译器接口），另一个experimental的编译特性。用Java写Java编译器，Java也可以说我能自举了！</li>
+</ul>
+<p>关于 JVMCI 多介绍一些。相比用 C 或 C++ 编写的现有编译器（说的就是你，C2），用Java写编译器更容易维护和改进。JVMCI的API 提供了访问 JVM 结构、安装编译代码和插入 JVM 编译系统的机制，后面讲到的Graal正是基于JVMCI。</p>
+<blockquote>
+<p>JVMCIJIT编译器与JVM的交互可以分为如下三个方面。</p>
+<ol>
+<li>响应编译请求；</li>
+<li>获取编译所需的元数据（如类、方法、字段）和反映程序执行状态的profile；</li>
+<li>将生成的二进制码部署至代码缓存（code cache）里。</li>
+</ol>
+</blockquote>
+<blockquote>
+<p>即时编译器通过这三个功能组成了一个响应编译请求、获取编译所需的数据，完成编译并部署的完整编译周期。</p>
+<p>传统情况下，即时编译器是与Java虚拟机紧耦合的。也就是说，对即时编译器的更改需要重新编译整个Java虚拟机。这对于开发相对活跃的Graal来说显然是不可接受的。</p>
+<p>为了让Java虚拟机与Graal解耦合，引入 JVMCI 将上述三个功能抽象成一个Java层面的接口。这样一来，在Graal所依赖的JVMCI版本不变的情况下，我们仅需要替换Graal编译器相关的jar包（Java 9以后的jmod文件），便可完成对Graal的升级。</p>
+<p>其实JVMCI接口就长这样：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">JVMCICompiler</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Services a compilation request. This object should compile the method to machine code and</span></span><br><span class="line"><span class="comment">     * install it in the code cache if the compilation is successful.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    CompilationRequestResult <span class="title function_">compileMethod</span><span class="params">(CompilationRequest request)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Java-10：小升级"><a href="#Java-10：小升级" class="headerlink" title="Java 10：小升级"></a>Java 10：小升级</h2><p>Java10的性能提升点并不多<del>（6个月一次的版本节奏难免要挤挤牙膏）</del>：</p>
+<ul>
+<li>G1的多线程并发mark-sweep-compact：这个feature的背景是G1垃圾回收器在Java9中引入，但那会还使用单线程做mark-sweep-compact。 </li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/310">Application Class-Data Sharing</a>：通过在不同Java进程间共享应用类的元数据来降低启动时间和内存占用，算是对Java 5引入的CDS的扩展，在这之前只支持Bootstrap Classloader加载的系统类。<br>其实这个特性还挺有用的，因为Java启动慢很大一部分时间耗在类加载上，CDS生成的存档类似于一个快照，在运行时可以直接做内存映射，还可以在多个JVM之间共享存档文件来减少内存占用。这个JEP中也提了一嘴：对Serverless云服务的分析表明，其中许多在启动时加载了数千个应用程序类，AppCDS 可以让这些服务快速启动并提高整体系统响应时间。 </li>
+<li><a target="_blank" rel="noopener" href="https://www.docker.com/blog/improved-docker-container-integration-with-java-10/">Docker的支持</a>更好了，能认出Docker环境了。</li>
+</ul>
+<h2 id="Java-11：ZGC闪亮登场"><a href="#Java-11：ZGC闪亮登场" class="headerlink" title="Java 11：ZGC闪亮登场"></a>Java 11：ZGC闪亮登场</h2><p>Java 11是LTS版本，也可能是企业选择从万年Java 8升级到的第一个版本。Java11最大的改动是引入了新一代的垃圾回收器-<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/333">ZGC</a>。ZGC的首要目标是实现低停顿（暂停时间不超过10ms）、高并发的垃圾回收，ZGC回收器与G1一样基于Region内存布局，使用了读屏障、染色指针和内存多重映射等技术来实现可并发的标记-整理。</p>
+<p>但ZGC并不是完美的，逃不过内存占用(Footprint)、吞吐量(Throughput)和延迟(Latency)的三元悖论。与G1相比，它的强项是低延迟，缺点是内存占用更高，吞吐量比G1稍低（不过这强依赖于测试用例，我也看到一些benchmark显示ZGC的吞吐量高于G1），另外还有一些<a target="_blank" rel="noopener" href="https://www.zhihu.com/question/356585590">其他问题</a>也值得注意。总的来说，如果考虑使用ZGC替代CMS，建议是使用Java 15之后的版本。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgzEEcfSo_1zDvW_436c8-BI-HKi.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgzEEcfSo_1zDvW_436c8-BI-HKi.png"  lazyload></a><br><em>数据来源：</em><a target="_blank" rel="noopener" href="https://blogs.oracle.com/javamagazine/post/understanding-the-jdks-new-superfast-garbage-collectors"><em>Understanding the JDK’s New Superfast Garbage Collectors</em></a></p>
+<p>另一个容易被人忽略的特性是Java 11中引入了一个号称无操作的垃圾回收器<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/318">Epsilon</a>，即不会做GC的垃圾回收器。这个很有意思，但确实对于一些不需要长时间运行、小规模的程序来说，会更关注启动时间、内存占用等指标，很典型的就比如Serverless函数。只要JVM能正确分配内存，然后在堆耗尽之前退出，那显然运行负载极小、没有任何回收行为的Epsilon便是很恰当的选择。</p>
+<h2 id="Java-12：Shenandoah和内存返还"><a href="#Java-12：Shenandoah和内存返还" class="headerlink" title="Java 12：Shenandoah和内存返还"></a>Java 12：Shenandoah和内存返还</h2><p>Java 12中引入了一个新的实验性的垃圾回收器-<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/189">Shenandoah</a>，与ZGC一样是以低停顿为目标（注意这里说的是OpenJDK，因为非亲生的缘故，OracleJDK中并没有包含）。</p>
+<p>另一个是G1上的改动，能够<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/346">自动将未使用的堆内存返还给操作系统</a>。我们经常看到，Java程序占用的内存比实际应用本身运行产生的对象占用要多，即使在应用本身没有流量时也是如此，原因是多方面的（这里不谈JVM、类的元数据、编译后的本地代码等等对内存的额外占用）：</p>
+<ul>
+<li>一方面，Java是一门有GC的语言，垃圾对象会持续占用内存，直到下一次GC为止 </li>
+<li>另一方面，GC算法也决定了更多的内存占用，例如： <ul>
+<li>标记-复制的算法需要有两块内存区域，一个典型的例子是新生代的Survivor区；标记-清除的算法很多时候同样需要更大的内存区域，因为在GC结束时会有大量的空间碎片，在分配大对象时会很麻烦。 </li>
+<li>像CMS&#x2F;G1这样的并发回收器，因为在垃圾收集阶段用户线程还需要持续运行，那就需要预留足够内存空间提供给用户线程使用。 <blockquote>
+<p>CMS的做法是在老年代达到指定的占用率后（Java 6后默认为92%）开始GC，可以通过<code>-XX:CMSInitiatingOccupancyFraction</code>参数调高这个值，但调得太高又容易碰到<code>Concurrent Mode Failure</code>；</p>
+<p>G1的解法则是为每一个Region设计了两个名为TAMS(Top at Mark Start)的指针，把Region中的一部分空间划分出来用于并发回收过程中的新对象分配，并发回收时新分配的对象地址都必须要在这两个指针位置以上，并且默认不回收在这个地址以上的对象。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoXUpvjpSPWeyCI4vUmG0ttBBmbN.jpg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoXUpvjpSPWeyCI4vUmG0ttBBmbN.jpg"  lazyload></a></p>
+<p>一般来说，JVM在启动时就会一次性申请大块内存（上图的Reserved Heap），然后倾向于在运行期保留这些内存。虽然一次GC结束后可能会空出很多内存，但JVM在内存返还策略上有时会左右为难，因为这些内存有可能很快就需要被拿来分配对象，如果频繁进行归还，再而触发 page fault 反而带来性能下降。折中的策略是动态地根据负载来决定是否返还。</p>
+<p>在这之前，G1只有在Full-GC或并发周期期间才能返还内存，而G1的目标之一是避免Full-GC，并且仅根据 Java 堆占用和分配活动触发并发循环，因此多数场景下，除非强制触发，并不会有内存返回行为。在Java 12后，G1会在应用不活动的空闲期间定期尝试继续或触发并发循环以确定整体 Java 堆使用情况，并自动将 Java 堆中未使用的部分返回给操作系统。</p>
+<p>JEP中举了一个Tomcat服务器的示例，服务器在白天提供HTTP请求，而在夜间大部分时间处于空闲状态，新的内存返还特性可以使得JVM提交的内存减少85%。</p>
+<h2 id="Java-13：小升级-1"><a href="#Java-13：小升级-1" class="headerlink" title="Java 13：小升级+1"></a>Java 13：小升级+1</h2><p>同Java 10一样，Java 13也是一个小升级版本：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/351">ZGC的增强</a>：同G1和Shenandoah一样，可以将未使用的内存返还给操作系统了</li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/350">AppCDS的增强</a>：在Java10的AppCDS基础上支持动态归档，可以在程序退出时自动创建</li>
+</ul>
+<h2 id="Java-14：小升级-2"><a href="#Java-14：小升级-2" class="headerlink" title="Java 14：小升级+2"></a>Java 14：小升级+2</h2><ul>
+<li>ZGC支持Mac和Windows了（不过大部分生产环境应该不会用这俩？）</li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/345">G1支持Numa-Aware的内存分配</a>：NUMA（Non-Uniform Memory Access，非统一内存访问架构）的介绍可以参考下这篇文章：<a target="_blank" rel="noopener" href="https://houmin.cc/posts/b893097a/">【计算机体系结构】NUMA架构详解</a>。在NUMA架构下，G1收集器会优先尝试在请求线程当前所处的处理器的本地内存上分配对象，以保证高效内存访问。在G1之前的收集器就只有针对吞吐量设计的Parallel Scavenge支持NUMA内存分配，如今G1也成为另外一个选择。</li>
+</ul>
+<h2 id="Java-15：ZGC和Shenandoah转正"><a href="#Java-15：ZGC和Shenandoah转正" class="headerlink" title="Java 15：ZGC和Shenandoah转正"></a>Java 15：ZGC和Shenandoah转正</h2><p>从Java 11和Java 12分别引入ZGC和Shenandoah以来，一直是Experimental的两大垃圾回收器终于Production了。</p>
+<h2 id="Java-16：Alipine-Linux的支持"><a href="#Java-16：Alipine-Linux的支持" class="headerlink" title="Java 16：Alipine Linux的支持"></a>Java 16：Alipine Linux的支持</h2><p>Java 16中跟性能提升相关的特性主要包括：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/376">ZGC支持并发线程堆栈处理</a></li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/387">弹性元空间</a>：一般Java程序里元空间（metaspace）的内存占用相比起堆来说不算高，但也很容易出现出现内存浪费。Java 16优化了元空间的内存分配机制来减少内存占用。</li>
+</ul>
+<p>另外值得一提的是Java 16<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/386">将JDK移植到了Alpine Linux</a>。<a target="_blank" rel="noopener" href="https://alpinelinux.org/">Alipine Linux</a>是一个非常轻量的Linux发行版，其Docker镜像只有5MB左右（对比Ubuntu系列镜像接近200 MB）。更小的镜像意味着容器环境中更小的磁盘占用和更快的镜像拉取速度，正因如此，Docker 官方已开始推荐使用 Alpine 替代之前的 Ubuntu 作为基础镜像。为了瘦身，Alpine Linux默认是用<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Musl">musl</a>而非传统的glibc作为C标准库，因此之前的JDK并不直接支持Alpine，而是需要在Alpine基础上安装glibc。</p>
+<p>基于Alpine Linux基础镜像，再结合Java 9引入的模块化能力，如果程序只依赖 <code>java.base</code>模块，Docker镜像的大小可以小至38 MB。</p>
+<h2 id="Java-17：最新的LTS版本"><a href="#Java-17：最新的LTS版本" class="headerlink" title="Java 17：最新的LTS版本"></a>Java 17：最新的LTS版本</h2><p>激进的团队可能会跳过Java 11，直接从Java 8升级到Java 17，因为这是最新的LTS版本。Java 17（包括最新的Java 18）本身并没有包含太多的性能提升特性，更多的是语法和API的变动，也没啥好列的了。</p>
+<h1 id="Project-X"><a href="#Project-X" class="headerlink" title="Project X"></a>Project X</h1><p>标题的Projext X只是代称，代表了Java官方或社区所推进的一系列项目。这些项目出于不同的动机，但最终的目的都是为了让Java更适应新的时代。完整的项目列表可以看<a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/">这里</a>，其中比较有代表性的有：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/amber/">Project Amber</a>：旨在探索和孵化更小的、以生产力为导向的 Java 语言功能，每个提案的特性都不大，很多已经落地到不同JDK版本中了，像是<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/395">Records</a>、<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/409">Sealed Class</a>、Pattern Matching、<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/378">Text Blocks</a>等等。</li>
+<li><a target="_blank" rel="noopener" href="https://mail.openjdk.java.net/pipermail/discuss/2020-April/005429.html">Project Leyden</a>：旨在解决Java的启动时间、TTP（Time to Peak）性能、内存占用等顽疾。一个特性即是AOT编译，但难度太大，短期内指望不上，先寄希望于GraalVM。</li>
+<li><a target="_blank" rel="noopener" href="https://wiki.openjdk.java.net/display/loom/Main">Project Loom</a>：Java的协程和<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/8277129">结构化并发</a>。</li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/valhalla/">Project Valhalla</a>：旨在探索和孵化高级Java VM和语言特性，例如<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/169">值类型(Value types)</a>和<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/218">基于值类型的泛型</a>。</li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/portola/">Project Portola</a>：将 OpenJDK 向 Alpine Linux 移植，在Java 16中已经得到了落地。</li>
+<li><a target="_blank" rel="noopener" href="https://openjdk.java.net/projects/panama/">Project Panama</a>: 更好地跟本地代码（主要是C代码）交互。</li>
+<li><a target="_blank" rel="noopener" href="https://wiki.openjdk.java.net/display/lilliput">Project Lilliput</a>：将对象头缩减到64bit来降低内存占用。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtA5jpcdNMkC6ectjPLlZEu15e2i.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtA5jpcdNMkC6ectjPLlZEu15e2i.png"  lazyload></a><em>图片来源：周志明（就是写《深入理解Java虚拟机》的大牛）的文章：</em><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/rqfww2r2zpyqiolc1wbe"><em>云原生时代，Java 的危与机</em></a></p>
+<p>截至今天，最新的Java 18中仅包含了Project Amber和Project Portola的一些特性，像Project Loom、Project  Valhalla等并没有包含，更别提难度最大的Project Leyden了，确实是有点落后了。不管如何，了解下这些项目做的事情可以让我们更好地理解Java未来的发展方向。</p>
+<h2 id="提前编译-AOT"><a href="#提前编译-AOT" class="headerlink" title="提前编译-AOT"></a>提前编译-AOT</h2><p>我们一直说Java速度慢，我觉得这是一个不严谨的误会，因为实际上经过JIT编译后Java运行并不慢。为什么Java给人“更慢”的印象？可能这两方面因素是罪魁祸首：</p>
+<ul>
+<li>启动慢，Java启动需要初始化虚拟机，加载大量的类</li>
+<li>预热慢，在JIT编译器介入前，需要在解释模式下运行</li>
+</ul>
+<p>Java是一门跨平台语言，但JVM并不是跨平台的，Java将源码编译成字节码，交给JVM执行，这中间装载的开销很高。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FumhjGwA_lf8ElpD9EwRnGe6ahuH.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FumhjGwA_lf8ElpD9EwRnGe6ahuH.png"  lazyload></a></p>
+<blockquote>
+<p>一段程序想要被加载需要经过的流程：</p>
+<ul>
+<li>new 字节码或者 static 相关字节码触发类加载</li>
+<li>从一系列 jar 包中找到感兴趣的 class 文件</li>
+<li>将 class 文件的读取到内存里的 byte 数组</li>
+<li>defineClass，包括了 class 文件的解析、校验、链接</li>
+<li>类初始化(static 块，或者静态变量初始化)</li>
+<li>开始解释执行</li>
+<li>2000 次解释后被 client compiler JIT 编译，随后 15000 次执行后被 server compiler JIT 编译</li>
+</ul>
+</blockquote>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuC-Xyr_DPbrTZcZ3bizFIxnNGvq.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuC-Xyr_DPbrTZcZ3bizFIxnNGvq.png"  lazyload></a></p>
+<p>上面这张图能够清晰地看出Java从启动到达到最佳性能的不同阶段。</p>
+<p>如果跳过字节码，直接将Java代码编译成本地代码，那么所有代码都是在编译期编译和优化好的，是不是就不存在JVM初始化和类加载的开销问题，也不用等预热到JIT编译（编译时还要耗费额外的运行期CPU资源），马上就能达到最大性能？这就是AOT（Ahead-Of-Time Compilation）提前编译的思想。</p>
+<p>当然AOT编译也有劣势：</p>
+<ul>
+<li>峰值性能：AOT编译不像JIT编译一样能收集程序运行时的信息，因此也无法进行一些更激进的优化，例如基于类层次分析的完全虚方法内联，或者基于程序profile的投机性优化（不过这并非硬性限制，我们可以通过限制运行范围，或者利用上一次运行的程序profile来绕开这些限制）。 </li>
+<li>构建时长：从目前的实测数据看，像Graal编译器花的构建时间都比正常编译时间要长。不过这个也在情理之中，毕竟一个只需要把代码编译成字节码，一个则需要扫描然后分析程序所有的依赖做静态编译。 </li>
+<li>在生产的本地镜像（Native Image）中使用Java agents，JMX，JVMTI，JFR等组件会有一些限制。 </li>
+<li>（最关键的）动态特性的支持：AOT编译很美好，但是在Java中实现起来却很困难，主要的原因在于Java虽然是一门静态语言，但是也包含了很多动态特性，比如反射、动态代理、动态类加载、字节码Instrument (BCI) 等等，而提前编译要求满足封闭世界假设( closed world assumption)，在编译期就确定程序用到的类。<br>这是一个很简单的取舍问题，因为动态特性在Java中用得实在是太普遍了，不管是Spring、Hibernate这些应用框架还是CGLib这类字节码生成库，大部分生产力工具都依赖这些动态特性，所以Java的提前编译至今还是Experimental状态。</li>
+</ul>
+<p>目前来看使用AOT难免需要有一些折中，例如后面要讲到的Substrate VM就要求以配置的方式明确告知编译器程序代码中有哪些方法是只通过反射来访问的，哪些类会被动态加载等等。然而另一些功能可能只能妥协或者放弃了，就像动态生成字节码这类十分常用的功能，我们熟知的Spring默认就会使用CGLib生成动态代理。从 Spring Framework 5.2 开始增加了<code>@proxyBeanMethods</code>注解来排除对 CGLib 的依赖，仅使用标准的动态代理去增强类，但这也就限制了动态代理的能力。</p>
+<p>要获得有实用价值的提前编译能力，只有依靠提前编译器、组件类库和开发者三方一起协同才有可能办到。这就要靠后面说的队友的助攻了。</p>
+<h2 id="协程（虚拟线程）"><a href="#协程（虚拟线程）" class="headerlink" title="协程（虚拟线程）"></a>协程（虚拟线程）</h2><p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%8D%8F%E7%A8%8B">协程</a>（Coroutine，有的地方也称为纤程&#x2F;Fiber）并不算一个新鲜的概念，但与线程相比一直让开发者感觉陌生，我觉得最主要的原因是大多数编程语言对于协程的支持并不像线程一样“原生”。直到Go和Kotlin这些热门的语言直接内置了协程，协程才成为“一等公民”被开发者重新审视。</p>
+<p>对于协程的定义，不仅在不同语言中有差异，随着时代的变化定义也在变化，我试着将主流印象中的协程和线程做一个不严谨的对比：</p>
+<ul>
+<li>协程是协作式的，线程是抢占式</li>
+<li>协程在用户模式下，由应用程序调度管理，而线程则由操作系统内核管理</li>
+<li>（有栈）协程拥有自己的寄存器上下文和栈，但比线程要小得多（MB和KB级别的差距），切换也快得多</li>
+<li>一个线程可以包含一个或多个协程，即不同的协程可以在一个线程上被调度。协程也被称为轻量级线程，有意思的是线程有时候也被成为轻量级进程</li>
+</ul>
+<p>回到Java，基本上线程模型分成1:1、N:1，N:M三种，虽然说JVM并没有限定 Java 线程需要使用哪种线程模型来实现，但一般来说Java目前主流的线程模型是直接映射到操作系统内核上的<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Thread_(computing)#1:1_(kernel-level_threading)">1:1 模型</a>，即一个用户线程就唯一地对应一个内核线程（这里不谈在遥远的JDK1.2之前，那会也使用过称为“绿色线程”的N:1模型）。</p>
+<blockquote>
+<p>1:1的模型对于计算密集型任务这很合适，既不用自己去做调度，也利于一条线程跑满整个处理器核心；但对于 I&#x2F;O 密集型任务，譬如访问磁盘、访问数据库占主要时间的任务，这种模型就显得成本高昂，主要在于内存消耗和上下文切换上：64 位 Linux 上 HotSpot 的线程栈容量默认是 1MB，线程的内核元数据（Kernel Metadata）还要额外消耗 2-16KB 内存，所以单个虚拟机的最大线程数量一般只会设置到 200 至 400 条，当程序员把数以百万计的请求往线程池里面灌时，系统即便能处理得过来，其中的切换损耗也是相当可观的。</p>
+</blockquote>
+<p>Project Loom 项目的目标是让 Java 支持额外的<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Thread_(computing)#M:N_(hybrid_threading)">N:M 线程模型</a>，实际上是将 JVM 线程与 OS 线程解耦。Loom项目新增加一种用户态的<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/425">“虚拟线程”（Virtual Thread）</a>，本质上它是一种<a target="_blank" rel="noopener" href="https://mthli.xyz/stackful-stackless/">有栈协程（Stackful Coroutine）</a>，多条虚拟线程可以映射到同一条物理线程之中。</p>
+<blockquote>
+<p>在此之前，Java中已经有一些三方的实现支持协程，比如<a target="_blank" rel="noopener" href="https://github.com/puniverse/quasar">Quasar</a>和<a target="_blank" rel="noopener" href="https://github.com/offbynull/coroutines">Coroutines</a>，貌似都是需要挂载agent利用字节码注入的方式实现，我没有细看，有兴趣的可以了解下。</p>
+</blockquote>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsCJUhiT7DMlnJrs6mkfejSLGOEH.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsCJUhiT7DMlnJrs6mkfejSLGOEH.png"  lazyload></a></p>
+<p>虚拟线程并不是万能的，虽然可以显著提高应用程序吞吐量，但也有前提：</p>
+<ol>
+<li>并发任务的数量很高（超过几千个） </li>
+<li>工作负载不受 CPU 限制，换句话说是I&#x2F;O密集型的任务。如果是计算密集型任务，拥有比处理器内核多得多的线程并不能提高吞吐量</li>
+</ol>
+<p>举个例子，假设有这样一个场景，需要同时启动10000个任务做一些事情：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个虚拟线程的Executor，该Executor每执行一个任务就会创建一个新的虚拟线程</span></span><br><span class="line"><span class="keyword">try</span> (<span class="type">var</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newVirtualThreadPerTaskExecutor()) &#123;</span><br><span class="line">    IntStream.range(<span class="number">0</span>, <span class="number">10_000</span>).forEach(i -&gt; &#123;</span><br><span class="line">        executor.submit(() -&gt; &#123;</span><br><span class="line">            doSomething();</span><br><span class="line">            <span class="keyword">return</span> i;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;  <span class="comment">// executor.close() is called implicitly, and waits</span></span><br></pre></td></tr></table></figure>
+
+<p>如果<code>doSomething()</code>里执行的是某类I&#x2F;O操作，那么使用虚拟线程是非常合适的，因为虚拟线程创建和切换的代价很低，底层对应的可能只需要几个OS线程。如果没有虚拟线程，使用线程的话可能要这样写了：</p>
+<ul>
+<li>把<code>Executors.newVirtualThreadPerTaskExecutor()</code>换成<code>Executors.newCachedThreadPool()</code>。结果是程序会崩溃，因为大多数操作系统和硬件不支持这种规模的线程数。</li>
+<li>换成<code>Executors.newFixedThreadPool(200)</code>或者其他自定义的线程池，那这10000个任务将会共享200个线程，许多任务将按顺序运行而不是同时运行，并且程序需要很长时间才能完成。</li>
+</ul>
+<p>如果<code>doSomething()</code>里执行的是某类计算任务，例如给一个大数组排序，那么虚拟线程还是平台线程都无济于事。JEP中提到了很关键的一点就是：虚拟线程不是更快的线程—它们运行代码的速度并不比平台线程快。它们的存在是为了提供scale（更高的吞吐量），而不是speed（更低的延迟）。</p>
+<p><a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/425">虚拟线程的提案</a>目前还是Preview状态，因此我们还无从知晓其最终形态，也许可以确定的几点：</p>
+<ul>
+<li><p>虚拟线程会保持原有统一线程模型的交互方式，通俗地说就是原有的 <code>Thread</code>、<code>Executor</code>、<code>Future</code>、<code>ForkJoinPool</code> 等多线程工具都应该能以同样的方式支持新的虚拟线程。使用虚拟线程的代码可能长这样： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 直接创建一个虚拟线程</span></span><br><span class="line"><span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> Thread.ofVirtual().start(() -&gt; System.out.println(<span class="string">&quot;Hello&quot;</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过builder创建一个虚拟线程</span></span><br><span class="line"><span class="type">Thread</span> <span class="variable">virtualThread</span> <span class="operator">=</span> Thread.builder().virtual().task(() -&gt; &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;Fiber Thread: &quot;</span> + Thread.currentThread().getName());</span><br><span class="line">        &#125;).start();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个基于虚拟线程的ExecutorService</span></span><br><span class="line"><span class="type">ExecutorService</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newVirtualThreadExecutor()</span><br></pre></td></tr></table></figure>
+
+</li>
+<li><p>虚拟线程既便宜又量大管饱，因此永远不应该被池化。大多数虚拟线程将是短暂的并且具有浅层调用栈，执行的任务像是单个 HTTP 客户端调用或单个 JDBC 查询这样的I&#x2F;O操作。相比之下，线程是重量级且昂贵的，因此通常必须被池化。 </p>
+</li>
+<li><p>JDK的虚拟线程调度会借助<code>[ForkJoinPool](https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/concurrent/ForkJoinPool.html)</code>，以 FIFO 模式运行。</p>
+</li>
+</ul>
+<h2 id="值类型"><a href="#值类型" class="headerlink" title="值类型"></a>值类型</h2><p>在Java架构师<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=A-mxj2vhVAA">Brian Goetz的演讲</a>中讲到，Project Valhalla的目标是”reboot the layout of data in memory”。他提到Java的一些设计在刚开始是完全OK的，但过去25年中硬件发生了很大变化：</p>
+<ul>
+<li>内存延迟与处理器执行性能之间的<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Von_Neumann_architecture#Von_Neumann_bottleneck">冯诺依曼瓶颈</a>（Von Neumann Bottleneck）增加了100-2000倍（也就是说，如果以CPU算术计算的速度为基准看，读内存的速度没有变快反而更慢了）；</li>
+<li>指针的间接获取对性能的影响变得更大，因为对指针的解引用是昂贵的操作，尤其是当指针或它指向的对象不在处理器的缓存中时（没办法，只能读内存了）；</li>
+</ul>
+<p>Java是一门重指针（”pointery”）的语言，除了基本类型，可以说“一切皆为对象”，每个对象都有其<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Identity_(object-oriented_programming)">对象标识符</a>（Object Identity）。面向对象的内存布局中，对象标识符存在的目的是为了允许在不暴露对象结构的前提下，依然可以引用其属性与行为，是Java实现多态性、可变性、锁等一系列功能的基础。尴尬的是，不管你需不需要什么多态、可变性、锁，对象标识符就在那里，也就是演讲中说的：Not all objects need that! But all objects pay for it。</p>
+<blockquote>
+<p>Java通过对象标识符进行链式访问，与之相对的是集中访问模式，例如C&#x2F;C++中的struct会将对象在内存中拍平。两者的关键区别在于，链式访问需要读多次内存才能命中，而集中访问一次就可以将相关数据全部取出。打个比方，类A中包含类B，类B中包含类C，从A-&gt;B-&gt;C，链式访问在最坏情况下要读3次内存；而集中访问只需要读一次。</p>
+</blockquote>
+<p>以一个常见的<code>Point</code>类为例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Point</span> &#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="type">int</span> x;</span><br><span class="line">  <span class="keyword">final</span> <span class="type">int</span> y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一个<code>Point</code>对象数组在内存中的布局是长这样的：<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fh_Z6nAyjilrW5dJaN99FjSwTKXO.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fh_Z6nAyjilrW5dJaN99FjSwTKXO.png"  lazyload></a></p>
+<p>为了提升性能，有的小伙伴可能会用“曲线救国”的方法，把<code>Point[] pts</code>变成两个int数组<code>int[] xs</code>和<code>int[] ys</code>，这就成”Good Code”和”Performace Code”的两难选择了。</p>
+<p>Valhalla引入的<strong>值类型</strong>有点向C#中的<code>struct</code>偷师的味道。值类型的想法是，像<code>Point</code>一类的对象，本质上是纯数据的聚合，只有数据，没有标识。没有标识意味着不再有多态性、可变性，不能在对象上加锁，不能为Null，只能基于状态做对象比较，但优势是：</p>
+<ul>
+<li>值类型的内存布局可以像基础类型一样平坦紧凑，其他对象或数组在引用值类型时更简单；</li>
+<li>同样也不需要object header了，可以省去内存占用和分配的开销；</li>
+<li>甚至JVM可以在栈上直接分配值类型，而不必在堆上分配它们；</li>
+</ul>
+<p>可以使用<code>inline</code>关键词定义一个值类型：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">inline <span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Point</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> x;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> y;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Point</span><span class="params">(<span class="type">int</span> x, <span class="type">int</span> y)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.x = x;</span><br><span class="line">        <span class="built_in">this</span>.y = y;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值类型的内存布局长这样：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FskBJCqGi3Wrgxs-dotfdZWUbOqt.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FskBJCqGi3Wrgxs-dotfdZWUbOqt.png"  lazyload></a></p>
+<p>看上去值类型跟基础类型很像（某些小伙伴要说了，这跟我之前干的用两个<code>int[]</code>来代替<code>Point[]</code>的方式有什么区别？），不同之处在于可以将其看做一种可以快速访问的带限制的特殊对象，因此有对象的特征（Codes like a class, works like an int），比如：</p>
+<ul>
+<li>可以有变量+方法</li>
+<li>可以继承接口，例如<code>Point</code>可以从某个<code>Shape</code>接口继承而来</li>
+<li>可以通过封装来隐藏内部实现</li>
+<li>可以作为泛型使用，可以有泛型参数</li>
+</ul>
+<p>有了值类型的支持后，Valhalla的另一个<a target="_blank" rel="noopener" href="https://openjdk.java.net/jeps/218">JEP: Generics over Primitive Types</a> 就很自然了，Java 泛型中令人诟病的不支持原数据类型（Primitive Type）、频繁装箱等问题也能迎刃而解了。想象一下你只是需要一个数字列表，然后只能被定义成一个<code>ArrayList&lt;Integer&gt;</code>。对于API设计者，也不用再搞什么<code>IntSteam&lt;T&gt;</code>和<code>ToIntFunction&lt;T&gt;</code>了。</p>
+<p>最后说一点，一个值类型看似简单，实际上创建一种新的数据类型需要对编译器、类文件结构和 JVM 都进行更改，还要支持现有的库，譬如<code>Collections</code>、<code>Streams</code>等。从14年到现在，Java 团队已经对六种同的解决方案进行了原型设计，值类型（_value types_）这一术语也被重命名为内联类（_inline classes_），然后又变成原始类（_primitive classes_）。总之，耐心等待吧…</p>
+<h1 id="队友的助攻"><a href="#队友的助攻" class="headerlink" title="队友的助攻"></a>队友的助攻</h1><p>Java最牛逼的是什么，是它的生态圈和圈里的队友们啊。我列了几个我觉得比较有代表性的。</p>
+<h2 id="GraalVM"><a href="#GraalVM" class="headerlink" title="GraalVM"></a>GraalVM</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fm9xyEVQsWkoYTpWSZvr5GKSScvr.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fm9xyEVQsWkoYTpWSZvr5GKSScvr.png"  lazyload></a></p>
+<p>Oracle在18年官宣了<a target="_blank" rel="noopener" href="https://www.graalvm.org/">GraalVM</a>的1.0版本。虽然名字里带着VM，但实际上它既是 HotSpot 的新型 JIT 编译器，又可以用作AOT编译器，也是一个新的多语言虚拟机。GraalVM有3个关键的组件：</p>
+<ul>
+<li><strong>Graal</strong> - 用Java写的编译器，既可以作为<a target="_blank" rel="noopener" href="http://openjdk.java.net/jeps/317"> JIT 编译器</a>取代C2在传统的OpenJDK JVM上运行，又可以当做AOT编译器使用。</li>
+<li><strong>Substrate VM</strong> - 是一个构建在Graal编译器之上的，支持AOT编译的运行框架。它的设计初衷是提供一个快速启动，低内存占用，以及能无缝衔接C代码（与JNI相比）的runtime，并能完美适配<a target="_blank" rel="noopener" href="https://github.com/graalvm/graal/tree/master/truffle">Truffle</a>语言实现。</li>
+<li><strong>Truffle</strong> - 即下图中的语言实现框架（Language Implementation Framework），用来支持多种语言跑在GraalVM上。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcGxbk7eMd6d_CNTjNxPJicqTfG.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcGxbk7eMd6d_CNTjNxPJicqTfG.png"  lazyload></a></p>
+<p>GraalVM算是近年来的明星Java项目，发展很快。这里我只做个简单的介绍，感兴趣的同学建议直接上<a target="_blank" rel="noopener" href="https://www.graalvm.org/">官网</a>看官方文档。</p>
+<p><strong>Graal</strong></p>
+<blockquote>
+<p>我们熟知的HotSpot有两个JIT编译器，C1和C2。Java 程序首先在解释模式下启动，执行一段时间后，经常被调用的方法会被识别出来，并使用 JIT 编译器进行编译——先是使用 C1，如果 HotSpot 检测到这些方法有更多的调用，就使用 C2 重新编译这些方法。这种策略被称为“分层编译”，是 HotSpot 默认采用的方式。经过这么多年优化下来，C2编译后的代码效率非常出色，可以与 C++ 相媲美（甚至更快）。不过，近年来 C2 并没有带来多少重大的改进。不仅如此，C2 中的代码变得越来越难以维护和扩展，新加入的工程师很难修改使用 C++ 特定方言编写的代码。</p>
+</blockquote>
+<p>Graal编译器的目标之一就是替代C2，因此这两者难免会拿来做比较。可以说最明显的区别就是Graal是用Java写的，C2则是C++。一种普遍的看法（来自Twitter 等公司和 Cliff Click 等专家）认为，C2在当前设计中不可能再进行重大改进，而Graal使用Java开发的一大优势在于可以很方便地将C2的新优化移植到Graal中，反之则不然，比如，在Graal中被证实有效的部分逃逸分析（partial escape analysis）至今未被移植到C2中。</p>
+<p>从我目前搜到的一些测试结果来看，总的来说Graal编译结果的性能与C2相比略优但相差不大。Graal在基于假设的优化手段上相对更激进，因此在某些场景下优势会更明显（比如<a target="_blank" rel="noopener" href="https://martijndwars.nl/2020/02/24/graal-vs-c2.html">这篇文章</a>，再比如<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=PtgKmzgIh4c">Twitter的报告</a>讲的Scala代码性能上Graal有10%的优势）。最关键的是，Graal还在不断演进中，未来可期。</p>
+<p><strong>Substrate VM</strong></p>
+<p>Substrate VM简单来说就是<code>native image builder</code> + <code>SubstrateVM Runtime</code>，分别对应<a target="_blank" rel="noopener" href="https://www.graalvm.org/native-image/">原生镜像（Native Image）</a>的build time和run time。</p>
+<ul>
+<li><code>native image builder</code>：使用Graal编译器做静态编译的工具，它处理应用程序的所有类和依赖项（包括来自JDK的部分），通过指针分析（Points-To Analysis）来确定在应用程序执行期间可以访问哪些类和方法，然后提前将可访问的代码和数据编译为特定操作系统和架构的可执行文件或者动态链接库。</li>
+<li><code>SubstrateVM Runtime</code>：一个特殊的精简过的VM Runtime，包括了deoptimizer、GC、线程调度等组件。因为已经做了AOT编译，比传统的Runtime少了类加载、解释器、JIT等组件。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fh_nkwOhsEcslyKsKA55JK-iWCnE.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fh_nkwOhsEcslyKsKA55JK-iWCnE.png"  lazyload></a></p>
+<p>官网放了一张图来展示Graal Native Image的两大优势：快速启动和低内存占用。不过我看到的其他一些资料上说在低时延和高吞吐（Latency&#x2F;Throughput）场景下并不占优。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5RN9SUxiAuIG4v5PDQak8tr9tA.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5RN9SUxiAuIG4v5PDQak8tr9tA.png"  lazyload></a></p>
+<p>Substrate VM的限制其实就是前面说的AOT编译的限制，要求目标程序满足”closed-world”假设，即所有代码在编译器已知。如果不满足，那只能同时构建一个fallback image了（使用传统JVM执行，需要JDK依赖）。一些限制条件可以通过在镜像构建时进行<a target="_blank" rel="noopener" href="https://github.com/oracle/graal/blob/master/docs/reference-manual/native-image/BuildConfiguration.md">配置</a>来绕过，其中最关键的就是类的元数据（Metadata）相关的一些限制：</p>
+<ul>
+<li>动态类加载：对于像<code>Class.forName(&quot;myClass”)</code>一类动态按照类名加载的操作，必须在配置文件里配上<code>myClass</code>，否则运行期就是一个<code>ClassNotFoundException</code>；</li>
+<li>反射：构建时会通过检测对反射 API 的调用做静态分析，对于无法通过静态分析获知的，那也只能配置了；</li>
+<li>动态代理：这里指的是使用了<code>java.lang.reflect.Proxy</code> API的动态代理。要求动态代理的接口列表在构建期就是已知的，构建时会简单地拦截对<code>java.lang.reflect.Proxy.newProxyInstance(ClassLoader, Class&lt;?&gt;[], InvocationHandler)</code>和<code>java.lang.reflect.Proxy.getProxyClass(ClassLoader, Class&lt;?&gt;[])</code>的调用来确定接口列表。同样，如果分析失败，那也只能配置了；</li>
+<li>JNI：本机代码可以按名称访问 Java 对象、类、方法和字段，其方式类似于在 Java 代码中使用反射 API。一种替代的方式是可以考虑使用GraalVM提供的原生接口<code>[org.graalvm.nativeimage.c](http://www.graalvm.org/sdk/javadoc/)</code>，更简单开销更低，缺点是不允许从 C 代码访问 Java 数据结构；</li>
+<li>序列化：Java 序列化需要类的元数据信息才能起作用，因此也需要提前配置（不过，你的代码里还在用 Java 序列化吗？）；</li>
+</ul>
+<blockquote>
+<p>还有一些限制条件，像是<code>invokedynamic</code>字节码和<code>Security Manager</code>，是直接无法兼容的。还有一些功能跟HotSpot有区别，具体可以参考<a target="_blank" rel="noopener" href="https://github.com/oracle/graal/blob/master/docs/reference-manual/native-image/Limitations.md">这篇文档</a>。</p>
+</blockquote>
+<p><strong>Truffle</strong></p>
+<p>Truffle是一个用Java写的语言实现框架，也可以说是一套通用语言设计的框架和API。除了像 Java、Scala、Groovy、Kotlin 等基于JVM的语言外，官方在此之上还支持了<a target="_blank" rel="noopener" href="https://github.com/graalvm/graaljs">JavaScript</a>、<a target="_blank" rel="noopener" href="https://github.com/oracle/truffleruby">Ruby</a>、<a target="_blank" rel="noopener" href="https://github.com/oracle/fastr">R</a>、<a target="_blank" rel="noopener" href="https://github.com/graalvm/graalpython">Python</a>、<a target="_blank" rel="noopener" href="https://github.com/oracle/graal/tree/master/sulong">Sulong</a>(LLVM-based C&#x2F;C++等)，也就是说这些语言都可以“跑在”GraalVM上，号称”<strong>Run Programs Faster Anywhere</strong>“。</p>
+<blockquote>
+<p>完整的列表参考<a target="_blank" rel="noopener" href="https://www.graalvm.org/22.0/graalvm-as-a-platform/language-implementation-framework/Languages/">这里</a>。</p>
+</blockquote>
+<p>这是我找到的一份17年的性能数据，可以看到除了C&#x2F;C++和JS之外，GraalVM的性能优势还是挺大的，尤其是对于Ruby、R这类解释型语言。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5mddj0wJO7v4fYNj3ya0y92qM7.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5mddj0wJO7v4fYNj3ya0y92qM7.png"  lazyload></a></p>
+<p>Truffle提供了一套API，基于Truffle的语言实现仅需用Java实现词法分析、语法分析以及针对语法分析所生成的抽象语法树（AST)的解释器，理论上实现一个解释器要比开发一个优化的编译器要容易得多。Truffle将这些语言的源代码或源代码编译后的中间格式（例如，LLVM 字节码、Class 字节码）通过解释器转换为能被 GraalVM 接受的中间表示（Intermediate Representation，IR），然后就可以使用Graal编译器对这些解释器进行优化，因此性能上有时候比传统编译器反而还有优势。</p>
+<p>此外，Truffle的精华之处在于，运行时所有的解释器都通过同样的协议来互相操作不同编程语言中的对象，这就为所有生态系统下的库和模块都敞开了大门，你只需要选择最合适的语言去解决你要解决的问题就可以了，而不用为了项目所用的某个语言去专门实现一些缺少的模块。</p>
+<p>这是一个官方的示例，展示了多语言如何直接进行交互：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> express = <span class="built_in">require</span>(<span class="string">&#x27;express&#x27;</span>)</span><br><span class="line"><span class="keyword">const</span> app = <span class="title function_">express</span>()</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> <span class="title class_">BigInteger</span> = <span class="title class_">Java</span>.<span class="title function_">type</span>(<span class="string">&#x27;java.math.BigInteger&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">app.<span class="title function_">get</span>(<span class="string">&#x27;/&#x27;</span>, <span class="keyword">function</span> (<span class="params">req, res</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> text = <span class="string">&#x27;Hello World from Graal.js!&lt;br&gt; &#x27;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// Using Java standard library classes</span></span><br><span class="line">  text += <span class="title class_">BigInteger</span>.<span class="title function_">valueOf</span>(<span class="number">10</span>).<span class="title function_">pow</span>(<span class="number">100</span>)</span><br><span class="line">          .<span class="title function_">add</span>(<span class="title class_">BigInteger</span>.<span class="title function_">valueOf</span>(<span class="number">43</span>)).<span class="title function_">toString</span>() + <span class="string">&#x27;&lt;br&gt;&#x27;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// Using R methods to return arrays</span></span><br><span class="line">  text += <span class="title class_">Polyglot</span>.<span class="built_in">eval</span>(<span class="string">&#x27;R&#x27;</span>,</span><br><span class="line">      <span class="string">&#x27;ifelse(1 &gt; 2, &quot;no&quot;, paste(1:42, c=&quot;|&quot;))&#x27;</span>) + <span class="string">&#x27;&lt;br&gt;&#x27;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// Using R interoperability to create graphs</span></span><br><span class="line">  text += <span class="title class_">Polyglot</span>.<span class="built_in">eval</span>(<span class="string">&#x27;R&#x27;</span>,</span><br><span class="line">    <span class="string">`svg();</span></span><br><span class="line"><span class="string">     require(lattice);</span></span><br><span class="line"><span class="string">     x &lt;- 1:100</span></span><br><span class="line"><span class="string">     y &lt;- sin(x/10)</span></span><br><span class="line"><span class="string">     z &lt;- cos(x^1.3/(runif(1)*5+10))</span></span><br><span class="line"><span class="string">     print(cloud(x~y*z, main=&quot;cloud plot&quot;))</span></span><br><span class="line"><span class="string">     grDevices:::svg.off()</span></span><br><span class="line"><span class="string">    `</span>);</span><br><span class="line"></span><br><span class="line">  res.<span class="title function_">send</span>(text)</span><br><span class="line">&#125;)</span><br><span class="line">app.<span class="title function_">listen</span>(<span class="number">3001</span>, <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;Example app listening on port 3001!&#x27;</span>)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<h2 id="Spring-Native"><a href="#Spring-Native" class="headerlink" title="Spring Native"></a>Spring Native</h2><p>Spring是Java生态圈的绝对大佬，曾几何时，Spring也称得上一个轻量级框架（相比EJB？），然而现在看看，Spring的模块量级、启动速度、内存占用恐怕都谈不上多轻量了。Spring是一个动态性很强的框架，其核心的IoC和AOP功能大量使用了反射、动态字节码生成等技术，这与前面说的AOT编译的封闭世界假设是冲突的。所以尴尬的事情出现了，我想要使用AOT或者说GraalVM，但是第一个难题居然是代码中的Spring框架不支持…</p>
+<p>基于此，社区中出现了<a target="_blank" rel="noopener" href="https://github.com/spring-projects-experimental/spring-native">spring-native</a>和<a target="_blank" rel="noopener" href="https://github.com/spring-projects-experimental/spring-fu">spring-fu</a>这样的项目（目前都还是实验阶段），其中spring-native基本确定会在Spring Framework 6和Spring Boot 3中直接集成。</p>
+<blockquote>
+<p>关于spring-native，ATA上已经有大佬们做过比较深入的分析了，比如：<a target="_blank" rel="noopener" href="https://ata.alibaba-inc.com/articles/183888">让Spring启动提速95.5倍，项目解读之Spring-Graalvm-Native</a>，也可以参考下官方的<a target="_blank" rel="noopener" href="https://spring.io/blog/2021/03/11/announcing-spring-native-beta">announcing-spring-native-beta</a>。</p>
+</blockquote>
+<p>我理解Spring Native做的事情关键就是用 AOT 插件（Maven&#x2F;Gradle）生成 GraalVM 的配置（反射、资源、动态代理、Native-Image选项）：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgLpnYYbl-vwByGAXqqKDtBhJFxK.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgLpnYYbl-vwByGAXqqKDtBhJFxK.png"  lazyload></a></p>
+<p>从benchmark测试结果看，Spring Native的启动速度、镜像大小、内存占用与传统Spring Boot相比有非常明显的提升，但峰值性能、构建时长等方面还处于劣势（同样的话好像说了好几次了？）</p>
+<h2 id="其他：Quarkus-x2F-Micronut-x2F-Helidon等等"><a href="#其他：Quarkus-x2F-Micronut-x2F-Helidon等等" class="headerlink" title="其他：Quarkus&#x2F;Micronut&#x2F;Helidon等等"></a>其他：Quarkus&#x2F;Micronut&#x2F;Helidon等等</h2><p>近几年来，开源社区涌现了<a target="_blank" rel="noopener" href="https://quarkus.io/">Quarkus</a>、<a target="_blank" rel="noopener" href="https://micronaut.io/">Micronaut</a>、<a target="_blank" rel="noopener" href="https://helidon.io/">Helidon</a>等一批以提升 Java 在云原生环境下的适应性为卖点的微服务框架，从他们的slogan中可以提取到一些高频关键词：</p>
+<ul>
+<li>Cloud Native</li>
+<li>Container First</li>
+<li>GraalVM</li>
+<li>Reactive</li>
+<li>Fast Boot And Low Memory Footprint</li>
+</ul>
+<p>相比更常见的Spring Boot，这些新的框架天生对 GraalVM 有更好的适配，更轻量、启动更快、内存占用更低，非常适合容器化交付。虽然目前看起来尚显稚嫩，生态系统相比Spring还不算成熟，但就我个人而言，非常愿意在小的项目里使用这些框架。</p>
+<p>其他的，像Apache、JBoss还有Eclipse等等社区，其实都很活跃，仍然充满活力。</p>
+<h1 id="未来？"><a href="#未来？" class="headerlink" title="未来？"></a>未来？</h1><p>捋完这么多，我发现对于Java的未来我还是充满迷茫。一方面，在新生语言的挑战下，Java似乎不可避免地慢慢变成一种“传统”，“老旧”，“经典”的语言；另一方面，Java和它的队友们一直在努力开创或者吸纳各种新特性、新功能，包括但不限于：</p>
+<ul>
+<li>更具生产力的语法和API改进</li>
+<li>以ZGC为代表的更先进的GC</li>
+<li>在启动速度、内存占用等短板上的各种优化</li>
+<li>以GraalVM为代表的新编译器+Native Image+多语言编程</li>
+<li>更好的云原生支持</li>
+</ul>
+<p>虽然很多特性短期内还不能落地，但道阻且长，行则将至。至少就目前看来，Java在传统的企业级和服务端应用领域构筑的堡垒还是牢不可破，再加上由强大生态所构建的护城河，留给Java的时间还有很多。</p>
+<p>最后，作为一个Java开发者，很诚实地希望，在可见的未来，Java能一直流行下去，让我即使被输出被毕业也能找到饭碗…</p>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E2%80%9C%E8%90%BD%E5%AF%9E%E2%80%9D%E7%9A%84Java"><span class="top-box-text">“落寞”的Java</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#JDK%E7%9A%84%E6%BC%94%E8%BF%9B"><span class="top-box-text">JDK的演进</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-9%EF%BC%9A%E9%9A%BE%E4%BA%A7%E7%9A%84%E6%A8%A1%E5%9D%97%E5%8C%96"><span class="top-box-text">Java 9：难产的模块化</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-10%EF%BC%9A%E5%B0%8F%E5%8D%87%E7%BA%A7"><span class="top-box-text">Java 10：小升级</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-11%EF%BC%9AZGC%E9%97%AA%E4%BA%AE%E7%99%BB%E5%9C%BA"><span class="top-box-text">Java 11：ZGC闪亮登场</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-12%EF%BC%9AShenandoah%E5%92%8C%E5%86%85%E5%AD%98%E8%BF%94%E8%BF%98"><span class="top-box-text">Java 12：Shenandoah和内存返还</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-13%EF%BC%9A%E5%B0%8F%E5%8D%87%E7%BA%A7-1"><span class="top-box-text">Java 13：小升级+1</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-14%EF%BC%9A%E5%B0%8F%E5%8D%87%E7%BA%A7-2"><span class="top-box-text">Java 14：小升级+2</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-15%EF%BC%9AZGC%E5%92%8CShenandoah%E8%BD%AC%E6%AD%A3"><span class="top-box-text">Java 15：ZGC和Shenandoah转正</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-16%EF%BC%9AAlipine-Linux%E7%9A%84%E6%94%AF%E6%8C%81"><span class="top-box-text">Java 16：Alipine Linux的支持</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java-17%EF%BC%9A%E6%9C%80%E6%96%B0%E7%9A%84LTS%E7%89%88%E6%9C%AC"><span class="top-box-text">Java 17：最新的LTS版本</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Project-X"><span class="top-box-text">Project X</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%8F%90%E5%89%8D%E7%BC%96%E8%AF%91-AOT"><span class="top-box-text">提前编译-AOT</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%8D%8F%E7%A8%8B%EF%BC%88%E8%99%9A%E6%8B%9F%E7%BA%BF%E7%A8%8B%EF%BC%89"><span class="top-box-text">协程（虚拟线程）</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%80%BC%E7%B1%BB%E5%9E%8B"><span class="top-box-text">值类型</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%98%9F%E5%8F%8B%E7%9A%84%E5%8A%A9%E6%94%BB"><span class="top-box-text">队友的助攻</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#GraalVM"><span class="top-box-text">GraalVM</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Spring-Native"><span class="top-box-text">Spring Native</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%85%B6%E4%BB%96%EF%BC%9AQuarkus-x2F-Micronut-x2F-Helidon%E7%AD%89%E7%AD%89"><span class="top-box-text">其他：Quarkus&#x2F;Micronut&#x2F;Helidon等等</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%9C%AA%E6%9D%A5%EF%BC%9F"><span class="top-box-text">未来？</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2021/11/02/UUID%E8%BF%87%E6%97%B6%E4%BA%86%EF%BC%9F%E6%9D%A5%E4%BA%86%E8%A7%A3%E4%B8%8BNanoID/">
+          <h3 class="post-title">
+            下一篇：UUID过时了？来了解下NanoID
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+
