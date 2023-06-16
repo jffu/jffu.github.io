@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>云原生入门指北-Dapr</title>
+<meta name="keywords" content="云原生入门指北-Dapr, jffu&#39;s blog">
+<meta name="description" content="云原生入门指北系列第四篇，讲讲野心很大的Dapr。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="云原生入门指北-Dapr">
+<meta property="og:description" content="云原生入门指北系列第四篇，讲讲野心很大的Dapr。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">云原生入门指北-Dapr</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2021-10-18</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+              云原生
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p><a target="_blank" rel="noopener" href="https://dapr.io/">Dapr</a> (Distributed Application Runtime) 是微软开源的分布式应用运行时框架。</p>
+<blockquote>
+<p>Dapr is a portable, event-driven runtime that makes it easy for any developer to build resilient, stateless and stateful applications that run on the cloud and edge and embraces the diversity of languages and developer frameworks.</p>
+</blockquote>
+<p>翻译过来就是：Dapr是一个可移植的、事件驱动的运行时，它使任何开发者都能轻松地构建运行在云和边缘的弹性、无状态和有状态的应用程序，并拥抱语言和开发者框架的多样性。</p>
+<p>不过这样的描述还是挺抽象的，不过如果了解过ServiceMesh，那么对Dapr理解起来就很容易，要解决的问题也很像，某种程度上Dapr就像是一个封装了众多中间件能力的代理。</p>
+<h1 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h1><p>Dapr官网给了一个Dapr的整体架构，如下图：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsVFufsBBmrJ07DvjZeU72YIu4QZ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsVFufsBBmrJ07DvjZeU72YIu4QZ.png"  lazyload></a></p>
+<p>从这个图里能明显地看出3层结构：</p>
+<ol>
+<li>最上层是应用代码，强调了Dapr对多语言的支持：任意的语言或框架！ </li>
+<li>中间层是Dapr的运行时，目前提供了8大类能力，包括最常用的服务间调用、状态管理、发布订阅等等；应用层和Dapr Runtime之间通过标准的HTTP&#x2F;gRPC API通信，正因为如此，Dapr的应用层SDK可以做得很薄（所以Dapr可以非常容易地支持多语言）。 </li>
+<li>最底层是基础设施层，要表达的是Dapr在云端和边缘端运行的能力。特别值得一提的是，Dapr可以很好地运行在Kubernetes之上。</li>
+</ol>
+<p>如果剖开Runtime层，Dapr的架构可以做进一步细化：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkEqatKCeO4wnIyvjIipqFjEbXsN.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkEqatKCeO4wnIyvjIipqFjEbXsN.png"  lazyload></a></p>
+<ul>
+<li>Dapr API：Dapr 提供两种API，HTTP1.1&#x2F;REST 和 HTTP2&#x2F;gRPC，两者在功能上是对等的。 </li>
+<li>Dapr Building Blocks：可以翻译为构建块，这是 Dapr 对外提供能力的基本单元，每个构建块对外提供一种分布式能力。 </li>
+<li>Dapr components：组件层，这是 Dapr 的能力实现层，每个组件都会实现特定构建块的能力。</li>
+</ul>
+<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><p>在部署形态上，Dapr也是采用sidecar架构。在kubernetes环境中，sidecar以容器形态存在，与应用部在同一个pod中。不过Dapr也支持将Dapr Sidecar部署成进程（Self-hosted）。</p>
+<p>实际上，由于应用通过标准HTTP或gRPC API与sidecar通信，因此应用不需要关心sidecar的部署形态。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmoUqfHs2sMoZu01dMQ9uAMilCUC.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmoUqfHs2sMoZu01dMQ9uAMilCUC.png"  lazyload></a></p>
+<h1 id="Service-Mesh-gt-Dapr"><a href="#Service-Mesh-gt-Dapr" class="headerlink" title="Service Mesh -&gt; Dapr"></a>Service Mesh -&gt; Dapr</h1><p>如果要介绍Dapr，必须得说的一个概念是Service Mesh。Dapr与常见的Service Mesh框架（例如istio、linkerd）有很多相似点，比如：</p>
+<ul>
+<li>目的都是让应用关注于自身的业务逻辑，而将例如服务间通信的问题交给基础设施 <ul>
+<li>基于 mTLS 加密的服务到服务安全通信</li>
+<li>服务到服务的度量指标收集</li>
+<li>服务到服务分布式跟踪</li>
+<li>故障重试恢复能力</li>
+</ul>
+</li>
+<li>在部署形态上都是通过sidecar的形式</li>
+</ul>
+<p>Dapr的官方文档讲到：与专注于网络问题的服务网格不同，Dapr 专注于提供构建基块，使开发人员更容易将应用程序构建为微服务。 Dapr 以开发人员为中心，而服务网格以基础设施为中心。</p>
+<p>为什么这么说？我觉得首先要看他们要解决的核心问题。Service Mesh要解决的，本质上是分布式环境下服务间通信的问题，典型的比如服务发现、负载均衡，这些能力在传统的微服务开发模式中往往以富SDK的形式集成到应用中，由此带来了一系列问题，例如对应用的侵入性大、多语言的支持使得开发+运维工作量*N、中间件的升级难度变大（版本碎片）等等。Servcie Mesh作为基础设施层接管了这部分工作，它通过部署sidecar代理的方式“劫持”应用间的流量，对应用是透明的。</p>
+<p>以典型的开源Service Mesh项目Istio为例。Istio 中通讯协议的支持主要是HTTP和gRPC，在不断的版本演进过程中，它的核心要素始终未变：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fopfba9pPsroPC-Lt7C0epYisgNH.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fopfba9pPsroPC-Lt7C0epYisgNH.png"  lazyload></a></p>
+<ol>
+<li><strong>定位：</strong>Servicemesh的定位始终是提供 服务间通讯 的基础设施层，范围包括HTTP和RPC——支持HTTP1.1&#x2F;REST，支持HTTP2&#x2F;gRPC，支持TCP协议。也有一些小的尝试如对redis 、 kafka的支持。 </li>
+<li><strong>部署：</strong>ServiceMesh 支持 Kubernetes 和虚拟机，但都是采用 Sidecar 模式部署，没有采用其他方式如 Node 部署、中心化部署。 </li>
+<li><strong>原理：</strong> Servicemesh的工作原理是 原协议转发，原则上不改变协议内容（通常只是header有些小改动）。为了达到零侵入的目标，还引入了iptables等流量劫持技术。</li>
+</ol>
+<p>站在工程开发者的角度，如果使用Service Mesh，那能够解决服务间RPC通信的一系列问题，可能就是把HSF的一个富客户端换成了轻量级的客户端（只保留协议编解码），但Tair呢？MetaQ呢？甚至是TDDL呢？</p>
+<p>我们会自然而然地希望越来越多的基础技术期望通过Service Mesh来完成能力的下沉。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4o1Waami6Si7HMrpWIJKfAfs5r.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4o1Waami6Si7HMrpWIJKfAfs5r.png"  lazyload></a></p>
+<p>Dapr在Service Mesh的形态上更进了一步。从能力上看，Dapr在服务间通信之外，提供了例如State Management、Publish and Subscribe、Resource Bindings and Triggers等各种能力。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtwmZ0D_LnXHLCRi9yJJba2jeUOg.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtwmZ0D_LnXHLCRi9yJJba2jeUOg.png"  lazyload></a></p>
+<p>从架构上，两者也有差异，以传统的服务间通信为例：</p>
+<ol>
+<li><p>与Service Mesh一样，应用还是需要依赖一个Dapr SDK。但是需要注意的是，Service Mesh是原协议转发，因此其SDK需要同时做序列化+编解码，而Dapr SDK只需要做序列化，协议是统一的HTTP或gRPC。 </p>
+<blockquote>
+<p>Service Mesh的一个比较大的缺陷就是，要支持多语言就需要为每个语言都实现一遍原生协议。如Tair想实现多语言的封装，就需要分别实现各个语言的协议，成本较大。</p>
+</blockquote>
+</li>
+<li><p>应用与Dapr Sidecar之间通过gRPC或HTTP API通信。 </p>
+</li>
+<li><p>Dapr Sidecar对外提供了抽象的模块能力（Building block），而内部则是以不同的组件（component）来支持这些能力。这里关键的是，同一种能力的对外API是一致的，但是组件可以是不同的实现，例如使用State Management能力做状态管理，既可以有Redis的组件，也可以有ZooKeeper的组件，这些组件都是可插拔的。</p>
+</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuEa4pGtCzS6HNhKqHHclaZS-LsP.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuEa4pGtCzS6HNhKqHHclaZS-LsP.png"  lazyload></a></p>
+<p>Dapr的官方文档也讲了Dapr和Service Mesh的区别，参考<a target="_blank" rel="noopener" href="https://docs.dapr.io/concepts/service-mesh/">Dapr and service meshes</a>。</p>
+<h1 id="能力"><a href="#能力" class="headerlink" title="能力"></a>能力</h1><p>Dapr对分布式的能力进行了抽象，将其命名为构建块（Building Blocks）。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuUbgSXH_njb-htRHAXv-HHSBRo1.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuUbgSXH_njb-htRHAXv-HHSBRo1.png"  lazyload></a></p>
+<p>每个构建块都是独立的，可以独立或者组合使用，官网的中文翻译有点像机翻，我加了一列我自己的理解。</p>
+<table>
+<thead>
+<tr>
+<th><strong>构建块</strong></th>
+<th><strong>说明</strong></th>
+<th><strong>我的理解</strong></th>
+<th>中间件类比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/service-invocation/service-invocation-overview/">服务调用</a></td>
+<td>跨服务调用允许进行远程方法调用(包括重试)，不管处于任何位置，只需该服务托管于受支持的环境即可。</td>
+<td>基本的服务间RPC，跟Service Mesh一样。</td>
+<td>HSF</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/state-management/state-management-overview/">状态管理</a></td>
+<td>独立的状态管理，使用键&#x2F;值对作为存储机制，可以轻松的使长时运行、高可用的有状态服务和无状态服务共同运行在您的应用程序中。 状态存储是可插拔的，目前支持使用Azure CosmosDB、 Azure SQL Server、 PostgreSQL,、AWS DynamoDB、Redis 作为状态存储介质。</td>
+<td>存储机制，底层可以是关系数据库或者各类NoSQL。</td>
+<td>TDDL、Tair</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/pubsub/pubsub-overview/">发布订阅</a></td>
+<td>发布事件和订阅主题。</td>
+<td>消息队列。</td>
+<td>MetaQ</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/bindings/bindings-overview/">资源绑定</a></td>
+<td>Dapr的Bindings是建立在事件驱动架构的基础之上的。通过建立触发器与资源的绑定，可以从任何外部源（例如数据库，队列，文件系统等）接收和发送事件，而无需借助消息队列，即可实现灵活的业务场景。</td>
+<td>由外部事件源驱动应用（Input Binding），或者触发调用外部资源的事件（Output Binding）。行为上类似发布&#x2F;订阅，不过发布&#x2F;订阅侧重于 Dapr 服务之间的异步通信。 资源绑定的范围更大，它侧重于跨软件平台的系统间交互。 在微服务应用程序外部的不同应用程序、数据存储和服务之间交换信息。</td>
+<td>连接器、SchedulerX、MetaQ等</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/actors/actors-overview/">Actors</a></td>
+<td>Actor模型 &#x3D; 状态 + 行为 + 消息。一个应用&#x2F;服务由多个Actor组成，每个Actor都是一个独立的运行单元，拥有隔离的运行空间，在隔离的空间内，其有独立的状态和行为，不被外界干预，Actor之间通过消息进行交互，而同一时刻，每个Actor只能被单个线程执行，这样既有效避免了数据共享和并发问题，又确保了应用的伸缩性。 Dapr 在Actor模式中提供了很多功能，包括并发，状态管理，用于 actor 激活&#x2F;停用的生命周期管理，以及唤醒 actor 的计时器和提醒器。</td>
+<td>这个概念比较陌生，需要了解<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Actor_model">actor模型</a></td>
+<td></td>
+</tr>
+<tr>
+<td>才能够理解。actor设计模式是一种并发编程模型，actor是小型，独立且隔离的状态和逻辑单元，可以同时执行，可以相互交互。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/concepts/observability-concept/">可观测性</a></td>
+<td>Dapr记录指标，日志，链路以调试和监视Dapr和用户应用的运行状况。Dapr支持分布式跟踪，其使用W3C跟踪上下文标准和开放式遥测技术，可以轻松地诊断在生产环境中服务间的网络调用，并发送到不同的监视工具。</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/developing-applications/building-blocks/secrets/secrets-overview/">秘密</a></td>
+<td>Dapr 提供了密钥管理，支持与公有云和本地的Secret存储集成，以供应用检索使用。</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h1 id="入门"><a href="#入门" class="headerlink" title="入门"></a>入门</h1><p>主要参考<a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/getting-started/">Dapr官方快速入门文档</a>。</p>
+<h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><ol>
+<li>本地安装Dapr CLI 脚手架工具。</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者</span></span><br><span class="line">brew install dapr/tap/dapr-cli</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>初始化dapr-cli （依赖Docker）</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化，这一步可能很慢，因为要拉取并启动一些容器镜像</span></span><br><span class="line">dapr init</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">完成后查看版本</span></span><br><span class="line">dapr --version</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看dapr启动的容器</span></span><br><span class="line">docker ps</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker ps结果</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                   PORTS                              NAMES</span><br><span class="line">0230bf1a9789        daprio/dapr:1.3.0   &quot;./placement&quot;            2 minutes ago       Up 2 minutes             0.0.0.0:50005-&gt;50005/tcp           dapr_placement</span><br><span class="line">65d58614c570        openzipkin/zipkin   &quot;start-zipkin&quot;           3 minutes ago       Up 3 minutes (healthy)   9410/tcp, 0.0.0.0:9411-&gt;9411/tcp   dapr_zipkin</span><br><span class="line">d1f0a0d22565        redis               &quot;docker-entrypoint.s…&quot;   4 minutes ago       Up 4 minutes             0.0.0.0:6379-&gt;6379/tcp             dapr_redis</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>运行dapr sidecar</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dapr run --app-id myapp --dapr-http-port 3500</span><br></pre></td></tr></table></figure>
+
+<p>至此，dapr的环境已经准备好了。脚手架启动了两个相关的docker容器（zipkin和redis）。的sidecar运行在3500端口，监听名为 myapp 的空白应用。</p>
+<p>dapr默认从<code>$HOME/.dapr/components</code>目录读取组件定义。目录下放了<code>pubsub.yaml</code>和<code>statestore.yaml</code>两个配置文件。从名字也能看出来，它们分别用于指定dapr的“发布订阅”和“状态管理”两个构建块使用的组件。以pubsub.yaml为例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">dapr.io/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Component</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pubsub</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">pubsub.redis</span></span><br><span class="line">  <span class="attr">version:</span> <span class="string">v1</span></span><br><span class="line">  <span class="attr">metadata:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redisHost</span></span><br><span class="line">    <span class="attr">value:</span> <span class="string">localhost:6379</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redisPassword</span></span><br><span class="line">    <span class="attr">value:</span> <span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="HTTP-API"><a href="#HTTP-API" class="headerlink" title="HTTP API"></a>HTTP API</h2><p>现在可以通过HTTP API来试着调用dapr sidecar了。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">调用状态管理API，以key-value的方式保存状态</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">curl -X POST -H <span class="string">&quot;Content-Type: application/json&quot;</span> -d <span class="string">&#x27;[&#123; &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;Bruce Wayne&quot;&#125;]&#x27;</span> http://localhost:3500/v1.0/state/statestore</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取刚才保存的值</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">curl http://localhost:3500/v1.0/state/statestore/name</span></span><br><span class="line">&quot;Bruce Wayne&quot;</span><br></pre></td></tr></table></figure>
+
+<p>背后dapr会将数据存到redis中，但应用无需关心这些。如果将redis换成其他数据库，应用也不用感知。</p>
+<h2 id="Hello-world"><a href="#Hello-world" class="headerlink" title="Hello world"></a>Hello world</h2><p>dapr提供了一个<a target="_blank" rel="noopener" href="https://github.com/dapr/quickstarts/tree/v1.0.0/hello-world">Hello-World的官方示例</a>。演示如何进行服务间调用和状态管理。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjTWh9e32dCjWvaEWVbWYfEA5_4u.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjTWh9e32dCjWvaEWVbWYfEA5_4u.png"  lazyload></a></p>
+<p>服务provider是一个用NodeJS写的服务端，提供了一组订单相关的接口，例如neworder接口会创建一个新的订单，并利用dapr的状态管理机制保存到State stores中。代码示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">provider通过HTTP API调用自己sidecar的状态管理接口</span></span><br><span class="line">const stateUrl = `http://localhost:$&#123;daprPort&#125;/v1.0/state/$&#123;stateStoreName&#125;`;</span><br><span class="line"></span><br><span class="line">app.post(&#x27;/neworder&#x27;, (req, res) =&gt; &#123;</span><br><span class="line">    const data = req.body.data;</span><br><span class="line">    const orderId = data.orderId;</span><br><span class="line">    console.log(&quot;Got a new order! Order ID: &quot; + orderId);</span><br><span class="line"></span><br><span class="line">    const state = [&#123;</span><br><span class="line">        key: &quot;order&quot;,</span><br><span class="line">        value: data</span><br><span class="line">    &#125;];</span><br><span class="line"></span><br><span class="line">    fetch(stateUrl, &#123;</span><br><span class="line">        method: &quot;POST&quot;,</span><br><span class="line">        body: JSON.stringify(state),</span><br><span class="line">        headers: &#123;</span><br><span class="line">            &quot;Content-Type&quot;: &quot;application/json&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;).then((response) =&gt; &#123;</span><br><span class="line">        if (!response.ok) &#123;</span><br><span class="line">            throw &quot;Failed to persist state.&quot;;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        console.log(&quot;Successfully persisted state.&quot;);</span><br><span class="line">        res.status(200).send();</span><br><span class="line">    &#125;).catch((error) =&gt; &#123;</span><br><span class="line">        console.log(error);</span><br><span class="line">        res.status(500).send(&#123;message: error&#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>而服务consumer则是一个用python写的客户端，模拟发起对provider的调用。代码示例如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">dapr_port = os.getenv(&quot;DAPR_HTTP_PORT&quot;, 3500)</span><br><span class="line">dapr_url = &quot;http://localhost:&#123;&#125;/v1.0/invoke/nodeapp/method/neworder&quot;.format(dapr_port)</span><br><span class="line"></span><br><span class="line">n = 0</span><br><span class="line">while True:</span><br><span class="line">    n += 1</span><br><span class="line">    message = &#123;&quot;data&quot;: &#123;&quot;orderId&quot;: n&#125;&#125;</span><br><span class="line"></span><br><span class="line">    try:</span><br><span class="line">        response = requests.post(dapr_url, json=message, timeout=5)</span><br><span class="line">        if not response.ok:</span><br><span class="line">            print(&quot;HTTP %d =&gt; %s&quot; % (response.status_code,</span><br><span class="line">                                     response.content.decode(&quot;utf-8&quot;)), flush=True)</span><br><span class="line">    except Exception as e:</span><br><span class="line">        print(e, flush=True)</span><br><span class="line"></span><br><span class="line">    time.sleep(1)</span><br></pre></td></tr></table></figure>
+
+<p>启动测试后可以在控制台看到服务端创建订单接口的输出：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动服务端</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">dapr run --app-id nodeapp --app-port 3000 --dapr-http-port 3500 node app.js</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动客户端</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">dapr run --app-id pythonapp python3 app.py</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="其他示例"><a href="#其他示例" class="headerlink" title="其他示例"></a>其他示例</h2><p>参考<a target="_blank" rel="noopener" href="https://github.com/dapr/quickstarts/tree/v1.0.0">官方git</a>。</p>
+<h1 id="一些想法"><a href="#一些想法" class="headerlink" title="一些想法"></a>一些想法</h1><h2 id="Dapr-VS-ServiceMesh"><a href="#Dapr-VS-ServiceMesh" class="headerlink" title="Dapr VS ServiceMesh"></a>Dapr VS ServiceMesh</h2><p>云原生时代的框架，核心思路都是让更多的能力下沉到基础设施层，ServiceMesh是分布式通讯能力，Dapr的野心很大，它试图在ServiceMesh的基础上进一步探索更多可能性，将应用开发中常用的服务调用、缓存、消息队列等能力进一步下沉。那问题来了，如果抛开其他能力，只谈服务调用，Dapr和ServiceMesh到底有什么区别？上面已经探讨了一部分，这里列一些我的想法：</p>
+<ul>
+<li>Dapr和ServiceMesh这两者的核心都是Sidecar，将基础能力封装到Sidecar中，应用与Sidecar通信。应用关注业务逻辑的实现，Sidecar则关注基础能力的封装，实现关注点分离。</li>
+<li>Dapr和ServiceMesh的<strong>工作模式和开发者关注点</strong>不同。ServiceMesh是原协议转发，理论上开发者可以完全不感知ServiceMesh的存在，是纯纯的<strong>Proxy</strong>。Dapr则不同，它做的是“能力抽象”，一方面接收的是标准api的请求，另一方面会转义成对应组件的协议发给对应的Component组件，所以Dapr是<strong>Runtime</strong>。</li>
+</ul>
+<h2 id="现实的挑战"><a href="#现实的挑战" class="headerlink" title="现实的挑战"></a>现实的挑战</h2><p>Dapr想做 “any language, any framework, anywhere”的Runtime，理想很美好，现实呢？我认为还是挑战很多的，最大的挑战即是如何适配不同组件。<br>在Dapr的架构里，使用同一套标准API，对接可插拔可替换的不同组件，可以看出API的标准化是最核心的能力，但这也是最难实现的。<br>以State API为例，底层的组件可以是关系型数据库、KV数据库、文档数据库等等，它们提供的能力不可能是完全一致的。比如说：是否支持批量操作？是否支持事务？是否支持各种数据结构？。。。事实上，每种数据库都有其擅长和不擅长之处，这也是数据库市场百花齐放的原因。那如何能在这些不统一的能力之上提供统一的API呢？<br>对于这点感兴趣的同学，我建议可以去看看这篇文章：<a target="_blank" rel="noopener" href="https://skyao.io/talk/202111-important-of-api-standardization-for-dapr/">《死生之地不可不察：论API标准化对Dapr的重要性》</a>，讲得很好，里面有这样一张图：<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhiATqPb0x9j3hmsgQek5ioI2Nsl.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhiATqPb0x9j3hmsgQek5ioI2Nsl.png"  lazyload></a><br>这就是Dapr面临的最大挑战，即：<strong>API定义全部特性</strong> 和 <strong>所有组件都完美支持</strong> 无法同时满足时，如何权衡取舍。</p>
+<blockquote>
+<ul>
+<li>向左，只定义基本特性，最终得到的API倾向于功能最小集<ul>
+<li>优点：所有组件都支持，可移植性好</li>
+<li>缺点：功能有限，很可能不满足需求</li>
+</ul>
+</li>
+<li>向右，定义各种高级特性，最终得到的API倾向于功能最大集<ul>
+<li>优点：功能齐全，很好的满足需求</li>
+<li>缺点：组件只提供部分支持，可移植性差</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ol>
+<li>dapr官方文档</li>
+<li><a target="_blank" rel="noopener" href="https://skyao.io/talk/202103-dapr-from-servicemesh-to-cloudnative/">Dapr v1.0展望：从servicemesh到云原生</a></li>
+<li><a target="_blank" rel="noopener" href="https://topic.atatech.org/articles/201456">Dapr系列一：从Service Mesh到Dapr</a></li>
+</ol>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%A6%82%E5%BF%B5"><span class="top-box-text">概念</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%9E%B6%E6%9E%84"><span class="top-box-text">架构</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%83%A8%E7%BD%B2"><span class="top-box-text">部署</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Service-Mesh-gt-Dapr"><span class="top-box-text">Service Mesh -&gt; Dapr</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E8%83%BD%E5%8A%9B"><span class="top-box-text">能力</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%85%A5%E9%97%A8"><span class="top-box-text">入门</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="top-box-text">环境准备</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#HTTP-API"><span class="top-box-text">HTTP API</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Hello-world"><span class="top-box-text">Hello world</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%85%B6%E4%BB%96%E7%A4%BA%E4%BE%8B"><span class="top-box-text">其他示例</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%B8%80%E4%BA%9B%E6%83%B3%E6%B3%95"><span class="top-box-text">一些想法</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Dapr-VS-ServiceMesh"><span class="top-box-text">Dapr VS ServiceMesh</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%8E%B0%E5%AE%9E%E7%9A%84%E6%8C%91%E6%88%98"><span class="top-box-text">现实的挑战</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8F%82%E8%80%83"><span class="top-box-text">参考</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2021/10/17/yun-yuan-sheng-ru-men-zhi-bei-servicemesh/">
+          <h3 class="post-title">
+            下一篇：云原生入门指北-ServiceMesh
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

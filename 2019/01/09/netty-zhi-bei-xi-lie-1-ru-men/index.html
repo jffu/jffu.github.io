@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>Netty指北系列1-入门</title>
+<meta name="keywords" content="Netty指北系列1-入门, jffu&#39;s blog">
+<meta name="description" content="Nety指北系列第一篇，先入个门。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="Netty指北系列1-入门">
+<meta property="og:description" content="Nety指北系列第一篇，先入个门。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">Netty指北系列1-入门</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-01-09</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Netty/">
+              Netty
+                
+                  ，
+                
+              </a>
+            
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/">
+              网络协议
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p>  之前的工作中Netty框架用得比较多，现在做的更加偏向于上层业务，不再与底层网络打交道，Netty相关的东西已经基本忘得差不多了。打算写一系列Netty相关的入门指南文章，算是温故而知新。</p>
+<ol>
+<li>Netty指北-入门</li>
+<li>Netty指北-网络抽象和核心组件</li>
+<li>Netty指北-Channel</li>
+<li>Netty指北-ChannelHandler和ChannelPipeline</li>
+<li>Netty指北-EventLoop</li>
+<li>Netty指北-ByteBuf</li>
+</ol>
+<hr>
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1 前言"></a>1 前言</h1><h2 id="Netty是什么，用来解决什么问题"><a href="#Netty是什么，用来解决什么问题" class="headerlink" title="Netty是什么，用来解决什么问题"></a>Netty是什么，用来解决什么问题</h2><p>参考Netty的<a target="_blank" rel="noopener" href="http://netty.io/">官网</a>介绍：</p>
+<blockquote>
+<p>Netty is a NIO client server framework which enables quick and easy development of network applications such as protocol servers and clients. It greatly simplifies and streamlines network programming such as TCP and UDP socket server.</p>
+</blockquote>
+<p>翻译过来的大意就是：Netty是一个NIO网络框架，用于快速和简便地开发网络应用,Netty 大大简化了网络程序的开发过程比如 TCP 和 UDP 的 socket 服务的开发。</p>
+<p>Netty最大的优势在于提供了一个完全异步、事件驱动的网络开发框架，得益于其优美的设计，开发者可以使用Netty开发高性能、高可靠性的服务端和客户端程序，更关键的是，Netty的API非常容易上手。</p>
+<blockquote>
+<p>与网络打交道的Java中间件中，几乎都能找到Netty的身影，像HSF、RocketMQ等等。</p>
+</blockquote>
+<h2 id="为什么要用Netty"><a href="#为什么要用Netty" class="headerlink" title="为什么要用Netty"></a>为什么要用Netty</h2><ol>
+<li>易用性</li>
+</ol>
+<ul>
+<li>Netty使用统一易用的API，与使用Java传统IO(OIO)和NIO类库开发相比，大大简化了开发工作量；</li>
+<li>Netty灵活，可扩展的事件驱动模型使得业务逻辑的开发非常容易，一般情况下只需要关注ChannelHandler中对应的方法即可；</li>
+<li>Netty预置了一系列编解码器，支持包括Web开发中常用的HTTP、SSL&#x2F;TLS、WebSocket等协议；</li>
+</ul>
+<ol start="2">
+<li>高性能</li>
+</ol>
+<ul>
+<li>基于NIO实现，异步+非阻塞事件驱动；</li>
+<li>没有不必要的内存拷贝，使用直接内存实现“零拷贝”；</li>
+<li>高效的Reactor线程模型；</li>
+</ul>
+<ol start="3">
+<li>高可靠性</li>
+</ol>
+<ul>
+<li>Netty已经是一个非常成熟稳定的框架；</li>
+<li>Netty修复了已知的JDK的NIO bug，比如臭名昭著的epoll bug；</li>
+</ul>
+<h2 id="学习Netty的预备知识"><a href="#学习Netty的预备知识" class="headerlink" title="学习Netty的预备知识"></a>学习Netty的预备知识</h2><p>Netty上手非常容易，不过想深入理解Netty的一些设计理念和API使用，可以先了解一下Java NIO的知识。<br>推荐NIO<a target="_blank" rel="noopener" href="http://tutorials.jenkov.com/java-nio/index.html">学习链接</a>。</p>
+<h1 id="2-从Hello-World开始"><a href="#2-从Hello-World开始" class="headerlink" title="2 从Hello World开始"></a>2 从Hello World开始</h1><h2 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h2><p>Netty的jar包可以到<a target="_blank" rel="noopener" href="http://netty.io/downloads.html">官网</a>下载，使用maven的话，可以加入以下依赖：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;io.netty&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;netty-all&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;4.1.30.Final&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="HelloWorld-Demo"><a href="#HelloWorld-Demo" class="headerlink" title="HelloWorld Demo"></a>HelloWorld Demo</h2><p>以HellowWorld为例，服务端流程如下：</p>
+<ol>
+<li>接受客户端连接；</li>
+<li>写消息”Hello World”给客户端；</li>
+<li>关闭连接；</li>
+</ol>
+<p>客户端流程如下：</p>
+<ol>
+<li>连接到服务端；</li>
+<li>接收服务端发回的消息；</li>
+<li>连接断开；</li>
+</ol>
+<h2 id="服务端"><a href="#服务端" class="headerlink" title="服务端"></a>服务端</h2><p>Netty的服务端程序一般由两部分组成：</p>
+<ol>
+<li><code>ChannelHandler</code>接口的实现：对请求进行处理，一般业务代码都放在这里；</li>
+<li><code>ServerBootstrap</code>：用于配置、启动服务端程序，例如设定端口和TCP连接参数，绑定端口侦听等；</li>
+</ol>
+<h3 id="ChannelHandler：实现业务逻辑"><a href="#ChannelHandler：实现业务逻辑" class="headerlink" title="ChannelHandler：实现业务逻辑"></a>ChannelHandler：实现业务逻辑</h3><p><code>ChannelHandler</code>接口的子接口<code>ChannelInboundHandler</code>可能是开发Netty应用时打交道最多的，这个接口用于处理一条通道<code>Channel</code>上的inbound事件，并定义了一系列回调方法，其中我们感兴趣的主要有：</p>
+<ul>
+<li><code>channelActive()</code>&#x2F;<code>channelInactive()</code>：连接建立&#x2F;断开；</li>
+<li><code>channelRead()</code>：读取到数据</li>
+<li><code>channelReadComplete()</code>：通知Handler已经读取完了该批所有消息数据</li>
+<li><code>exceptionCaught()</code>：出现异常时被调用</li>
+</ul>
+<h4 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ChannelHandler</span>.Sharable <span class="comment">// 1</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloServerHandler</span> <span class="keyword">extends</span> <span class="title class_">ChannelInboundHandlerAdapter</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">ByteBuf</span> <span class="variable">BUF</span> <span class="operator">=</span></span><br><span class="line">            Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(<span class="string">&quot;Hello World!\r\n&quot;</span>, StandardCharsets.UTF_8)); <span class="comment">// 2</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123; <span class="comment">// 3</span></span><br><span class="line">        ctx.writeAndFlush(BUF.duplicate()) <span class="comment">// 4</span></span><br><span class="line">                .addListener(ChannelFutureListener.CLOSE); <span class="comment">// 5</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> <span class="keyword">throws</span> Exception &#123; <span class="comment">// 6</span></span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>Sharable</code>注解用于标识一个<code>ChannelHandler</code>可以在多个channel间共享，如果不加<code>Sharable</code>注解，那么Netty会为每个channel创建一个新的<code>ChannelHandler</code>对象。</li>
+<li>Netty对原生NIO的<code>ByteBuffer</code>做了封装，提供了<code>ByteBuf</code>类用于字节数据的存储。</li>
+<li>重写<code>channelActive()</code>方法，在每次连接建立时，<code>channelActive()</code>会被调用。</li>
+<li>使用<code>ChannelHandlerContext</code>的<code>writeAndFlush()</code>方法往客户端写消息。</li>
+<li>对写消息操作添加一个监听器，这里使用了Netty自带的<code>ChannelFutureListener.CLOSE</code>监听器表示写完消息后就关闭连接。</li>
+<li>重写<code>exceptionCaught()</code>方法来捕获和处理异常，这里简单地打印异常然后关闭channel。 <ul>
+<li>Netty支持给每个channel设定一条<code>ChannelHandler</code>链，如果不捕获异常的话，异常会在Handler链中传播，如果没有一个Handler捕获，异常会在最后被记录和打印。</li>
+</ul>
+</li>
+</ol>
+<p>由于HelloWorld服务器比较简单，不需要从客户端读数据，因此这个样例中重写了<code>channelActive()</code>方法，让服务端在客户端连接时给客户端发一条“Hello World”消息后关闭连接。一般情况下，需要重写<code>channelRead()</code>和<code>channelReadComplete()</code>来读取数据。<br>Netty提供了一系列默认的<code>ChannelInboundHandler</code>的实现，这里用到的<code>ChannelInboundHandlerAdapter</code>对<code>ChannelInboundHandler</code>的方法做了简单基本的实现，即将事件直接传递给后面的Handler。如果需要对事件进行处理，只要重写对应的方法即可。</p>
+<h3 id="ServerBootstrap：配置启动Netty应用"><a href="#ServerBootstrap：配置启动Netty应用" class="headerlink" title="ServerBootstrap：配置启动Netty应用"></a>ServerBootstrap：配置启动Netty应用</h3><p><code>Bootstrap</code>顾名思义，用于配置和启动Netty应用。一般在<code>Bootstrap</code>中会做这些事情：</p>
+<ol>
+<li>配置Netty处理IO事件的线程组；</li>
+<li>配置Netty使用的channel类型，比如基于传统IO的<code>OioServerSocketChannel</code>或者基于NIO的<code>NioServerSocketChannel</code>；</li>
+<li>配置服务绑定的本地地址（IP+端口）；</li>
+<li>配置<code>ChannelHanlder</code>用来处理真正的IO事件；</li>
+<li>配置连接参数，比如TCP参数等等；</li>
+<li>连接对端节点;</li>
+</ol>
+<h4 id="代码-1"><a href="#代码-1" class="headerlink" title="代码"></a>代码</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorldServer</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 配置NIO线程组</span></span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">bossGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>(); <span class="comment">// 1</span></span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">workerGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 创建ServerBootstrap启动类</span></span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>(); <span class="comment">// 2</span></span><br><span class="line">            <span class="comment">// 对Bootstrap进行一系列配置</span></span><br><span class="line">            b.group(bossGroup, workerGroup) <span class="comment">// 3</span></span><br><span class="line">                    .channel(NioServerSocketChannel.class)</span><br><span class="line">                    .localAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port))</span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                            ch.pipeline().addLast(<span class="keyword">new</span> <span class="title class_">HelloServerHandler</span>());</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;)</span><br><span class="line">                    .option(ChannelOption.SO_BACKLOG, <span class="number">128</span>)</span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 绑定端口</span></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind().sync();</span><br><span class="line">            <span class="comment">// 阻塞当前线程，直到服务端链路关闭</span></span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="comment">// 退出，清理资源</span></span><br><span class="line">            workerGroup.shutdownGracefully(); <span class="comment">// 4</span></span><br><span class="line">            bossGroup.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">HelloWorldServer</span>().start(<span class="number">7777</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在解释代码前需要理解，对服务端而言，Netty使用的channel分为两类：用于接收客户端连接的channel，以及为每个客户端连接创建的channel，可以类比为<code>ServerSocket</code>和<code>Socket</code>。</p>
+<ol>
+<li><code>NioEventLoopGroup</code>是Netty中的线程组，一个服务端程序一般包含两个<code>NioEventLoopGroup</code>，<code>bossGroup</code>用于接收客户端连接，<code>workerGroup</code>用于处理IO事件。</li>
+<li><code>ServerBootstrap</code>就是服务端的辅助启动类。</li>
+<li>对<code>Bootstrap</code>进行一系列配置，简单的说明： <ul>
+<li><code>group()</code>用于设置<code>EventGroup</code>；</li>
+<li><code>channel()</code>用于设置channel类型，这里使用的<code>NioServerSocketChannel</code>对应于NIO中的<code>ServerSocketChannel</code>；</li>
+<li><code>childHandler()</code>用于指定IO事件处理用的<code>ChannelHandler</code>，通过<code>ChannelInitializer</code>类来初始化；</li>
+<li><code>option()</code>设置服务端用于接收客户端连接的<code>ServerChannel</code>的属性，<code>childOption()</code>设置每个客户端连接<code>Channel</code>的属性；</li>
+</ul>
+</li>
+<li>Netty提供了<code>shutdownGracefully()</code>用于优雅地退出并清理资源。</li>
+</ol>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>如果不需要Netty客户端的话，一个简单的HelloWorld服务器已经可用了，直接运行<code>main()</code>方法就可以启动。<br>使用Windows&#x2F;Linux自带的telnet可以对其进行测试，以linux为例：运行telnet，可以看到服务端返回了”Hello World”消息后连接断开。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fipxhu29Ah-JRqXw9lfgjxLYll9o.png"  lazyload></a></p>
+<h2 id="客户端"><a href="#客户端" class="headerlink" title="客户端"></a>客户端</h2><p>与服务端程序一样，Netty客户端的组成也有两部分，而且结构上基本一致：</p>
+<ol>
+<li><code>ChannelHandler</code>接口的实现：对响应进行处理，一般业务代码都放在这里；</li>
+<li><code>Bootstrap</code>：用于配置、启动客户端程序；</li>
+</ol>
+<h3 id="ChannelHandler实现"><a href="#ChannelHandler实现" class="headerlink" title="ChannelHandler实现"></a>ChannelHandler实现</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloClientHandler</span> <span class="keyword">extends</span> <span class="title class_">SimpleChannelInboundHandler</span>&lt;ByteBuf&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">channelRead0</span><span class="params">(ChannelHandlerContext ctx, ByteBuf msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Client received: &quot;</span> + msg.toString(CharsetUtil.UTF_8));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端的<code>ChannelHandler</code>实现与服务端非常类似，这里客户端实现了<code>SimpleChannelInboundHandler</code>抽象类，与在服务端使用的<code>ChannelInboundHandlerAdapter</code>区别主要在于：<br>在<code>SimpleChannelInboundHandler</code>中调用<code>channelRead0()</code>方法读取服务端返回的数据，方法返回之后，<code>SimpleChannelInboundHandler</code>会自动释放消息数据<code>ByteBuf</code>的内存引用。</p>
+<h3 id="客户端的Bootstrap"><a href="#客户端的Bootstrap" class="headerlink" title="客户端的Bootstrap"></a>客户端的Bootstrap</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorldClient</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(String host, <span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">group</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>(); <span class="comment">// 创建线程组</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">Bootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Bootstrap</span>(); <span class="comment">// 客户端启动类为Bootstrap</span></span><br><span class="line">            b.group(group) </span><br><span class="line">                    .channel(NioSocketChannel.class) <span class="comment">// channel类型设置为NioSocketChannel，对应NIO实现</span></span><br><span class="line">                    .remoteAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(host, port)) <span class="comment">// 配置远程服务器地址</span></span><br><span class="line">                    .handler(<span class="keyword">new</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                            ch.pipeline().addLast(<span class="keyword">new</span> <span class="title class_">HelloClientHandler</span>());</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;);</span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.connect().sync(); <span class="comment">// connect()异步连接，sync()阻塞等待</span></span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            group.shutdownGracefully().sync();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">HelloWorldClient</span>().start(<span class="string">&quot;localhost&quot;</span>, <span class="number">777</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>跟服务端代码在结构流程上大同小异，最大的不同是使用了不同的<code>Bootstrap</code>和<code>Channel</code>类型。</p>
+<ol>
+<li>创建线程组<code>EventLoopGroup</code>，客户端只需要一个线程组用来处理单个channel上的IO事件即可。</li>
+<li>配置客户端的辅助启动类<code>Bootstrap</code>，包括绑定线程组、配置channel类型、配置服务端地址、添加<code>ChannelHandler</code>等。</li>
+<li>调用<code>connect()</code>方法连接。</li>
+<li>退出并释放资源。</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从Demo中看到，使用Netty开发的代码简洁，扩展性强。抛开一般不太会改的Bootstrap部分，开发者可以专注在自身的业务逻辑上，解放了生产力。Netty作为基础网络通信框架可以拿来直接开发服务端或者客户端程序，更多时候Netty被集成在其他框架或者工具里作为底层网络框架使用。</p>
+<h1 id="3-时间服务器"><a href="#3-时间服务器" class="headerlink" title="3 时间服务器"></a>3 时间服务器</h1><h2 id="时间服务器简介"><a href="#时间服务器简介" class="headerlink" title="时间服务器简介"></a>时间服务器简介</h2><p>时间服务器是个比较经典的Netty入门例子，在Netty官方指南、《Netty权威指南》里都有出现。最简单的实现里，时间服务器与HelloWorld服务器是类似的，只是服务端返回的消息由“Hello World”换成了一串时间而已。为了说明Netty的一些特性，这里合并了Netty官方指南、《Netty权威指南》中两个例子的实现。</p>
+<h2 id="第一个版本"><a href="#第一个版本" class="headerlink" title="第一个版本"></a>第一个版本</h2><p>服务端流程：</p>
+<ol>
+<li>接收客户端发过来的请求。</li>
+<li>如果请求内容是“TIME QUERY”，那么给客户端写回当前服务器的时间；如果不是，直接断开链接。</li>
+</ol>
+<p>客户端流程：</p>
+<ol>
+<li>连接到服务器，发送消息“TIME QUERY”到服务端。</li>
+<li>打印服务端返回的时间。</li>
+</ol>
+<h3 id="代码-2"><a href="#代码-2" class="headerlink" title="代码"></a>代码</h3><p>之前介绍过，一个Netty程序一般由<code>Bootstrap</code>和<code>ChannelHandler</code>两部分组成，而<code>Bootstrap</code>一般在确定参数后不会再修改。在时间服务器的例子里，<code>Bootstrap</code>部分的代码（包括客户端和服务端）几乎可以完全移植HelloWorld示例中的代码，只需要修改一下<code>ChannelHandler</code>实现的类名即可。</p>
+<h4 id="服务端-1"><a href="#服务端-1" class="headerlink" title="服务端"></a>服务端</h4><p>服务端<code>Bootstrap</code>代码不再赘述。Handler实现还是可以继承<code>ChannelInboundHandlerAdapter</code>，由于需要读取客户端数据，这里需要重写<code>channelRead()</code>和<code>channelReadComplete()</code>方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ChannelHandler</span>.Sharable</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServerHandler</span> <span class="keyword">extends</span> <span class="title class_">ChannelInboundHandlerAdapter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelRead</span><span class="params">(ChannelHandlerContext ctx, Object msg)</span> <span class="keyword">throws</span> Exception &#123;           <span class="comment">// 1</span></span><br><span class="line">        <span class="comment">// 版本1：服务端接收到的数据在不经过任何转换的情况下是ByteBuf类型，需要手动转换为String类型</span></span><br><span class="line">        <span class="type">ByteBuf</span> <span class="variable">buf</span> <span class="operator">=</span> (ByteBuf) msg;                                                            <span class="comment">// 2</span></span><br><span class="line">        <span class="type">byte</span>[] bytes = <span class="keyword">new</span> <span class="title class_">byte</span>[buf.readableBytes()];</span><br><span class="line">        buf.readBytes(bytes);</span><br><span class="line">        <span class="type">String</span> <span class="variable">body</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(bytes, StandardCharsets.UTF_8.toString());</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">currentTime</span> <span class="operator">=</span> <span class="string">&quot;TIME QUERY&quot;</span>.equals(body) ? <span class="keyword">new</span> <span class="title class_">Date</span>().toString() : <span class="string">&quot;BAD REQUEST&quot;</span>;</span><br><span class="line">        <span class="type">ByteBuf</span> <span class="variable">resp</span> <span class="operator">=</span> Unpooled.copiedBuffer(currentTime.getBytes());</span><br><span class="line">        ctx.write(resp);                                                                    <span class="comment">// 3</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelReadComplete</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123;           <span class="comment">// 4</span></span><br><span class="line">        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER)                                            <span class="comment">// 5</span></span><br><span class="line">                .addListener(ChannelFutureListener.CLOSE);                                  <span class="comment">// 6</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p><code>channelRead()</code>方法在channel读到数据时被调用。</p>
+</li>
+<li><p>在默认情况下收到数据的类型是<code>ByteBuf</code>，需要转换成String，注意这里的转换不是那么直观。</p>
+</li>
+<li><p>现在来看下<code>ChannelHandlerContext</code>这个对象，它提供了一系列有用的操作，可以触发I&#x2F;O事件和操作，比如： </p>
+<ul>
+<li><code>write()</code>： 把消息写到缓冲区中，注意这时候消息并没有被发送； </li>
+<li><code>flush()</code>：将缓冲区的消息输出到channel； </li>
+<li><code>close()</code>：关闭channel； <blockquote>
+<p>一个<code>ChannelHandlerContext</code>关联了一个<code>Channel</code>，通过<code>Channel</code>也可以写消息和连接关闭。两者的不同在于：<code>Channel</code>写时消息会从<code>ChannelPipeline</code>的<code>ChannelHandler</code>链头传递到链尾，<code>ChannelHandlerContext</code>写则是将消息从当前<code>ChannelHandler</code>的下个Handler传递到链尾。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p><code>channelReadComplete()</code>在消息读完时被调用。</p>
+</li>
+<li><p><code>writeAndFlush()</code>整合了<code>write()</code>和<code>flush()</code>，这里将缓冲区里的数据一起发出。</p>
+</li>
+<li><p>由于写消息是异步的，怎么知道操作已经完成或者失败呢？这时候需要在操作返回的 <code>ChannelFuture</code> 上增加一个<code>ChannelFutureListener</code>监听器。Netty提供了一系列预置的监听器，比如<code>ChannelFutureListener.CLOSE</code>用来在操作完成时关闭 <code>Channel</code>。开发者也可以自定义自己的监听器。</p>
+</li>
+</ol>
+<h3 id="客户端-1"><a href="#客户端-1" class="headerlink" title="客户端"></a>客户端</h3><p>客户端的<code>Bootstrap</code>代码跟前个例子中也是类似的，不再赘述。这里只看Handler的部分。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeClientHandler</span> <span class="keyword">extends</span> <span class="title class_">SimpleChannelInboundHandler</span>&lt;ByteBuf&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">ByteBuf</span> <span class="variable">buf</span> <span class="operator">=</span> Unpooled.wrappedBuffer(<span class="string">&quot;TIME QUERY&quot;</span>.getBytes());</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        ctx.writeAndFlush(buf);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">channelRead0</span><span class="params">(ChannelHandlerContext ctx, ByteBuf msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Server time: &quot;</span> + msg.toString(StandardCharsets.UTF_8));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端的逻辑比较简单，在连接到服务端后，发送一条”TIME QUERY”的消息给服务端（通过<code>channelActive()</code>方法实现连接建立后发送消息），然后从服务端读取返回的消息打印，这里还是通过<code>channelRead0()</code>方法来实现。</p>
+<h2 id="第二个版本"><a href="#第二个版本" class="headerlink" title="第二个版本"></a>第二个版本</h2><p>在服务端代码中看到，默认情况下服务端收到的数据是<code>ByteBuf</code>类型的，需要手动转换为业务需要的类型，比如这里的String，如果每次收到数据都要做这样的手动转换是比较烦人的。有没有办法使得业务收到时就是转换好的类型呢？</p>
+<h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p>在<code>Bootstrap</code>代码中有这么一段，用于初始化Handler：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();</span><br><span class="line">b.group(bossGroup, workerGroup)</span><br><span class="line">        <span class="comment">// 省略</span></span><br><span class="line">        .childHandler(<span class="keyword">new</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                ch.pipeline().addLast(<span class="keyword">new</span> <span class="title class_">TimeServerHandler</span>());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br></pre></td></tr></table></figure>
+
+<p><code>Bootstrap</code>的<code>childHandler()</code>接收一个<code>ChannelInitializer</code>对象，<code>ChannelInitializer</code>用来初始化一组Handler，这组Handler组成一条Handler链表，这个链表结构用<code>ChannelPipeline</code>对象表示。<br><code>ChannelPipeline</code>和<code>ChannelHandler</code>的工作机制类似于JavaWeb中的<code>Filter</code>链：</p>
+<ul>
+<li><code>ChannelPipeline</code>作为<code>Channel</code>的数据管道，<code>Channel</code>中的数据在<code>ChannelPipeline</code>中流动和传递；</li>
+<li><code>ChannelPipeline</code>中的<code>ChannelHandler</code>作为过滤器会对I&#x2F;O事件进行拦截处理，处理后传递给下一个Handler；</li>
+</ul>
+<p>通过不同Handler的组合，可以灵活地实现不同的业务逻辑，而且Netty支持动态地增加和删除<code>ChannelHandler</code>。<br><code>ChannelHandler</code>最常用的用途是用在消息的编解码上，Netty提供了一系列默认的<code>ChannelHandler</code>用于编解码，比较常用的有：</p>
+<ul>
+<li><code>StringDecoder</code>：将<code>ByteBuf</code>解码为String对象</li>
+<li><code>LineBasedFrameDecoder</code>：基于换行符对消息解码</li>
+<li><code>DelimiterBasedFrameDecoder</code>：基于指定分隔符对消息解码</li>
+<li><code>FixedLengthFrameDecoder</code>：基于固定长度对消息解码</li>
+<li>Http协议的编解码：<code>HttpRequestDecoder</code>&#x2F;<code>HttpRequestEncoder</code>&#x2F;<code>HttpResponseDecoder</code>&#x2F;<code>HttpResponseEncoder</code>等</li>
+</ul>
+<h3 id="改造后的服务端"><a href="#改造后的服务端" class="headerlink" title="改造后的服务端"></a>改造后的服务端</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServerHandler</span> <span class="keyword">extends</span> <span class="title class_">ChannelInboundHandlerAdapter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelRead</span><span class="params">(ChannelHandlerContext ctx, Object msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 版本2：在经过StringDecoder后，可以直接把消息转成String使用</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">body</span> <span class="operator">=</span> (String) msg;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">currentTime</span> <span class="operator">=</span> <span class="string">&quot;TIME QUERY&quot;</span>.equals(body) ? <span class="keyword">new</span> <span class="title class_">Date</span>().toString() : <span class="string">&quot;BAD REQUEST&quot;</span>;</span><br><span class="line">        <span class="type">ByteBuf</span> <span class="variable">resp</span> <span class="operator">=</span> Unpooled.copiedBuffer(currentTime.getBytes());</span><br><span class="line">        ctx.write(resp);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 省略其他相同代码</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">bossGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">workerGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();</span><br><span class="line">            b.group(bossGroup, workerGroup)</span><br><span class="line">                    .channel(NioServerSocketChannel.class)</span><br><span class="line">                    .localAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port))</span><br><span class="line">                    <span class="comment">// 由TimeServerChannelInitializer负责初始化handler</span></span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">TimeServerChannelInitializer</span>())</span><br><span class="line">                    .option(ChannelOption.SO_BACKLOG, <span class="number">128</span>)</span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind().sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            workerGroup.shutdownGracefully();</span><br><span class="line">            bossGroup.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 省略</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServerChannelInitializer</span> <span class="keyword">extends</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ChannelPipeline</span> <span class="variable">p</span> <span class="operator">=</span> ch.pipeline();</span><br><span class="line">        <span class="comment">// 往ChannelPipeline中添加handler</span></span><br><span class="line">        <span class="comment">// 在TimeServerHandler前加了StringDecoder后，消息会被先解码成String</span></span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">StringDecoder</span>());</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">TimeServerHandler</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="4-解决TCP粘包拆包"><a href="#4-解决TCP粘包拆包" class="headerlink" title="4 解决TCP粘包拆包"></a>4 解决TCP粘包拆包</h1><h2 id="TCP粘包-x2F-拆包问题"><a href="#TCP粘包-x2F-拆包问题" class="headerlink" title="TCP粘包&#x2F;拆包问题"></a>TCP粘包&#x2F;拆包问题</h2><p>TCP传输是基于流的，接收和发送的数据会被暂存在socket的缓冲区中等待时机读取或发送。TCP底层不了解上层协议，所以它发送和接收数据并不是基于一个完整的数据包，而是一个字节序列。一个完整的数据包可能会被TCP拆分成多个包发送（拆包），也有可能把多个包组合起来一起发送（粘包）。<br>以Netty用户指南中的图为例：</p>
+<ol>
+<li>假设客户端发送了3个数据包，分别为ABC、DEF、GHI。</li>
+<li>在TCP粘包拆包后，服务端读取数据时看到的是这样的片段：AB、CDEFG、H、I。</li>
+<li>服务端需要通过一定的协议解析这些接收到的数据。</li>
+</ol>
+<h2 id="第3个版本的时间服务器"><a href="#第3个版本的时间服务器" class="headerlink" title="第3个版本的时间服务器"></a>第3个版本的时间服务器</h2><p>前面举的时间服务器的例子同样可能存在TCP粘包拆包问题，尽管客户端发送的”TIME QUERY”和服务端回的事件字符串的数据量都很小，但仍有可能被拆包和粘包，尤其是当通信量增加的时候。</p>
+<p>一种可能的解决方案是在应用内部维护一个Buffer，缓存收到的数据，在每次收到数据时检查是否已经收到完整的数据包，然后再执行实际的业务逻辑。但在数据格式变得复杂时，这种解决方案会使得代码逻辑复杂，难以维护。</p>
+<p>另一种解决方案是使用Netty提供的编解码器：<code>LineBasedFrameDecoder</code>，它会自动地帮你处理TCP粘包&#x2F;拆包导致的半包问题。其工作原理是：当收到字节数据时，<code>LineBasedFrameDecoder</code>会依次遍历ByteBuf中的可读字节，如果其中包含”\n”（Linux）或者”\r\n”（Windows）这样的换行标记，则以换行标记为界限分割读取一行数据。</p>
+<p>加上之前添加的<code>StringDecoder</code>，字节数据首先通过LineBasedFrameDecoder被解析为一行数据，然后再由<code>StringDecoder</code>转换为字符串，再传到后面的<code>ChannelHandler</code>时，就是一条完整可读的消息了。</p>
+<h3 id="代码改动"><a href="#代码改动" class="headerlink" title="代码改动"></a>代码改动</h3><ol>
+<li>为了让<code>LineBasedFrameDecoder</code>帮我们完成TCP包解析，首先需要使得客户端和服务端发送的数据包以换行标记结束。</li>
+<li>在客户端和服务端的<code>ChannelInitializer</code>中，添加<code>LineBasedFrameDecoder</code>解码器。</li>
+</ol>
+<h3 id="服务端完整代码："><a href="#服务端完整代码：" class="headerlink" title="服务端完整代码："></a>服务端完整代码：</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">bossGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">workerGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();</span><br><span class="line">            b.group(bossGroup, workerGroup)</span><br><span class="line">                    .channel(NioServerSocketChannel.class)</span><br><span class="line">                    .localAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port))</span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">TimeServerChannelInitializer</span>())</span><br><span class="line">                    .option(ChannelOption.SO_BACKLOG, <span class="number">128</span>)</span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind().sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            workerGroup.shutdownGracefully();</span><br><span class="line">            bossGroup.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">TimeServer</span>().start(<span class="number">777</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServerChannelInitializer</span> <span class="keyword">extends</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ChannelPipeline</span> <span class="variable">p</span> <span class="operator">=</span> ch.pipeline();</span><br><span class="line">        <span class="comment">// 添加LineBasedFrameDecoder解码器解决TCP粘包/拆包问题</span></span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">LineBasedFrameDecoder</span>(<span class="number">1024</span>));</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">StringDecoder</span>());</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">TimeServerHandler</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@ChannelHandler</span>.Sharable</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeServerHandler</span> <span class="keyword">extends</span> <span class="title class_">ChannelInboundHandlerAdapter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelRead</span><span class="params">(ChannelHandlerContext ctx, Object msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">body</span> <span class="operator">=</span> (String) msg;</span><br><span class="line">        System.out.println(<span class="string">&quot;Received: &quot;</span> + body);</span><br><span class="line">        <span class="comment">// 版本3：在消息后添加\r\n换行</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">currentTime</span> <span class="operator">=</span> <span class="string">&quot;TIME QUERY&quot;</span>.equals(body) ? <span class="keyword">new</span> <span class="title class_">Date</span>().toString() + <span class="string">&quot;\r\n&quot;</span> : <span class="string">&quot;BAD REQUEST\r\n&quot;</span>;</span><br><span class="line">        <span class="type">ByteBuf</span> <span class="variable">resp</span> <span class="operator">=</span> Unpooled.copiedBuffer(currentTime.getBytes());</span><br><span class="line">        ctx.write(resp);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelReadComplete</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER)</span><br><span class="line">                .addListener(ChannelFutureListener.CLOSE);</span><br><span class="line">        ctx.channel();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="客户端完整代码"><a href="#客户端完整代码" class="headerlink" title="客户端完整代码"></a>客户端完整代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeClient</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(String host, <span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">group</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">Bootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Bootstrap</span>();</span><br><span class="line">            b.group(group)</span><br><span class="line">                    .channel(NioSocketChannel.class)</span><br><span class="line">                    .remoteAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(host, port))</span><br><span class="line">                    .handler(<span class="keyword">new</span> <span class="title class_">TimeClientChannelInitializer</span>());</span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.connect().sync();</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            group.shutdownGracefully().sync();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">TimeClient</span>().start(<span class="string">&quot;localhost&quot;</span>, <span class="number">777</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeClientChannelInitializer</span> <span class="keyword">extends</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ChannelPipeline</span> <span class="variable">p</span> <span class="operator">=</span> ch.pipeline();</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">LineBasedFrameDecoder</span>(<span class="number">1024</span>));</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">StringDecoder</span>());</span><br><span class="line">        p.addLast(<span class="keyword">new</span> <span class="title class_">TimeClientHandler</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TimeClientHandler</span> <span class="keyword">extends</span> <span class="title class_">SimpleChannelInboundHandler</span>&lt;String&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">ByteBuf</span> <span class="variable">buf</span> <span class="operator">=</span> Unpooled.wrappedBuffer(<span class="string">&quot;TIME QUERY\r\n&quot;</span>.getBytes());</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">channelActive</span><span class="params">(ChannelHandlerContext ctx)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        ctx.writeAndFlush(buf);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">channelRead0</span><span class="params">(ChannelHandlerContext ctx, String msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Server time: &quot;</span> + msg);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">exceptionCaught</span><span class="params">(ChannelHandlerContext ctx, Throwable cause)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        cause.printStackTrace();</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="延伸"><a href="#延伸" class="headerlink" title="延伸"></a>延伸</h2><p>Netty允许你自定义编解码器实现消息的编解码，查看源码能看到，像<code>LineBasedFrameDecoder</code>实际上是扩展了<code>ByteToMessageDecoder</code>，即将Byte转换为Message，而<code>StringDecoder</code>实际上是扩展了<code>MessageToMessageDecoder</code>，即将一种格式的Message转换为另一种格式的Message。<br>Netty提供了诸多内置的编解码器，如果这些不能满足业务的需求，完全可以自己实现一个。在应用中，数据包常常是用POJO对象表示的，节点间通信时往往需要用到对象的序列化和反序列化，这时候就可以自定义编解码器来实现。</p>
+<h1 id="5-实现一个完整的HTTP服务器"><a href="#5-实现一个完整的HTTP服务器" class="headerlink" title="5 实现一个完整的HTTP服务器"></a>5 实现一个完整的HTTP服务器</h1><h2 id="Netty开发Http应用"><a href="#Netty开发Http应用" class="headerlink" title="Netty开发Http应用"></a>Netty开发Http应用</h2><p>HTTP是最常用的应用层通信协议之一，使用Netty开发HTTP应用是非常简单的。就跟前面说的一样，只要使用合适的编解码器对HTTP消息进行基于HTTP协议的编解码就可以了，而Netty预置了完整的HTTP协议支持，包括最常用的HTTP和HTTPS。</p>
+<p>虽然Netty一般被用在底层通信上，但有时候也可以拿来直接开发一个HTTP服务器，相较于Tomcat、Jetty等传统Web容器更加轻巧，如果服务器的逻辑很简单，可以直接用Netty实现。</p>
+<h2 id="简单的Http服务器实现"><a href="#简单的Http服务器实现" class="headerlink" title="简单的Http服务器实现"></a>简单的Http服务器实现</h2><p>有了之前的样例，写一个HTTP服务器已经非常简单了。</p>
+<h3 id="代码-3"><a href="#代码-3" class="headerlink" title="代码"></a>代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Netty实现Http服务器，参数设置和启动服务</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NettyHttpServer</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">(<span class="type">int</span> port)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">bossGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="type">EventLoopGroup</span> <span class="variable">workerGroup</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioEventLoopGroup</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">ServerBootstrap</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>();</span><br><span class="line">            b.group(bossGroup, workerGroup)</span><br><span class="line">                    .channel(NioServerSocketChannel.class)</span><br><span class="line">                    .localAddress(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(port))</span><br><span class="line">                    .childHandler(<span class="keyword">new</span> <span class="title class_">ChannelInitializer</span>&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                            ch.pipeline()</span><br><span class="line">                                    .addLast(<span class="string">&quot;codec&quot;</span>, <span class="keyword">new</span> <span class="title class_">HttpServerCodec</span>())                  <span class="comment">// 编解码</span></span><br><span class="line">                                    .addLast(<span class="string">&quot;compressor&quot;</span>, <span class="keyword">new</span> <span class="title class_">HttpContentCompressor</span>())       <span class="comment">// 压缩</span></span><br><span class="line">                                    .addLast(<span class="string">&quot;aggregator&quot;</span>, <span class="keyword">new</span> <span class="title class_">HttpObjectAggregator</span>(<span class="number">65536</span>))   <span class="comment">// 聚合</span></span><br><span class="line">                                    .addLast(<span class="string">&quot;handler&quot;</span>, <span class="keyword">new</span> <span class="title class_">NettyHttpServerHandler</span>());        <span class="comment">// 自定义请求处理</span></span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;)</span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="type">ChannelFuture</span> <span class="variable">f</span> <span class="operator">=</span> b.bind().sync();</span><br><span class="line">            System.out.println(<span class="string">&quot;Http Server started... Listening on &quot;</span> + port);</span><br><span class="line">            f.channel().closeFuture().sync();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            workerGroup.shutdownGracefully();</span><br><span class="line">            bossGroup.shutdownGracefully();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">NettyHttpServer</span>().start(<span class="number">777</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义ServerHandler，在这里面实现HTTP请求处理和响应写回</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NettyHttpServerHandler</span> <span class="keyword">extends</span> <span class="title class_">SimpleChannelInboundHandler</span>&lt;FullHttpRequest&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">channelRead0</span><span class="params">(ChannelHandlerContext ctx, FullHttpRequest msg)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="comment">// 对请求进行处理，注意这里传入的已经是封装好的FullHttpRequest对象</span></span><br><span class="line">        System.out.println(String.format(<span class="string">&quot;Receive client request, uri: %s, method: %s&quot;</span>, msg.uri(), msg.method()));</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 写响应</span></span><br><span class="line">        <span class="type">FullHttpResponse</span> <span class="variable">response</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultFullHttpResponse</span>(</span><br><span class="line">                HttpVersion.HTTP_1_1,   <span class="comment">// Http协议版本，常用的是1.1</span></span><br><span class="line">                HttpResponseStatus.OK,  <span class="comment">// Http状态码，Netty在HttpResponseStatus类里内置了大部分常用的状态码</span></span><br><span class="line">                Unpooled.wrappedBuffer(<span class="string">&quot;Netty Http Server&quot;</span>.getBytes())); <span class="comment">// 相应消息体</span></span><br><span class="line">        ctx.writeAndFlush(response);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例中用到了<code>HttpServerCodec</code>、<code>HttpContentCompressor</code>和<code>HttpObjectAggregator</code>分别实现编解码、压缩和聚合。</p>
+<h2 id="FullHttpRequest和FullHttpResponse"><a href="#FullHttpRequest和FullHttpResponse" class="headerlink" title="FullHttpRequest和FullHttpResponse"></a>FullHttpRequest和FullHttpResponse</h2><p>Http请求一般由请求头、请求体等部分组成，而Http响应则由响应码、响应头、响应体组成。Netty分别使用<code>FullHttpRequest</code>和<code>FullHttpResponse</code>接口封装，对应的实现类分别为<code>DefaultFullHttpRequest</code>和<code>DefaultFullHttpResponse</code>。</p>
+<h2 id="Http相关的ChannelHandler"><a href="#Http相关的ChannelHandler" class="headerlink" title="Http相关的ChannelHandler"></a>Http相关的ChannelHandler</h2><h3 id="Http编解码"><a href="#Http编解码" class="headerlink" title="Http编解码"></a>Http编解码</h3><p>Netty内置了丰富的<code>ChannelHandler</code>用于帮助进行Http协议的编解码。在示例代码中可以看到，这里做了个简单的总结。</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>说明</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HttpRequestEncoder</td>
+<td>HTTP请求编码，内部将HttpRequest，HttpContent和LastHttpContent转换为字节。将HTTP客户端请求转成HttpRequest对象，将HttpResponse对象编码成HTTP响应发送给客户端</td>
+<td>客户端</td>
+</tr>
+<tr>
+<td>HttpResponseEncoder</td>
+<td>HTTP响应编码，内部将HttpResponse，HttpContent和LastHttpContent转换为字节。</td>
+<td>服务端</td>
+</tr>
+<tr>
+<td>HttpResponseDecoder</td>
+<td>HTTP响应解码，HttpResponseEncoder。</td>
+<td>客户端</td>
+</tr>
+<tr>
+<td>HttpRequestDecoder</td>
+<td>HTTP请求解码，对应HttpRequestEncoder。</td>
+<td>服务端</td>
+</tr>
+<tr>
+<td><strong>HttpServerCodec</strong></td>
+<td>HTTP服务端编解码，相当于HttpRequestDecoder加HttpResponseEncoder。</td>
+<td>服务端</td>
+</tr>
+<tr>
+<td><strong>HttpClientCodec</strong></td>
+<td>HTTP服务端编解码，相当于HttpRequestEncoder加HttpResponseDecoder。</td>
+<td>客户端</td>
+</tr>
+</tbody></table>
+<h3 id="Http压缩-x2F-解压缩"><a href="#Http压缩-x2F-解压缩" class="headerlink" title="Http压缩&#x2F;解压缩"></a>Http压缩&#x2F;解压缩</h3><p>一般Http消息在客户端和服务端间传输时，为了减少数据量，会使用”gzip”或者”deflate”方式进行压缩。Netty都提供了支持。对应的<code>ChannelHandler</code>分别是：</p>
+<ul>
+<li>HttpContentDecompressor - 解压缩</li>
+<li>HttpContentCompressor - 压缩</li>
+</ul>
+<h3 id="Http聚合"><a href="#Http聚合" class="headerlink" title="Http聚合"></a>Http聚合</h3><p>由于TCP传输的特性，处理Http时可能处理的是Http消息片段，接收消息时Netty需要缓冲直到接收完整条消息。</p>
+<p>Netty内部使用了<code>HttpRequest</code>&#x2F;<code>HttpResponse</code>、<code>HttpContent</code>、<code>LastHttpContent</code>等表示一条完整的Http请求&#x2F;响应中的多个组成部分，单条Http消息会解码成多个消息对象<code>HttpObject</code>。</p>
+<p>为了使传递给后面的<code>ChannelHandler</code>时能够封装成单一的<code>FullHttpRequest</code>和<code>FullHttpResponse</code>，需要使用<code>HttpObjectAggregator</code>来聚合。在使用时需要指定最大长度。</p>
+<h3 id="支持HTTPS"><a href="#支持HTTPS" class="headerlink" title="支持HTTPS"></a>支持HTTPS</h3><p>把HTTP服务器改造成HTTPS也很简单，只需要在<code>ChannelPipeline</code>开始的位置加上一个<code>SslHandler</code>即可。使用<code>SslHandler</code>时根据SSL配置构造<code>SSLEngine</code>对象。</p>
+<p>新的代码如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ch.pipeline()</span><br><span class="line">        .addLast(<span class="keyword">new</span> <span class="title class_">SslHandler</span>(sslEngine))</span><br><span class="line">        .addLast(<span class="string">&quot;codec&quot;</span>, <span class="keyword">new</span> <span class="title class_">HttpServerCodec</span>())</span><br><span class="line">        <span class="comment">// 省略</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>Netty的强大和灵活自此已经一览无余。更多Netty的功能可以参见<a target="_blank" rel="noopener" href="https://github.com/netty/netty">Netty源码</a>中<code>io.netty.example</code>包下的样例代码。</p>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#1-%E5%89%8D%E8%A8%80"><span class="top-box-text">1 前言</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Netty%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%8C%E7%94%A8%E6%9D%A5%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="top-box-text">Netty是什么，用来解决什么问题</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E7%94%A8Netty"><span class="top-box-text">为什么要用Netty</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AD%A6%E4%B9%A0Netty%E7%9A%84%E9%A2%84%E5%A4%87%E7%9F%A5%E8%AF%86"><span class="top-box-text">学习Netty的预备知识</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#2-%E4%BB%8EHello-World%E5%BC%80%E5%A7%8B"><span class="top-box-text">2 从Hello World开始</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83"><span class="top-box-text">开发环境</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#HelloWorld-Demo"><span class="top-box-text">HelloWorld Demo</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF"><span class="top-box-text">服务端</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ChannelHandler%EF%BC%9A%E5%AE%9E%E7%8E%B0%E4%B8%9A%E5%8A%A1%E9%80%BB%E8%BE%91"><span class="top-box-text">ChannelHandler：实现业务逻辑</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ServerBootstrap%EF%BC%9A%E9%85%8D%E7%BD%AE%E5%90%AF%E5%8A%A8Netty%E5%BA%94%E7%94%A8"><span class="top-box-text">ServerBootstrap：配置启动Netty应用</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%B5%8B%E8%AF%95"><span class="top-box-text">测试</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="top-box-text">客户端</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ChannelHandler%E5%AE%9E%E7%8E%B0"><span class="top-box-text">ChannelHandler实现</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%9A%84Bootstrap"><span class="top-box-text">客户端的Bootstrap</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%80%BB%E7%BB%93"><span class="top-box-text">总结</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#3-%E6%97%B6%E9%97%B4%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="top-box-text">3 时间服务器</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%97%B6%E9%97%B4%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AE%80%E4%BB%8B"><span class="top-box-text">时间服务器简介</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%AC%AC%E4%B8%80%E4%B8%AA%E7%89%88%E6%9C%AC"><span class="top-box-text">第一个版本</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E4%BB%A3%E7%A0%81-2"><span class="top-box-text">代码</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF-1"><span class="top-box-text">客户端</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%AC%AC%E4%BA%8C%E4%B8%AA%E7%89%88%E6%9C%AC"><span class="top-box-text">第二个版本</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#ChannelHandler%E5%92%8CChannelPipeline"><span class="top-box-text">ChannelHandler和ChannelPipeline</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%94%B9%E9%80%A0%E5%90%8E%E7%9A%84%E6%9C%8D%E5%8A%A1%E7%AB%AF"><span class="top-box-text">改造后的服务端</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#4-%E8%A7%A3%E5%86%B3TCP%E7%B2%98%E5%8C%85%E6%8B%86%E5%8C%85"><span class="top-box-text">4 解决TCP粘包拆包</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#TCP%E7%B2%98%E5%8C%85-x2F-%E6%8B%86%E5%8C%85%E9%97%AE%E9%A2%98"><span class="top-box-text">TCP粘包&#x2F;拆包问题</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%AC%AC3%E4%B8%AA%E7%89%88%E6%9C%AC%E7%9A%84%E6%97%B6%E9%97%B4%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="top-box-text">第3个版本的时间服务器</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E4%BB%A3%E7%A0%81%E6%94%B9%E5%8A%A8"><span class="top-box-text">代码改动</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81%EF%BC%9A"><span class="top-box-text">服务端完整代码：</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81"><span class="top-box-text">客户端完整代码</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%BB%B6%E4%BC%B8"><span class="top-box-text">延伸</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#5-%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%AE%8C%E6%95%B4%E7%9A%84HTTP%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="top-box-text">5 实现一个完整的HTTP服务器</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Netty%E5%BC%80%E5%8F%91Http%E5%BA%94%E7%94%A8"><span class="top-box-text">Netty开发Http应用</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%AE%80%E5%8D%95%E7%9A%84Http%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E7%8E%B0"><span class="top-box-text">简单的Http服务器实现</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E4%BB%A3%E7%A0%81-3"><span class="top-box-text">代码</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#FullHttpRequest%E5%92%8CFullHttpResponse"><span class="top-box-text">FullHttpRequest和FullHttpResponse</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Http%E7%9B%B8%E5%85%B3%E7%9A%84ChannelHandler"><span class="top-box-text">Http相关的ChannelHandler</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Http%E7%BC%96%E8%A7%A3%E7%A0%81"><span class="top-box-text">Http编解码</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Http%E5%8E%8B%E7%BC%A9-x2F-%E8%A7%A3%E5%8E%8B%E7%BC%A9"><span class="top-box-text">Http压缩&#x2F;解压缩</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Http%E8%81%9A%E5%90%88"><span class="top-box-text">Http聚合</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%94%AF%E6%8C%81HTTPS"><span class="top-box-text">支持HTTPS</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%80%BB%E7%BB%93-1"><span class="top-box-text">总结</span></a></li></ol></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2018/11/28/chang-lian-jie-he-fu-wu-duan-tui-song-de-xuan-xing-he-shi-xian/">
+          <h3 class="post-title">
+            下一篇：长连接和服务端推送的选型和实现
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

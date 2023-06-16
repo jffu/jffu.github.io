@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>云原生入门指北-Docker</title>
+<meta name="keywords" content="云原生入门指北-Docker, jffu&#39;s blog">
+<meta name="description" content="云原生入门指北系列第一篇，先讲讲Docker。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="云原生入门指北-Docker">
+<meta property="og:description" content="云原生入门指北系列第一篇，先讲讲Docker。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">云原生入门指北-Docker</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2021-10-15</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+              云原生
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fv5YqrKjKZbVhjkWWX2D9qbezLRD.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fv5YqrKjKZbVhjkWWX2D9qbezLRD.png"  lazyload></a><br>网上讲Docker的文章已经够多了。这里记录下我自己学习时的一些笔记记录和心得。</p>
+<p>我个人觉得，云原生的体系如此庞大，作为平常只写业务代码的门外汉，光看<a target="_blank" rel="noopener" href="https://landscape.cncf.io/">CNCF给出来的大图</a>绝对会眼花缭乱不知所措，但换个角度看，其主要的发展脉络还是很清晰的，从Docker引领的容器化，到K8S的编排，再到ServiceMesh和Serverless等等各种理念的百花齐放。所以从Docker开始理解云原生是非常适合的。</p>
+<h2 id="Docker是什么"><a href="#Docker是什么" class="headerlink" title="Docker是什么"></a>Docker是什么</h2><p>Docker的<a target="_blank" rel="noopener" href="https://docs.docker.com/get-started/overview/">官方文档</a>给出了一个Docker的简介：</p>
+<blockquote>
+<p>Docker is an open platform for developing, shipping, and running applications. Docker enables you to separate your applications from your infrastructure so you can deliver software quickly. With Docker, you can manage your infrastructure in the same ways you manage your applications. By taking advantage of Docker’s methodologies for shipping, testing, and deploying code quickly, you can significantly reduce the delay between writing code and running it in production.</p>
+</blockquote>
+<p>关于docker的几个关键词：</p>
+<ul>
+<li>虚拟化技术</li>
+<li>容器引擎</li>
+<li>可移植</li>
+<li>仓库、镜像、容器</li>
+</ul>
+<p>Docker使用Go语言开发，是基于 OS 层的虚拟化技术之上的容器引擎，实现对进程的封装隔离。开发者可以打包他们的应用以及依赖包到一个可移植的容器中，然后发布到任何流行的 Linux 机器上。</p>
+<blockquote>
+<p>很多时候Docker会跟<strong>容器</strong>这个词一起出现，有时候Docker甚至成了容器的代名词。但严格地说Docker只是容器的一种实现技术，只是因为Docker的出现让大家关注到容器技术的巨大威力。</p>
+</blockquote>
+<h2 id="为什么用Docker"><a href="#为什么用Docker" class="headerlink" title="为什么用Docker"></a>为什么用Docker</h2><p>docker最主要的目的是解决软件的构建、分发和运行（Build，Ship and Run Any App,Anywhere）。</p>
+<p>在Docker出现以前，我们习惯于将代码通过不同的构建工具构建成不同格式的发布包，然后将发布包以各种姿势分发到要部署的环境上，因为不同应用有着不同的依赖，可能需要为每个应用部署一套专门的环境。这种差异化带来的开发运维成本是非常巨大的，想象下基于Tomcat的Java服务跟MySQL数据库服务会是完全两套流水线。远古时代，如果想将不同的服务部署到同一台物理机上，还要考虑如何定义和控制资源的边界（CPU、内存、磁盘、网络等等）。</p>
+<p>虚拟化技术通过在物理机器上虚拟出隔离的VM解决了资源隔离问题，而Docker更进一步，我们通过Docker构建标准的Docker镜像，然后分发到环境上执行就行（不需要理解这个环境长什么样，只要有Docker容器引擎能运行Docker镜像就行）。</p>
+<blockquote>
+<p>正如集装箱的出现加速了贸易全球化进程，以容器为代表的技术作推动和加速云计算和云原生普及和发展。航运业使用物理容器（集装箱）来打包和隔离不同的货物，以便在轮船、火车、卡车和飞机上运输，云原生时代，把应用程序的代码与相关配置文件、库以及运行应用所需的依赖项捆绑在一起，让应用可以跨云平台和技术设施，以一致和可靠的方式运行。这使得开发者和 IT 专业人员能够更快、更安全地创建和部署应用程序。容器技术在应用程序的整个生命周期工作流中提供了高隔离、可移植性、灵活性、可伸缩性和控制优势。</p>
+</blockquote>
+<p>以Java语言做个不太恰当但很有助于理解的类比：</p>
+<ul>
+<li>Java可以一次编译到处运行，Docker实现了一次构建(镜像)，到处运行(整个应用及其依赖)。</li>
+<li>Java的JVM屏蔽了不同OS的差异，Docker的Daemon屏蔽了不同OS发行版，不同机器的环境差异；</li>
+<li>Java的字节码只要有JDK环境就能跑起来，且行为一致，Docker的镜像只要有Daemon环境就能跑起来，且行为一致。两者内部都有清晰定义的格式，且自成规范</li>
+<li>Java使得开发者不需要针对不同的OS编程和编译，只要在任意一个JDK环境中编程和编译，即可交付可运行于任意JDK环境的jar包；Docker使得开发者不需要针对不同的OS打不同的发行包，只要在任意一个Daemon环境中打包调试好，就可以交付可运行于任意Daemon环境的镜像。</li>
+</ul>
+<p>与虚拟机技术相比，传统的虚拟机技术是虚拟出一套硬件后，在其上运行一个完整操作系统，在该系统上再运行所需要的应用进程；而容器内的应用进程直接运行与宿主的内核，容器没有自己的内核，也没有硬件虚拟，容器是轻量级的虚拟化技术。</p>
+<ul>
+<li>虚拟机的Guest OS层和Hypervisor层（Hypervisor是一种运行在物理服务器和操作系统之间的中间软件层，可允许多个操作系统和应用共享一套基础物理硬件）在Docker中被Docker Engine层所替代。虚拟机的Guest OS即为虚拟机安装的操作系统，它是一个完整操作系统内核；虚拟机的Hypervisor层可以简单理解为一个硬件虚拟化平台，它在Host OS是以内核态的驱动存在。</li>
+<li>虚拟机实现资源隔离的方法是利用独立的OS，并利用Hypervisor虚拟化CPU、内存、IO设备等实现的。 对比虚拟机实现资源和环境隔离的方案，docker就显得简练很多。docker Engine可以简单看成对Linux的NameSpace、Cgroup、镜像管理文件系统操作的封装。docker并没有和虚拟机一样利用一个完全独立的Guest OS实现环境隔离，它利用的是目前Linux内核本身支持的容器方式实现资源和环境隔离。简单的说，docker利用namespace实现系统环境的隔离；利用Cgroup实现资源限制；利用镜像实现根目录环境的隔离。</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtQZErZEIcmXJbFsCOKDSVQtTCdw.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fpv6VFxnkwY8M0LlAYvKh8KmMNdh.png"  lazyload></a></p>
+<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>Docker的三个基本概念：</p>
+<ul>
+<li>镜像（Image）</li>
+<li>容器（Container）</li>
+<li>仓库（Repository）</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmxDZJirLHhHWH4ompsBfJu79ujW.png"  lazyload></a></p>
+<h3 id="镜像"><a href="#镜像" class="headerlink" title="镜像"></a>镜像</h3><p>Docker 镜像是一个特殊的文件系统，除了提供容器运行时所需的程序、库、资源、配置等文件外，还包含了一些为运行时准备的一些配置参数（如匿名卷、环境变量、用户等）。镜像不包含任何动态数据，其内容在构建之后也不会被改变。<br>docker提供了多种存储驱动来实现不同的方式存储镜像，比如常用的Union FS。镜像被设计为分层存储的架构。每一层构建好后就不会在变（后一层上的任何改变只发生在自己这一层。比如，删除前一层文件的操作，实际不是真的删除前一层的文件，而是仅在当前层标记为该文件已删除。），一层层构建，前一层是后一层的基础，由多层文件系统联合组成。</p>
+<h3 id="容器"><a href="#容器" class="headerlink" title="容器"></a>容器</h3><p>镜像（Image）和容器（Container）的关系，就像是面向对象程序设计中的 类 和 实例 一样，镜像是静态的定义，容器是镜像运行时的实体。容器可以被创建、启动、停止、删除、暂停等。<br>Docker Container是真正跑项目程序、消耗机器资源、提供服务的地方，Docker Container通过Docker Images启动，在Docker Images的基础上运行你需要的代码。 可以认为Docker Container提供了系统硬件环境，然后使用了Docker Images这些制作好的系统盘，再加上项目代码，跑起来就可以提供服务了。<br>容器的实质是进程，但与直接在宿主执行的进程不同，容器进程运行于属于自己的独立的 Namespace。因此容器可以拥有自己的 root 文件系统、自己的网络配置、自己的进程空间，甚至自己的用户 ID 空间。</p>
+<h3 id="仓库"><a href="#仓库" class="headerlink" title="仓库"></a>仓库</h3><p>仓库（Repository）用于集中存储、分发镜像文件。<br>一个 Docker Registry 中可以包含多个仓库（Repository）；每个仓库可以包含多个标签（Tag）；每个标签对应一个镜像。可以通过<code>&lt;仓库名&gt;:&lt;标签&gt;</code>的格式来指定具体是这个软件哪个版本的镜像。如果不给出标签，将以 latest 作为默认标签。<br>仓库分为公开仓库（Public）和私有仓库（Private）两种形式。<br>最大的公开仓库：<a target="_blank" rel="noopener" href="https://hub.docker.com/">Docker Hub</a>。<br>国内的公开仓库：阿里云 、网易云 等。</p>
+<p>镜像与容器的转换及与registry关系：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FndIaabdVmQHBR726JoMW9EeEur_.png"  lazyload></a></p>
+<h1 id="入门实践"><a href="#入门实践" class="headerlink" title="入门实践"></a>入门实践</h1><h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><blockquote>
+<p>（如果没安装过Docker）开始前：</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew cask install docker</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>开始后：<a target="_blank" rel="noopener" href="https://docs.docker.com/engine/reference/commandline/docker/">Docker基础命令大全</a></p>
+</blockquote>
+<p>一张图展示docker命令：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlOYYFVakkYaljc4oUbSrh2GP9XJ.png"  lazyload></a></p>
+<blockquote>
+<p>左边的swarm cluster集群管理命令基本上可以不用看了。如果是自己本地环境玩，基本上只需要了解Image和Container相关的命令就行。</p>
+</blockquote>
+<h3 id="镜像命令"><a href="#镜像命令" class="headerlink" title="镜像命令"></a>镜像命令</h3><p><code>**docker images**</code><br>列出本地镜像。展示的选项：</p>
+<ul>
+<li>REPOSITORY：表示镜像的仓库源</li>
+<li>TAG：镜像的标签</li>
+<li>IMAGE ID：镜像ID</li>
+<li>CREATED：镜像创建时间</li>
+<li>SIZE：镜像大小</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">jffu@jffu-mpb  ~  docker images</span><br><span class="line">REPOSITORY                    TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">daprio/dapr                   1.3.0               dd8e111debf4        6 weeks ago         213MB</span><br><span class="line">redis                         latest              aa4d65e670d6        6 weeks ago         105MB</span><br><span class="line">gcr.io/k8s-minikube/kicbase   v0.0.20             c6f4fc187bc1        5 months ago        1.09GB</span><br><span class="line">elasticsearch                 7.12.0              9337ed510a0c        5 months ago        830MB</span><br><span class="line">nginx                         latest              ed21b7a8aee9        17 months ago       127MB</span><br><span class="line">mysql                         latest              c8ee894bd2bd        23 months ago       456MB</span><br></pre></td></tr></table></figure>
+
+<p><code>**docker search 镜像名**</code><br>加上镜像名称搜索仓库里的镜像。以MySQL镜像为例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> jffu@jffu-mpb  ~  docker search mysql</span><br><span class="line">NAME                              DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED</span><br><span class="line">mysql                             MySQL is a widely used, open-source relation…   11390               [OK]</span><br><span class="line">mariadb                           MariaDB Server is a high performing open sou…   4322                [OK]</span><br><span class="line">mysql/mysql-server                Optimized MySQL Server Docker images. Create…   847                                     [OK]</span><br></pre></td></tr></table></figure>
+
+<p><code>**docker pull 镜像名[:TAG]**</code><br>搜到想要拉取的镜像后就可以使用这个命令从从仓库拉取了，可以带上:TAG，不带的话默认latest拉取最新的。</p>
+<blockquote>
+<p>从拉取过程可以看出镜像的分层结构。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"> jffu@jffu-mpb  ~  docker pull mysql</span><br><span class="line">Using default tag: latest</span><br><span class="line">latest: Pulling from library/mysql</span><br><span class="line">a330b6cecb98: Pull complete</span><br><span class="line">9c8f656c32b8: Pull complete</span><br><span class="line">88e473c3f553: Pull complete</span><br><span class="line">062463ea5d2f: Pull complete</span><br><span class="line">daf7e3bdf4b6: Pull complete</span><br><span class="line">1839c0b7aac9: Pull complete</span><br><span class="line">cf0a0cfee6d0: Pull complete</span><br><span class="line">1b42041bb11e: Pull complete</span><br><span class="line">10459d86c7e6: Pull complete</span><br><span class="line">b7199599d5f9: Pull complete</span><br><span class="line">1d6f51e17d45: Pull complete</span><br><span class="line">50e0789bacad: Pull complete</span><br><span class="line">Digest: sha256:99e0989e7e3797cfbdb8d51a19d32c8d286dd8862794d01a547651a896bcf00c</span><br><span class="line">Status: Downloaded newer image for mysql:latest</span><br><span class="line">docker.io/library/mysql:latest</span><br></pre></td></tr></table></figure>
+
+<p><code>**docker rmi 镜像名/镜像ID**</code><br>删除本地镜像。<br>PS.删除全部镜像：<code>docker rmi -f $(docker image -qa)</code></p>
+<p><code>**docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]**</code></p>
+<p>如果要将一个容器的变化保存成一个新的image，可以使用这个命令，会提交一个容器副本，生成一个新的镜像。</p>
+<p>还是以MySQL为例，如果想修改并保存当前运行的MySQL容器的默认配置（注意不能是挂载的文件系统中的文件），就可以使用这个命令生成一个新的MySQL定制镜像。这个命令不太常用，通常来说使用Dockerfile来管理是更好的方式。</p>
+<p><code>**docker push [OPTIONS] NAME[:TAG]**</code></p>
+<p>将镜像推到仓库。</p>
+<h3 id="容器命令"><a href="#容器命令" class="headerlink" title="容器命令"></a>容器命令</h3><p><code>**docker run [OPTIONS] IMAGE [COMMAND] [ARG...]**</code><br>用的最多的命令之一，使用<code>docker run</code>从一个镜像启动一个容器。<br>可选的OPTIONS很多，常用的一些：</p>
+<ul>
+<li>–name&#x3D;”容器新名字”: 为容器指定一个名称</li>
+<li>-d: 后台运行容器，并返回容器ID，也即启动守护式容器</li>
+<li>-i：以交互模式运行容器，通常与 -t 同时使用</li>
+<li>-t：为容器重新分配一个伪输入终端，通常与 -i 同时使用</li>
+<li>-p: 指定端口映射（常用hostPort:containerPort，例如8080:80）</li>
+<li>-v: 挂载文件系统（参考数据卷命令）</li>
+<li>-e: 设置环境变量</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 3306:3306 \</span><br><span class="line">--name mysql \</span><br><span class="line">-v $CURRENT_DIR/conf:/etc/mysql/conf.d \</span><br><span class="line">-v=$CURRENT_DIR/data:/var/lib/mysql \</span><br><span class="line">-e MYSQL_ROOT_PASSWORD=123456 \</span><br><span class="line">mysql</span><br></pre></td></tr></table></figure>
+
+<p><code>**docker ps [OPTIONS]**</code><br>列出当前运行的容器。<br>常用OPTIONS：</p>
+<ul>
+<li>-a :列出当前所有正在运行的容器+历史上运行过的；</li>
+<li>-l :显示最近创建的容器；</li>
+<li>-n：显示最近n个创建的容器；</li>
+<li>-q :静默模式，只显示容器编号；</li>
+<li>–no-trunc :不截断输出；</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> jffu@jffu-mpb  ~  docker ps</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                               NAMES</span><br><span class="line">edd9e2bfaf77        mysql               &quot;docker-entrypoint.s…&quot;   27 seconds ago      Up 27 seconds       0.0.0.0:3306-&gt;3306/tcp, 33060/tcp   mysql</span><br></pre></td></tr></table></figure>
+
+<p><code>**docker start/restart/stop/kill 容器ID/容器名**</code><br>分别对应启动、重启、停止、强制停止一个容器。</p>
+<p><code>**docker rm 容器ID**</code><br>删除已停止的容器。</p>
+<h3 id="数据卷命令"><a href="#数据卷命令" class="headerlink" title="数据卷命令"></a>数据卷命令</h3><blockquote>
+<p>Docker容器产生的数据，如果不通过docker commit生成新的镜像，使得数据做为镜像的一部分保存下来，当容器删除后，数据会丢失。<br>数据卷（volume）是目录或文件，存在于一个或多个容器中，由docker挂载到容器，但不属于Union FS，因此能够绕过Union FS提供一些用于持续存储或共享数据的特性：<br>卷的设计目的就是数据的持久化，完全独立于容器的生存周期，因此Docker不会在容器删除时删除其挂载的数据卷。<br>特点：<br>1：数据卷可在容器之间共享或重用数据<br>2：卷中的更改可以直接生效<br>3：数据卷中的更改不会包含在镜像的更新中<br>4：数据卷的生命周期一直持续到没有容器使用它为止</p>
+</blockquote>
+<p>个人理解数据卷跟Linux的mount机制很像。容器运行时可以通过<code>-v</code>命令挂载数据卷</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -it -v /宿主机目录:/容器内目录 镜像名称</span><br></pre></td></tr></table></figure>
+
+<p>如果想查看容器挂载的数据卷，可以通过</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect 容器ID</span><br></pre></td></tr></table></figure>
+
+<p>容器间通过数据卷共享数据。命名的容器挂载数据卷，其它容器通过挂载这个(父容器)实现数据共享，挂载数据卷的容器，称之为数据卷容器。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -it --name sub_container --volumes-from parent_container [image]</span><br></pre></td></tr></table></figure>
+
+<h2 id="Dockerfile"><a href="#Dockerfile" class="headerlink" title="Dockerfile"></a>Dockerfile</h2><p>如果想自己构建Docker镜像，那就需要用到Dockerfile了。Dockerfile是用来构建Docker镜像的由一系列命令和参数组成的脚本。</p>
+<p>类比一下的话：</p>
+<ul>
+<li>Dockerfile – 代码 </li>
+<li>镜像 – 软件包 </li>
+<li>容器 – 软件运行态</li>
+</ul>
+<p>Docker开发三步曲：</p>
+<ol>
+<li>写Dockerfile </li>
+<li>docker build </li>
+<li>docker run</li>
+</ol>
+<h3 id="构建过程"><a href="#构建过程" class="headerlink" title="构建过程"></a>构建过程</h3><ol>
+<li>从基础镜像运行一个容器； </li>
+<li>执行一条指令并对容器做出修改； </li>
+<li>执行类似docker commit的操作提交一个新的镜像层； </li>
+<li>再基于刚提交的镜像运行一个新的容器； </li>
+<li>执行Dockerfile中的下一条指令直到所有指令都执行完成；</li>
+</ol>
+<h3 id="指令"><a href="#指令" class="headerlink" title="指令"></a>指令</h3><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fk4e_1nXK8l8DW98Rpm0lf_ehs6I.png"  lazyload></a></p>
+<blockquote>
+<p>可以参考着自己应用的Dockerfile来理解。</p>
+</blockquote>
+<h2 id="阿里Docker实践"><a href="#阿里Docker实践" class="headerlink" title="阿里Docker实践"></a>阿里Docker实践</h2><h3 id="Docker目录结构"><a href="#Docker目录结构" class="headerlink" title="Docker目录结构"></a>Docker目录结构</h3><p>使用默认的Pandora Boot代码模板生成后，Docker相关的目录结构长这样：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fntj5tDpTiBK2gTiobvSMCE-pgTt.png"  lazyload></a></p>
+<p>dockerfile中包含那些内容：</p>
+<ol>
+<li>应用的基础镜像 比如5u&#x2F;6u&#x2F;7u的alios，最最基础的镜像 </li>
+<li>基础依赖的RPM，比如jdk、tengine、tomcat、Pandora </li>
+<li>应用启动脚本和启动配置文件 </li>
+<li>数据卷的挂载（主要是中间件和日志的数据持久化和共享） </li>
+<li><code>WORKDIR</code>设置工作目录 </li>
+<li><code>ENTRYPOINT</code>设置启动脚本 </li>
+<li>其他自定义内容</li>
+</ol>
+<h3 id="构建过程-1"><a href="#构建过程-1" class="headerlink" title="构建过程"></a>构建过程</h3><ol>
+<li>应用包构建：通过maven编译代码，打包成<code>$&#123;APP_NAME&#125;.tgz</code>； </li>
+<li>镜像构建：构建Docker镜像，会根据环境标签使用对应的dockerfile； </li>
+<li>重要的一步是将应用包打到镜像中： <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COPY $&#123;APP_NAME&#125;.tgz /home/admin/$&#123;APP_NAME&#125;/target/$&#123;APP_NAME&#125;.tgz</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h1 id="进阶"><a href="#进阶" class="headerlink" title="进阶"></a>进阶</h1><h2 id="Docker架构"><a href="#Docker架构" class="headerlink" title="Docker架构"></a>Docker架构</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqcyMvxlxhO68Nn2we0NA8tB8OHj.png"  lazyload></a><br>Docker 是一个 C&#x2F;S 模式的架构，主要的模块：</p>
+<ul>
+<li>Docker Client: Docker提供给用户的客户端。Docker Client提供给用户一个终端，用户输入Docker提供的命令来管理本地或者远程的服务器。</li>
+<li>Docker Daemon: Docker服务的守护进程，负责接受并处理Docker Client发送的请求。</li>
+<li>Docker Registry：存储容器镜像的仓库。</li>
+</ul>
+<p>Docker Client、Docker Daemon、Registry三者关系：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://geekflare.com/wp-content/uploads/2019/09/docker-architecture-609x270.png#id=oVrQs&originHeight=270&originWidth=609&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="><img   src="/images/loading.svg" data-src="https://geekflare.com/wp-content/uploads/2019/09/docker-architecture-609x270.png#id=oVrQs&originHeight=270&originWidth=609&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="  lazyload></a></p>
+<p>Docker Daemon可以说是Docker中最关键的模块，如果剖开来看，大概长这样：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://box.kancloud.cn/2015-11-12_56443b0790ace.jpg#id=em6Ml&originHeight=2132&originWidth=1543&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="><img   src="/images/loading.svg" data-src="https://box.kancloud.cn/2015-11-12_56443b0790ace.jpg#id=em6Ml&originHeight=2132&originWidth=1543&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title="  lazyload></a></p>
+<p>Docker 运行的基本流程为：</p>
+<ol>
+<li>用户是使用 Docker Client 与 Docker Daemon 建立通信，并发送请求给后者。 </li>
+<li>Docker Daemon 作为 Docker 架构中的主体部分，首先提供 Docker Server 的功能使其可以接受 Docker Client 的请求。 </li>
+<li>Docker Engine 执行 Docker 内部的一系列工作，每一项工作都是以一个 Job 的形式的存在。 </li>
+<li>Job 的运行过程中，当需要容器镜像时，则从 Docker Registry 中下载镜像，并通过镜像管理驱动 Graphdriver 将下载镜像以 Graph 的形式存储。 </li>
+<li>当需要为 Docker 创建网络环境时，通过网络管理驱动 Networkdriver 创建并配置 Docker 容器网络环境。 </li>
+<li>当需要限制 Docker 容器运行资源或执行用户指令等操作时，则通过 Execdriver 来完成。 </li>
+<li>Libcontainer 是一项独立的容器管理包，Networkdriver 以及 Execdriver 都是通过 Libcontainer 来实现具体对容器进行的操作。</li>
+</ol>
+<blockquote>
+<p>细节的分析，可以参考这篇文章<a target="_blank" rel="noopener" href="https://www.kancloud.cn/infoq/docker-source-code-analysis/80525">《Docker源码分析》</a>。</p>
+</blockquote>
+<h2 id="核心技术"><a href="#核心技术" class="headerlink" title="核心技术"></a>核心技术</h2><p>Docker使用了一系列已有的技术实现对操作系统的虚拟。</p>
+<h3 id="Linux-Namespace"><a href="#Linux-Namespace" class="headerlink" title="Linux Namespace"></a>Linux Namespace</h3><p>容器运行在同一个宿主机上，彼此之间互相隔离，关键的技术就是命名空间 (namespaces) 。 Linux Namespaces机制是Linux提供的一种内核级别环境隔离的方法。 PID、IPC、Network等系统资源不再是全局性的，而是属于特定的Namespace。每个Namespace里面的资源对其他Namespace都是透明的。 对于一个进程，可以指定在某个Namespace中运行，进程只能看到同个Namespace下的资源。</p>
+<p>底层的实现过程主要用到这几个系统调用：</p>
+<ol>
+<li><code>clone()</code> - 创建一个新的进程，并可以通过设置不同的参数来达到不同的资源隔离； </li>
+<li><code>unshare()</code> - 使某进程脱离某个namespace； </li>
+<li><code>setns()</code> - 把某进程加到某个namespace中；</li>
+</ol>
+<p>Linux 的命名空间机制提供了以下七种不同的命名空间：</p>
+<blockquote>
+<p>可以参考Linux Namespace官方文档<a target="_blank" rel="noopener" href="https://lwn.net/Articles/531114/">Namespace in Operation</a></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>namespace</th>
+<th>宏</th>
+<th>隔离内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cgroup</td>
+<td>CLONE_NEWCGROUP</td>
+<td>Cgroup root directory</td>
+</tr>
+<tr>
+<td>IPC</td>
+<td>CLONE_NEWIPC</td>
+<td>System V IPC, POSIX消息队列</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>CLONE_NEWNET</td>
+<td>网络设备、栈、端口等</td>
+</tr>
+<tr>
+<td>Mount</td>
+<td>CLONE_NEWNS</td>
+<td>挂载点</td>
+</tr>
+<tr>
+<td>PID</td>
+<td>CLONE_NEWPID</td>
+<td>进程ID</td>
+</tr>
+<tr>
+<td>User</td>
+<td>CLONE_NEWUSER</td>
+<td>用户和组ID</td>
+</tr>
+<tr>
+<td>UTS</td>
+<td>CLONE_NEWUTS</td>
+<td>主机名和NIS域名</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>实现原理可以参考：<a target="_blank" rel="noopener" href="https://jishuin.proginn.com/p/763bfbd6252f">容器三把斧之 | namespace原理与实现</a></p>
+</blockquote>
+<h3 id="CGroup"><a href="#CGroup" class="headerlink" title="CGroup"></a>CGroup</h3><p>Namespace可以对文件系统、进程空间、网络等资源做隔离，但无法解决CPU、内存等资源的隔离和分配问题。Linux 的 CGroup （Control Group）能够为一组进程分配资源，包括CPU、内存、网络带宽等资源。除此之外，CGroup 还能够对进程进行优先级设置、审计，以及将进程挂起和恢复等操作。</p>
+<p>在 Linux 中，Cgroups 给用户暴露出来的操作接口是文件系统，即它以文件和目录的方式存在于 &#x2F;sys&#x2F;fs&#x2F;cgroup 路径下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">lssubsys -m</span></span><br><span class="line">cpuset /sys/fs/cgroup/cpuset</span><br><span class="line">cpu /sys/fs/cgroup/cpu</span><br><span class="line">cpuacct /sys/fs/cgroup/cpuacct</span><br><span class="line">memory /sys/fs/cgroup/memory</span><br><span class="line">devices /sys/fs/cgroup/devices</span><br><span class="line">freezer /sys/fs/cgroup/freezer</span><br><span class="line">blkio /sys/fs/cgroup/blkio</span><br><span class="line">perf_event /sys/fs/cgroup/perf_event</span><br><span class="line">hugetlb /sys/fs/cgroup/hugetlb</span><br></pre></td></tr></table></figure>
+
+<p>在 &#x2F;sys&#x2F;fs&#x2F;cgroup 下面有很多诸如 cpuset、cpu、 memory 这样的子目录。这些都是机器当前可以被 CGroup 进行限制的资源种类。在其资源下可以看到该类资源具体可以被限制的方法。CGroup 的每一项子系统都有其独有的资源限制能力，在实现时，每一个子系统都需要与内核的其他模块配合来完成资源的控制，比如对 cpu 资源的限制是通过进程调度模块根据 cpu 子系统的配置来完成的；对内存资源的限制则是内存模块根据 memory 子系统的配置来完成的，而对网络数据包的控制则需要 Traffic Control 子系统来配合完成。</p>
+<blockquote>
+<p>可以参考<a target="_blank" rel="noopener" href="https://tech.meituan.com/2015/03/31/cgroups.html">Linux资源管理之cgroups简介</a></p>
+</blockquote>
+<h3 id="镜像分层"><a href="#镜像分层" class="headerlink" title="镜像分层"></a>镜像分层</h3><p>在讲Docker的存储驱动前，需要先理解Docker镜像的分层机制。Docker的一个镜像可以启动多个容器，我们不禁要问：这些个容器是共用一个image，还是各自将这个image复制了一份，然后各自独立运行呢？</p>
+<p>答案是，通过同一个镜像启动的容器，全部都共享这个镜像，而并不复制。这样做的好处是避免了为每个容器复制一份镜像的空间浪费，不过问题又随之而来：既然所有的容器都共用这一个镜像，那么岂不是我在任意一个容器中所做的修改，在其他容器中都可见？如果我一个容器要将一个配置文件修改成A，而另一个容器同样要将这个文件修改成B，两个容器岂不是会产生冲突？</p>
+<p>在使用Docker pull命令拉取镜像时，已经看到拉取镜像是一层一层拉取的，借用网上比较常见的一张图：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqe-l-2SX_Fj7zRKLB7n5LZE6zC2.png"  lazyload></a><br>从最底层的内核到上层的Apache或者BusyBox，中间的每一个镜像层都是建立在另一个镜像层之上的，同时所有的镜像层都是只读的，只有每个容器最顶层的容器层才可以被用户直接读写，所有的容器都建立在一些底层服务（Kernel）上，包括Namespcae、CGroup、rootfs 等等，这种容器的组装方式提供了非常大的灵活性，只读的镜像层通过共享也能够减少磁盘的占用。</p>
+<p>镜像本身是只读的，但上面这张图里，在镜像的最上层，还有一个writable的读写层。Docker会在容器启动时为当前容器单独挂载这个读写层。这样看来<strong>容器&#x3D;镜像+读写层</strong>。用户针对容器的所有操作都在读写层中完成。一旦容器销毁，这个读写层也随之销毁。</p>
+<p>Docker使用了写时复制和用时分配技术实现对读写层的操作：</p>
+<ul>
+<li><p>写时复制：同一个镜像的容器在启动时，会共享同一个镜像的文件系统，只有在对文件进行写操作时，才会从镜像中复制要写的文件到自己的文件系统中进行修改。这样能减少同一镜像的不同容器的空间占用。 </p>
+<blockquote>
+<p>比较出名的写时复制例子：用Linux的<code>fork()</code>函数创建子进程</p>
+</blockquote>
+</li>
+<li><p>用时配置：用时分配是用在原本没有这个文件的场景，只有在要新写入一个文件时才分配空间，这样可以提高存储资源的利用率。比如启动一个容器，并不会为这个容器预分配一些磁盘空间，而是当有新文件写入时，才按需分配新空间。</p>
+</li>
+</ul>
+<h3 id="storage-driver"><a href="#storage-driver" class="headerlink" title="storage driver"></a>storage driver</h3><p>docker提供了多种storage driver（存储驱动）来实现不同的方式存储镜像，下面是常用的几种存储驱动，更详细的可以参考<a target="_blank" rel="noopener" href="https://docs.docker.com/storage/storagedriver/select-storage-driver/">Docker官方文档</a>：</p>
+<table>
+<thead>
+<tr>
+<th>存储驱动</th>
+<th>特点</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AUFS</td>
+<td>联合文件系统、未并入内核主线、文件级存储</td>
+<td>作为docker的第一个存储驱动，已经有很长的历史，比较稳定，且在大量的生产中实践过，有较强的社区支持</td>
+<td>有多层，在做写时复制操作时，如果文件比较大且存在比较低的层，可能会慢一些</td>
+<td>大并发但少IO的场景</td>
+</tr>
+<tr>
+<td>overlayFS</td>
+<td>联合文件系统、并入内核主线、文件级存储</td>
+<td>只有两层</td>
+<td>不管修改的内容大小都会复制整个文件，对大文件进行修改显示要比小文件消耗更多的时间</td>
+<td>大并发但少IO的场景</td>
+</tr>
+<tr>
+<td>Devicemapper</td>
+<td>并入内核主线、块级存储</td>
+<td>块级无论是大文件还是小文件都只复制需要修改的块，并不是整个文件</td>
+<td>不支持共享存储，当有多个容器读同一个文件时，需要生成多个复本，在很多容器启停的情况下可能会导致磁盘溢出</td>
+<td>适合io密集的场景</td>
+</tr>
+<tr>
+<td>Btrfs</td>
+<td>并入linux内核、文件级存储</td>
+<td>可以像devicemapper一样直接操作底层设备，支持动态添加设备</td>
+<td>不支持共享存储，当有多个容器读同一个文件时，需要生成多个复本</td>
+<td>不适合在高密度容器的paas平台上使用</td>
+</tr>
+<tr>
+<td>ZFS</td>
+<td>把所有设备集中到一个存储池中来进行管理</td>
+<td>支持多个容器共享一个缓存块，适合内存大的环境</td>
+<td>COW使用碎片化问题更加严重，文件在硬盘上的物理地址会变的不再连续，顺序读会变的性能比较差</td>
+<td>适合paas和高密度的场景</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Docker 1.12中推出了一个新的驱动叫做<code>overlay2</code>，已经取代了 <code>aufs</code> 成为了推荐的存储驱动，但是在没有 <code>overlay2</code> 驱动的机器上仍然会使用 <code>aufs</code> 作为 Docker 的默认驱动。</p>
+</blockquote>
+<h2 id="实践指南"><a href="#实践指南" class="headerlink" title="实践指南"></a>实践指南</h2><h3 id="镜像加速"><a href="#镜像加速" class="headerlink" title="镜像加速"></a>镜像加速</h3><ol>
+<li>把不常变化的部分打成一个基础镜像，把应用包等经常变化的部分放到Dockerfile的最后面 <blockquote>
+<p>把这个基础镜像上传到仓库，然后其它的Dockerfile FROM这个基础镜像。这样构建和发布都会更快。</p>
+</blockquote>
+</li>
+</ol>
+<p>Docker镜像分层机制会缓存每一层，在客户端会保留已经构建过的层，当检测到文件md5没有变化时，不用再次执行。但如果中间步骤无法使用缓存的层，后面的所有步骤将都无法使用缓存。把变化的部分放最后，这样每次aone打包就只更新经常变化的部分，不需要把整个镜像都build一遍。 </p>
+<ol start="2">
+<li>管理好应用的依赖，排除Dockerfile中不需要的文件<br>一般我们的Docker镜像都很大，但实际上里面有很多不必要的依赖。几个实践中可以参考的方法：</li>
+</ol>
+<ul>
+<li>使用尽量小的基础镜像 </li>
+<li>可以在代码根目录<code>/APP-META/docker-config</code>下面放<code>.dockerignore</code>文件，格式和<code>.gitignore</code>文件一样，排除不需要加入docker build context中的文件来加快build速度。特别是编译过程的中间文件、日志等等。</li>
+</ul>
+<ol start="3">
+<li>减少镜像层数<br>可以把多个指令合并成一个指令来减少镜像层。可以通过将多个命令用<code>&amp;&amp;</code>连接的方式合并。 <blockquote>
+<p>docker分层：dockerfile中每一个命令比如<code>RUN</code>、<code>COPY</code>，在镜像中都会生成一个文件层，而且这些文件层是顺序累加的，层数越多，push到仓库中的就越多，下载到机器上的就越多，也就会越慢。</p>
+</blockquote>
+</li>
+</ol>
+<h1 id="一些想法"><a href="#一些想法" class="headerlink" title="一些想法"></a>一些想法</h1><blockquote>
+<p>这是我自己在学习过程中的一些想法，欢迎指正。</p>
+</blockquote>
+<p>作为普通的技术开发者，不得不感慨技术发展真的太快了，Docker在2013年开源，到2014-2015期间达到鼎盛状态，然后是盛极而衰。可能刚刚熟悉Docker的使用，却听见<a target="_blank" rel="noopener" href="https://kubernetes.io/blog/2020/12/08/kubernetes-1-20-release-announcement/">Kubernetes 1.20中弃用了docker</a>，让人不禁想问，现在学习Docker是不是过时了？</p>
+<blockquote>
+<p>事实上这已经是Docker经历的”第二次死亡“，第一次是Docker Swarm的没落。Docker 以提供镜像打包的创新技术实现了“一次构建、处处运行”的软件交付方式，开启了一个全新的容器时代。面对平台化的竞争，Docker 推出了调度引擎 Swarm，但 Swarm 从未真正流行起来，因为整个行业更倾向于采用 Kubernetes，这是 Docker 第一次死亡：它失去了平台之战。2016 年 9 月，Google 和 RedHat 联合宣布了“fork Docker”，也就是后来的 CRI-O 项目，这就是这次弃用事件的起始，同时也宣告了竞争的结束。</p>
+<p>Docker没落的原因有很多，有一种说法是，Docker并不是输了“技术之争”，而是输了“标准之争”。</p>
+</blockquote>
+<p>虽然Docker的衰落和Kubernetes的兴起是大势所趋，但Docker并不会死亡（实际上Docker并没有被抛弃，未来kubernetes实际要去除的是对现有Docker运行时Docker Daemon的支持，通过去除kubelet中的Docker Shim来实现）。到今天为止，在生产环境中，企业大量的使用的是经典 Kubernetes+Docker 方案。同时在一些公司的场景中也有单独使用 Docker 的情况，尤其是业务部署的场景比较简单和规模较小的时候，仅仅通过 docker run&#x2F;docker-compose 这种方式也能管得好的话，实际上是没必要引入 Kubernetes 这样更重量级的组件。</p>
+<p>在我们的日常开发中，也不会直接面对Kubernetes，尤其是像阿里这种基础设施很完善的公司内，Kubernetes的存在对普通开发者是无感知的（比如我至今没太搞懂ASI的含义…）。我们交付的是软件代码，以此为基础加上可定制的Dockerfile，剩下的就是aone上点点的事情了。</p>
+<p>换句话说，Docker不会死亡，作为容器运行时（CRI）的一个经典的实现，Docker应该还可以活很久很久。只不过容器运行时的技术已经非常成熟，成为了整个基础架构体系中相对变化较少的一部分，人们不再需要给予太多关注罢了。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ol>
+<li>Docker-从入门到实践</li>
+<li><a target="_blank" rel="noopener" href="https://yuque.antfin-inc.com/aone/docker">Aone Docker实践</a></li>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000040395134">Docker真的被Kubernetes放弃了吗？</a></li>
+</ol>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%AE%80%E4%BB%8B"><span class="top-box-text">简介</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Docker%E6%98%AF%E4%BB%80%E4%B9%88"><span class="top-box-text">Docker是什么</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8Docker"><span class="top-box-text">为什么用Docker</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="top-box-text">基本概念</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%95%9C%E5%83%8F"><span class="top-box-text">镜像</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%B9%E5%99%A8"><span class="top-box-text">容器</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E4%BB%93%E5%BA%93"><span class="top-box-text">仓库</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%85%A5%E9%97%A8%E5%AE%9E%E8%B7%B5"><span class="top-box-text">入门实践</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="top-box-text">常用命令</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%95%9C%E5%83%8F%E5%91%BD%E4%BB%A4"><span class="top-box-text">镜像命令</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AE%B9%E5%99%A8%E5%91%BD%E4%BB%A4"><span class="top-box-text">容器命令</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%95%B0%E6%8D%AE%E5%8D%B7%E5%91%BD%E4%BB%A4"><span class="top-box-text">数据卷命令</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Dockerfile"><span class="top-box-text">Dockerfile</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B"><span class="top-box-text">构建过程</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%8C%87%E4%BB%A4"><span class="top-box-text">指令</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%98%BF%E9%87%8CDocker%E5%AE%9E%E8%B7%B5"><span class="top-box-text">阿里Docker实践</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Docker%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84"><span class="top-box-text">Docker目录结构</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B-1"><span class="top-box-text">构建过程</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E8%BF%9B%E9%98%B6"><span class="top-box-text">进阶</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Docker%E6%9E%B6%E6%9E%84"><span class="top-box-text">Docker架构</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF"><span class="top-box-text">核心技术</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Linux-Namespace"><span class="top-box-text">Linux Namespace</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#CGroup"><span class="top-box-text">CGroup</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%95%9C%E5%83%8F%E5%88%86%E5%B1%82"><span class="top-box-text">镜像分层</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#storage-driver"><span class="top-box-text">storage driver</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AE%9E%E8%B7%B5%E6%8C%87%E5%8D%97"><span class="top-box-text">实践指南</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%95%9C%E5%83%8F%E5%8A%A0%E9%80%9F"><span class="top-box-text">镜像加速</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%B8%80%E4%BA%9B%E6%83%B3%E6%B3%95"><span class="top-box-text">一些想法</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8F%82%E8%80%83"><span class="top-box-text">参考</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2020/12/09/da-xing-jiao-yi-ding-dan-shu-ju-ku-yan-jin-de-can-kao/">
+          <h3 class="post-title">
+            下一篇：大型交易订单数据库演进的参考
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

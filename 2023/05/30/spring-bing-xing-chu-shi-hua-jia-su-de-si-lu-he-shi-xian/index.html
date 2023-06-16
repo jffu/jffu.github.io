@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>Spring并行初始化加速的思路和实现</title>
+<meta name="keywords" content="Spring并行初始化加速的思路和实现, jffu&#39;s blog">
+<meta name="description" content="本文讨论了Spring并行初始化加速的可行性，并且给出一种可行方案的思路和实现。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="Spring并行初始化加速的思路和实现">
+<meta property="og:description" content="本文讨论了Spring并行初始化加速的可行性，并且给出一种可行方案的思路和实现。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">Spring并行初始化加速的思路和实现</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2023-05-30</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Spring/">
+              Spring
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <blockquote>
+<p>本文同步发布于 阿里开发者 等媒体上，这是原始版本，与对外发布版本略有不同。</p>
+</blockquote>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>之前的一篇文章《一些杂想：Java老矣，尚能饭否》里提到了一个<strong>rhino-boot-turbo</strong>组件：</p>
+<blockquote>
+<p>Java应用启动慢，还有一个罪魁祸首是Spring的bean初始化，我之前写了个异步初始化Spring Bean的starter rhino-boot-turbo，把串行改并行启动速度会快很多。</p>
+</blockquote>
+<p>最近逛ATA，看到《Java应用提速(速度与激情)-其他优化篇》里讲到了Spring异步加载，以及以《Spring 并行加载 Bean 的理想解决方案与不可为》开始的一系列文章，发现实现的思路和方案有很多类似之处，所以记录一下我当时的思考和实践。<br>我们现在基于Spring开发的Java应用，启动时长受bean初始化影响非常大，之前对经手过的应用做了一个粗略的统计，大部分启动过程花了50%+的时间在做bean的初始化，更有甚者会占到80%以上（主要是启动时去拉取配置）。<br>多说一句，这个组件是19年的时候搞的，起这个名字是当初受华为“吓死人”的技术“GPU Turbo”的启发….</p>
+<h1 id="争议"><a href="#争议" class="headerlink" title="争议"></a>争议</h1><p>并行初始化是Spring的老大难问题，而且已经成为“unresolved issue”中投票数最多的之一。其实很早（2011年）就有人向官方提过issue:<a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-framework/issues/13410"> Parallel bean initialization during startup [SPR-8767] #13410</a>，时至今日该issue仍是open状态。官方的态度是：首先，对于大部分应用而言，启动时间并不存在大问题；其次，并行初始化虽然可能对一小部分应用的效果是显著的，但是会对每个Spring带来不可避免的bug，增加复杂性，以及难以预料的副作用。</p>
+<blockquote>
+<p>The upside of parallelizing bean initialization in the Spring container could be significant for a minority of applications using Spring, while the downsides - the inevitable bugs, added complexity and unintended side effects - would affect potentially every application using Spring. Not an attractive outlook, I’m afraid.</p>
+</blockquote>
+<p>我对于官方“启动时间并不存在大问题”的说法不敢苟同（在issue里也有很多人同样表示：启动性能对我来说非常重要！）为什么并行初始化会“带来不可避免的bug，增加复杂性，以及难以预料的副作用”？可以试着分析一下原因。<br>首先，如果bean是独立，也就是说没有和其他bean有依赖关系，那么对其独立做初始化是完全可行的，并不会任何问题。<br>当然，bean和bean之间的依赖是难以避免的。这种依赖关系可以用一个有向有环图表达，如下图：<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FizW7wovY8kz2cMwNcktLQZxsrOT.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FizW7wovY8kz2cMwNcktLQZxsrOT.png"  lazyload></a><br>有环图是很难处理的，一种朴素的想法就是将其转化为有向无环图（DAG）。图里的环（D - E）来自于循环依赖，我们要做的就是将循环依赖的bean当做是同一组。得到DAG后，就可以先加载下层的bean，然后同一层的bean做并行加载。在issue中也有人提出了这个想法。我个人理解，这个方案的难点在于：</p>
+<ol>
+<li>DAG的分析很难，包括如何分析以及分析本身的耗时，特别是循环依赖的嵌套比较深的时候。</li>
+<li>兼容目前的生态很难。打个比方，按照Spring目前的设计，有很多开放的扩展点可以修改bean的定义和依赖，比如BeanDefinitionRegistryPostProcessor、BeanFactoryPostProcessor等。如何兼容是个难题。</li>
+</ol>
+<p>总结一下，Spring至今拖着没有支持并行初始化，最大的困难在于，需要重写大量底层流程逻辑，在重写的基础上，还要兼容目前大生态下的已经开放出去的扩展点。<br>既然构建DAG比较困难，是否有其他方式可以做到并行呢？</p>
+<h1 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h1><h2 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h2><p>Spring初始化的流程中，关键的代码在<code>org.springframework.context.support.AbstractApplicationContext#refresh</code>。先借用一张网上的图，来看下Spring Bean启动的生命周期：<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqYzvn5bs-aOehdDnHk2LEoSQUpv.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqYzvn5bs-aOehdDnHk2LEoSQUpv.png"  lazyload></a><br>Spring会在主线程串行地对所有Bean进行初始化，在一个Bean的生命周期中，有两类初始化方法会被调用：</p>
+<ol>
+<li>Init-method: 包括手动指定的init-method和实现<code>InitializingBean</code>时写的<code>afterPropertiesSet</code>，在构造、属性赋值后由<code>BeanFactory</code>调用；</li>
+<li><code>@PostConstruct</code>标记的方法，在构造、属性赋值后由<code>CommonAnnotationBeanPostProcessor</code>调用；</li>
+</ol>
+<p>另外，Spring提供了两个扩展点，后面会用到：</p>
+<ol>
+<li><code>ApplicationContextInitializer</code>：在<code>ApplicationContext</code>做<code>refresh</code>之前会调用，可以对<code>ConfiurableApplicationContext</code>实例对象做处理。</li>
+<li>在所有bean初始化完成后，<code>refresh</code>方法的最后一步会publish一个<code>ContextRefreshedEvent</code>，可以注册一个<code>ApplicationListener&lt;ContextRefreshedEvent&gt;</code>来监听该事件。</li>
+</ol>
+<h2 id="方案"><a href="#方案" class="headerlink" title="方案"></a>方案</h2><p>如果不考虑bean和bean之间的依赖关系的话，只需要改造上面所述的两类初始化方法，将其异步初始化就行了。同时注册一个<code>ApplicationListener&lt;ContextRefreshedEvent&gt;</code>，在监听里等待所有异步初始化的bean完成。<br>现在考虑bean和bean之间有依赖的情况。既然DAG的构建很困难，我们可以退而求其次，对图中每一个没有依赖边的子图分别做并行初始化。如上面的示例图所示，可以将从顶层的A开始和从F开始的bean做并行初始化，这样是不会有副作用的。思路如下：</p>
+<ol>
+<li>判断一个bean是不是顶层的bean，也就是没有其他的bean依赖它。</li>
+<li>如果是顶层的bean，就单独起一个异步任务做初始化。</li>
+<li>如果不是顶层的bean，那么就意味着肯定有其他bean依赖它，将其放到跟依赖它的bean同一个线程中做串行初始化。</li>
+</ol>
+<p>关键是如何判断一个bean是不是顶层bean，或者说是否有bean依赖它呢？Spring是一个依赖注入框架，由容器统一管理所有bean，如果要用到另一个bean，需要从<code>BeanFactory</code>中获取。这时候就会调用到一个关键的方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.beans.factory.support.AbstractBeanFactory#doGetBean</span><br></pre></td></tr></table></figure>
+<p>如果Bean A初始化依赖B，就肯定还在初始化过程中调用<code>doGetBean</code>去从容器中拿Bean B的实例，拿的过程中完成Bean B的初始化，如果B又有其他依赖，也是同理类推。<br>所以可以考虑使用一个栈，记录每一次<code>doGetBean</code>的情况：当尝试获取一个bean时，把要获取的bean的beanName入栈，当获取返回后，再做出栈。<br>还是以上面的DAG示例图为例，栈的变化长这样：<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fi7ZfVv9axWW3KEASlUpkxctXJhJ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fi7ZfVv9axWW3KEASlUpkxctXJhJ.png"  lazyload></a><br>如果<code>doGetBean</code>时，发现栈不为空，那么就表示当前栈顶的bean依赖当前要获取的bean，譬如上图获取bean B时，栈不为空，栈顶元素为bean A，说明A依赖了B，A的初始化必须要等到B完成后才能返回。</p>
+<h2 id="细节点"><a href="#细节点" class="headerlink" title="细节点"></a>细节点</h2><p>实现这个方案有几个细节点值得说一下。<br>第一是如何替换默认的初始化逻辑？需要改造上面说的两类初始化方法的入口。</p>
+<ol>
+<li><p>对于<code>BeanFactory#invokeInitMethods</code>方式调用的，需要替换默认的<code>BeanFactory</code>并重写这个方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">invokeInitMethods</span><span class="params">(String beanName, Object bean, RootBeanDefinition mbd)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">    <span class="comment">// 构建bean初始化任务，提交给taskManager执行</span></span><br><span class="line">    <span class="type">BaseBeanInitTask</span> <span class="variable">task</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BaseBeanInitTask</span>(beanName, canAsyncInit(beanName, bean, mbd),</span><br><span class="line">        BeanInitTypeEnum.INIT_METHOD) &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doInit</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">            AsyncInitBeanFactory.<span class="built_in">super</span>.invokeInitMethods(beanName, bean, mbd);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    initTaskManager.init(task);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>对于由<code>@PostConstruct</code>注解的方法，要替换默认的<code>org.springframework.context.annotation.internalCommonAnnotationProcessor</code>，并重写<code>postProcessBeforeInitialization</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Object <span class="title function_">postProcessBeforeInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">    <span class="type">BaseBeanInitTask</span> <span class="variable">task</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BaseBeanInitTask</span>(beanName, canAsyncInit(beanName), BeanInitTypeEnum.POST_CONSTRUCT_METHOD) &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doInit</span><span class="params">()</span> &#123;</span><br><span class="line">            AsyncInitAnnotationBeanPostProcessor.<span class="built_in">super</span>.postProcessBeforeInitialization(bean, beanName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    initTaskManager.init(task);</span><br><span class="line">    <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>第二是如何替换上面说的<code>BeanFactory</code>和<code>internalCommonAnnotationProcessor</code>？需要注册一个<code>ApplicationContextInitializer</code>，在<code>refresh</code>之前进行替换：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Order(Ordered.HIGHEST_PRECEDENCE)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AsyncInitApplicationContextInitializer</span></span><br><span class="line">    <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span>&lt;ConfigurableApplicationContext&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext context)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (context <span class="keyword">instanceof</span> GenericApplicationContext) &#123;</span><br><span class="line">            attach((GenericApplicationContext)context);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">attach</span><span class="params">(GenericApplicationContext context)</span> &#123;</span><br><span class="line">        <span class="comment">// 省略</span></span><br><span class="line">        <span class="type">InitTaskManager</span> <span class="variable">initTaskManager</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">InitTaskManager</span>(config);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 替换BeanFactory</span></span><br><span class="line">        <span class="type">AsyncInitBeanFactory</span> <span class="variable">beanFactory</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AsyncInitBeanFactory</span>(context.getBeanFactory(), config, initTaskManager);</span><br><span class="line">        replaceBeanFactory(context, beanFactory);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 注入用于处理@PostConstruct注解初始化的BeanPostProcessor</span></span><br><span class="line">        <span class="type">AsyncInitAnnotationBeanPostProcessor</span> <span class="variable">annotationBeanPostProcessor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AsyncInitAnnotationBeanPostProcessor</span>(</span><br><span class="line">            config, initTaskManager);</span><br><span class="line">        annotationBeanPostProcessor.setBeanFactory(beanFactory);</span><br><span class="line">        beanFactory.registerSingleton(AsyncInitBeanFactoryPostProcessor.NAME,</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">AsyncInitBeanFactoryPostProcessor</span>(annotationBeanPostProcessor));</span><br><span class="line"></span><br><span class="line">        context.addApplicationListener(initTaskManager);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 省略</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">replaceBeanFactory</span><span class="params">(GenericApplicationContext context, AsyncInitBeanFactory beanFactory)</span> &#123;</span><br><span class="line">        <span class="type">Field</span> <span class="variable">field</span> <span class="operator">=</span> ReflectionUtils.findField(context.getClass(), <span class="string">&quot;beanFactory&quot;</span>);</span><br><span class="line">        field.setAccessible(<span class="literal">true</span>);</span><br><span class="line">        ReflectionUtils.setField(field, context, beanFactory);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 最后是改造<code>BeanFactory#doGetBean</code>了：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> &lt;T&gt; T <span class="title function_">doGetBean</span><span class="params">(String name, Class&lt;T&gt; requiredType, Object[] args, <span class="type">boolean</span> typeCheckOnly)</span></span><br><span class="line">    <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">    <span class="keyword">if</span> (initTaskManager.isStarted()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">super</span>.doGetBean(name, requiredType, args, typeCheckOnly);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    LinkedList&lt;String&gt; stack = stackLocal.get();</span><br><span class="line">    <span class="keyword">if</span> (stack == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">super</span>.doGetBean(name, requiredType, args, typeCheckOnly);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">peek</span> <span class="operator">=</span> stack.peek();</span><br><span class="line">    stack.push(name);</span><br><span class="line">    <span class="type">T</span> <span class="variable">bean</span> <span class="operator">=</span> <span class="built_in">super</span>.doGetBean(name, requiredType, args, typeCheckOnly);</span><br><span class="line">    <span class="keyword">if</span> (peek != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// 栈不为空，表示栈顶的bean依赖当前bean，等待当前bean初始化完成</span></span><br><span class="line">        initTaskManager.waitInitDone(name);</span><br><span class="line">    &#125;</span><br><span class="line">    stack.pop();</span><br><span class="line">    <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h1 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h1><p>整体代码800+行，实现一个简单的turbo加速器，测了几个应用，启动时间提升在一倍以上。<br>功能上支持两种加速模式：</p>
+<ul>
+<li>自动挡：自动对大部分Bean进行异步初始化加速，适合新手。</li>
+<li>手动挡：手动进行配置，比如指定需要和不需要加速的bean，适合老司机。</li>
+</ul>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p>配置示例：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 全局启动开关</span></span><br><span class="line"><span class="comment"># 默认值：默认为false，需要手动启用</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.global-enable</span>=<span class="string">true</span></span><br><span class="line"><span class="comment"># [可选] 是否启动自动档加速</span></span><br><span class="line"><span class="comment"># 默认值：true</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.auto-mode-enable</span>=<span class="string">true</span></span><br><span class="line"><span class="comment"># [可选] 异步初始化线程池大小，如果超出线程池大小，初始化任务会放到主线程执行</span></span><br><span class="line"><span class="comment"># 默认值：Runtime.getRuntime().availableProcessors() * 2</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.pool-size</span>=<span class="string">20</span></span><br><span class="line"><span class="comment"># [可选] 最大等待超时（单位：秒），如果超出该值一个bean还没初始化完成，则会报错</span></span><br><span class="line"><span class="comment"># 默认值：60，如果有bean初始化特别久，可以考虑增加超时时间</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.wait-timeout</span>=<span class="string">60</span></span><br><span class="line"><span class="comment"># [可选] 需要被异步加载的bean名称列表，如何配置参考手动挡说明</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.include</span>=<span class="string">beanA,beanB</span></span><br><span class="line"><span class="comment"># [可选] 不想被异步加载的bean名称列表，如何配置参考手动挡说明</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.exclude</span>=<span class="string">beanA,beanB</span></span><br><span class="line"><span class="comment"># [可选] 需要跳过等待的bean名称，如何配置参考手动挡说明</span></span><br><span class="line"><span class="attr">spring.rhino-boot-turbo.skip-wait</span>=<span class="string">beanC</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>为了保证线上环境的绝对安全，组件只会在本地、项目和日常环境生效，即启动项<code>-Dspring.profiles.active</code>为其中之一：<code>test</code>、<code>project</code>、<code>default</code>。</p>
+</blockquote>
+<h2 id="自动挡"><a href="#自动挡" class="headerlink" title="自动挡"></a>自动挡</h2><p>在默认配置下（<code>spring.rhino-boot-turbo.auto-mode-enable=true</code>），会自动对大部分存在第一类初始化方法（init-method）的Bean进行异步初始化加速。</p>
+<p>一些例外：</p>
+<ol>
+<li><p>Spring本身的Bean，例如class名称以<code>org.springframework</code>开头； </p>
+<blockquote>
+<p>这类Bean一般耗时很短，也没有异步初始化的必要</p>
+</blockquote>
+</li>
+<li><p>一些Spring的生命周期回调Bean，例如<code>ApplicationContextInitializer</code>、<code>BeanFactoryPostProcessor</code>、<code>BeanPostProcessor</code> </p>
+<blockquote>
+<p>对这类Bean进行异步初始化可能会有意向不到的后果，如果确定可以异步，参考手动挡配置</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="启动统计"><a href="#启动统计" class="headerlink" title="启动统计"></a>启动统计</h2><p>在启动完成后，可以访问<code>ip:managementport/bean-init</code>页面（例如：<code>localhost:7002/bean-init</code>）来查看启动统计。<br>结果样例：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;beanCount&quot;</span><span class="punctuation">:</span> <span class="number">698</span><span class="punctuation">,</span>					  # bean数目</span><br><span class="line">    <span class="attr">&quot;taskCount&quot;</span><span class="punctuation">:</span> <span class="number">1377</span><span class="punctuation">,</span>					  # bean初始化任务数量，包括同步和异步的init-method和@PostConstruct</span><br><span class="line">    <span class="attr">&quot;totalInitTime&quot;</span><span class="punctuation">:</span> <span class="number">176658</span><span class="punctuation">,</span>			# bean初始化时长总计，单位ms，包括异步和同步任务</span><br><span class="line">    <span class="attr">&quot;totalWaitTime&quot;</span><span class="punctuation">:</span> <span class="number">27282</span><span class="punctuation">,</span>			   # 等待时长总计，包括异步和同步任务</span><br><span class="line">    <span class="attr">&quot;totalSyncInitTime&quot;</span><span class="punctuation">:</span> <span class="number">14048</span><span class="punctuation">,</span>			# 同步任务初始化时长总计</span><br><span class="line">    <span class="attr">&quot;totalAsyncInitTime&quot;</span><span class="punctuation">:</span> <span class="number">162610</span><span class="punctuation">,</span>		# 异步任务初始化时长总计</span><br><span class="line">    <span class="attr">&quot;totalSyncWaitTime&quot;</span><span class="punctuation">:</span> <span class="number">14048</span><span class="punctuation">,</span>			# 异步任务等待时长总计</span><br><span class="line">    <span class="attr">&quot;totalAsyncWaitTime&quot;</span><span class="punctuation">:</span> <span class="number">13234</span><span class="punctuation">,</span>		# 异步任务等待时长总计</span><br><span class="line">    <span class="attr">&quot;tasks&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span>											# 所有初始化任务列表</span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;beanName&quot;</span><span class="punctuation">:</span> <span class="string">&quot;beanA&quot;</span><span class="punctuation">,</span>									    # bean名称</span><br><span class="line">            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;POST_CONSTRUCT_METHOD&quot;</span><span class="punctuation">,</span>			# 初始化类型，分POST_CONSTRUCT_METHOD和INIT_METHOD</span><br><span class="line">            <span class="attr">&quot;initTime&quot;</span><span class="punctuation">:</span> <span class="number">13007</span><span class="punctuation">,</span>										          # 初始化用时</span><br><span class="line">            <span class="attr">&quot;waitTime&quot;</span><span class="punctuation">:</span> <span class="number">13007</span>											    # 等待用时</span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;beanName&quot;</span><span class="punctuation">:</span> <span class="string">&quot;beanB (async)&quot;</span><span class="punctuation">,</span>			              # 标记了(async)的表示会进行异步初始化</span><br><span class="line">            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;INIT_METHOD&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;initTime&quot;</span><span class="punctuation">:</span> <span class="number">13125</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;waitTime&quot;</span><span class="punctuation">:</span> <span class="number">13001</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">				....</span><br><span class="line">      <span class="punctuation">&#125;</span><span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<h2 id="手动挡"><a href="#手动挡" class="headerlink" title="手动挡"></a>手动挡</h2><blockquote>
+<p>适合对代码熟悉，追求更快启动速度的老司机。</p>
+</blockquote>
+<p>为了保证效率和安全，自动挡会进行以下限制：</p>
+<ol>
+<li><p>不会对特定类型的Bean进行异步初始化，参考自动档说明； </p>
+</li>
+<li><p>对<code>@PostConstruct</code>初始化方式的bean，目前自动档不会自动进行异步初始化，这一点主要是考虑到在class中反射获取<code>@PostConstruct</code>注解方法在极端情况下可能会比较耗时； </p>
+<blockquote>
+<p>Spring本身会对找到的<code>@PostConstruct</code>注解方法进行缓存，但放在private内部类中，无法hook拿到；</p>
+</blockquote>
+</li>
+<li><p>如果一个bean在初始化时发现依赖了其他的bean，默认会阻塞等待这个被依赖的bean初始化完成；</p>
+</li>
+</ol>
+<p>另外，有一些bean可能不能安全地进行异步初始化，但自动挡无法自动识别。举个例子：beanA依赖beanB，但是beanA是通过手动set的方式引用了beanB（而不是通过<code>@Autowired</code>、构造器注入等正常方式），在异步初始化beanA时不会等待beanB完成，导致运行异常。</p>
+<p>针对以上各种情况，可以进行手动配置。</p>
+<p><strong>判断一个bean是否要异步初始化</strong><br>如何判断一个bean是否有必要进行异步初始化？可以参考初始化任务列表中的<code>waitTime</code>字段（启动统计的任务列表会根据<code>waitTime</code>等待时长进行排序），该字段表示阻塞等待该bean完成初始化的耗时，包括两部分：</p>
+<ul>
+<li><p>在初始化其他bean时，发现依赖了当前的bean，为了保证安全，需要阻塞等待该bean初始化完成； </p>
+<blockquote>
+<p>例如，beanA依赖beanB，beanB依赖beanC，依赖链beanA -&gt; beanB -&gt; beanC，都进行异步初始化：</p>
+<ul>
+<li>在初始化beanA时，发现beanB还未完成初始化，则会等待beanB完成初始化，等待时间会加到beanB的<code>waitTime</code>上；</li>
+<li>在初始化beanB时，发现beanC还未完成初始化，则会等待beanC完成初始化，等待时间会加到beanC的<code>waitTime</code>上，同时也会影响beanB的<code>waitTime</code>；</li>
+</ul>
+</blockquote>
+</li>
+<li><p>Spring完成了启动，发出了<code>ContextRefreshedEvent</code>事件，但实际上有的bean还未异步初始化完成，也需要阻塞等待其完成，这部分时间也会加到<code>waitTime</code>上；</p>
+</li>
+</ul>
+<p>因此<code>waitTime</code>反应了由于这个bean初始化阻塞的时间，在优化时区分两类情况：</p>
+<ul>
+<li>如果这个bean没有进行异步初始化（在启动统计中没有<code>(async)</code>后缀），考虑将其<strong>指定进行异步初始化</strong>；</li>
+<li>如果这个bean已经进行了异步初始化（在启动统计中带有<code>(async)</code>后缀），考虑将其<strong>指定跳过阻塞等待</strong>，前提是确认其不会影响其他bean，几个参考判断条件： <ul>
+<li>依赖这个bean的其他bean不会在初始化时就调用必须在当前bean初始化完成后才能使用的功能，这时候跳过等待当前bean是OK的。一般来说，大部分bean是满足这个条件的，例如HSF的provider&#x2F;consumer，metaq的的producer&#x2F;consumer等等；</li>
+<li>应用启动后，除非手动触发，不会立刻就调用必须初始化完成才能使用的功能；</li>
+</ul>
+</li>
+</ul>
+<p><strong>指定异步初始化的bean</strong><br>通过配置项<code>spring.rhino-boot-turbo.include</code>可以手动指定要异步初始化的bean。</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring.rhino-boot-turbo.include</span>=<span class="string">beanA,beanB</span></span><br></pre></td></tr></table></figure>
+
+
+<p><strong>指定跳过等待</strong><br>通过配置项<code>spring.rhino-boot-turbo.skip-wait</code>可以手动指定不进行阻塞等待初始化完成的bean。</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring.rhino-boot-turbo.skip-wait</span>=<span class="string">beanC</span></span><br></pre></td></tr></table></figure>
+
+
+<p><strong>指定不要异步初始化的bean</strong><br>通过配置项<code>spring.rhino-boot-turbo.exclude</code>可以手动排除自动档会进行异步初始化的bean。</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring.rhino-boot-turbo.exclude</span>=<span class="string">beanA,beanB</span></span><br></pre></td></tr></table></figure>
+<h2 id="已知问题"><a href="#已知问题" class="headerlink" title="已知问题"></a>已知问题</h2><ol>
+<li>建议不要配置跳过等待<code>dataSource</code>，虽然TDDL初始化耗时很长，但跳过等待有几率会触发Pandora内部的死锁，目前无解。</li>
+</ol>
+<h1 id="题外"><a href="#题外" class="headerlink" title="题外"></a>题外</h1><p>其实Spring官方也“辩解”了一下：大多数时候应用启动慢的元凶就是少数的一些bean，可以重点优化这些bean的初始化时长。具体如何优化？官方没有说，这里列一些可行的方法：</p>
+<ul>
+<li>如无必要，不在bean初始化中做耗时的操作，包括：阻塞IO操作、远程接口调用等等。</li>
+<li>以懒加载的方式，将初始化工作后置。</li>
+<li>如果确实是要在bean初始化中执行耗时操作，考虑改造其初始化方法为异步。</li>
+</ul>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%89%8D%E8%A8%80"><span class="top-box-text">前言</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%BA%89%E8%AE%AE"><span class="top-box-text">争议</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%80%9D%E8%B7%AF"><span class="top-box-text">思路</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="top-box-text">背景知识</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%96%B9%E6%A1%88"><span class="top-box-text">方案</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%BB%86%E8%8A%82%E7%82%B9"><span class="top-box-text">细节点</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%AE%9E%E7%8E%B0"><span class="top-box-text">实现</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%85%8D%E7%BD%AE"><span class="top-box-text">配置</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%87%AA%E5%8A%A8%E6%8C%A1"><span class="top-box-text">自动挡</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%90%AF%E5%8A%A8%E7%BB%9F%E8%AE%A1"><span class="top-box-text">启动统计</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%89%8B%E5%8A%A8%E6%8C%A1"><span class="top-box-text">手动挡</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98"><span class="top-box-text">已知问题</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%A2%98%E5%A4%96"><span class="top-box-text">题外</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2023/04/18/mo-kuai-hua-dan-ti-de-si-kao-yu-shi-jian/">
+          <h3 class="post-title">
+            下一篇：模块化单体的思考与实践
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

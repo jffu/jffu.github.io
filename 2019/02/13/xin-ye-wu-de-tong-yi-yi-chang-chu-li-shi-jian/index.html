@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>新业务的统一异常处理实践</title>
+<meta name="keywords" content="新业务的统一异常处理实践, jffu&#39;s blog">
+<meta name="description" content="新业务初始，如何统一接口格式和异常处理的方式？">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="新业务的统一异常处理实践">
+<meta property="og:description" content="新业务初始，如何统一接口格式和异常处理的方式？">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">新业务的统一异常处理实践</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-02-13</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Java/">
+              Java
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p>新业务初始，在技术上要做的事情很多，我觉得最关键的一点是确定统一的规范，避免各种“轮子”遍地开花。接口（不管是像HSF或Dubbo之类的RPC，还是HTTP）是系统间交互的方式，因此定义接口以及异常的统一规范是这里面的第一步。</p>
+<h1 id="异常与接口结构规范化"><a href="#异常与接口结构规范化" class="headerlink" title="异常与接口结构规范化"></a>异常与接口结构规范化</h1><p>首先需要定义统一的业务异常类型，譬如<code>BizException</code>，要求在抛出某一类业务相关异常时必须定义对应的<code>MessageCode</code>，并且使用<code>BizException</code>（或其子类）抛出。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 业务描述信息基础接口定义</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">MessageCode</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取业务描述信息Code</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> code信息</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="type">int</span> <span class="title function_">getCode</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取业务描述信息Message</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> message信息</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String <span class="title function_">getMessage</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 公共业务异常类封装</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BizException</span> <span class="keyword">extends</span> <span class="title class_">RuntimeException</span> &#123;</span><br><span class="line">    <span class="keyword">protected</span> MessageCode messageCode;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在此基础上，定义统一的接口响应结构，一般接口的返回至少包含3部分：</p>
+<ul>
+<li>code: 本次响应的结果，可以通过code判断是否成功，出错的话每种错误类型分配一个单独的code</li>
+<li>message：提示信息，特别是出错时赋值的错误信息，便于调用方理解错误。</li>
+<li>content: 接口响应的真实数据。</li>
+</ul>
+<p>以此为基础，可以为不同的接口协议定义具体的子类，以用于HTTP接口的<code>PojoResult</code>和HSF接口的<code>HSFResult</code>为例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">BaseResult</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 本次调用返回code</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="type">int</span> code;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 本次调用返回消息</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> String message;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * HTTP接口响应结构</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PojoResult</span>&lt;T&gt; <span class="keyword">extends</span> <span class="title class_">BaseResult</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> T content;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * HSF接口响应结构</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HSFResult</span>&lt;T&gt; <span class="keyword">extends</span> <span class="title class_">BaseResult</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 调用成功or失败</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> success;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 调用成功时的返回数据</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> T model;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 扩展信息</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> String externalMsg;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="HTTP接口统一异常处理"><a href="#HTTP接口统一异常处理" class="headerlink" title="HTTP接口统一异常处理"></a>HTTP接口统一异常处理</h1><p>传统的web服务基于Spring Boot搭建，因此HTTP接口层面的异常处理可以使用Spring Boot提供的全局<code>ExceptionHandler</code>机制完成。在实践中，可以根据不同的异常类型返回不同的错误。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ControllerAdvice</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GlobalExceptionHandler</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 业务异常全局处理, 如果业务异常在业务模块内没有处理将在此处理</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@ResponseBody</span></span><br><span class="line">    <span class="meta">@ExceptionHandler(value = BizException.class)</span></span><br><span class="line">    <span class="keyword">public</span> BaseResult <span class="title function_">bizExceptionHandler</span><span class="params">(BizException e)</span> &#123;</span><br><span class="line">        log.error(<span class="string">&quot;发生业务异常&quot;</span>, e);</span><br><span class="line">        <span class="keyword">return</span> PojoResult.fail(e);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 业务异全局处理, 未处理的所有异常在此拦截并处理</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@ResponseBody</span></span><br><span class="line">    <span class="meta">@ExceptionHandler(value = Exception.class)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">nativeExceptionHandler</span><span class="params">(Exception e)</span> &#123;</span><br><span class="line">        log.error(<span class="string">&quot;发生未知异常&quot;</span>, e);</span><br><span class="line">        <span class="keyword">return</span> SimpleResult.fail(e);</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="RPC接口统一异常处理"><a href="#RPC接口统一异常处理" class="headerlink" title="RPC接口统一异常处理"></a>RPC接口统一异常处理</h1><p>这里重点讨论的是RPC接口的统一异常处理。以阿里HSF&#x2F;Dubbo为例。</p>
+<h2 id="服务端异常类型"><a href="#服务端异常类型" class="headerlink" title="服务端异常类型"></a>服务端异常类型</h2><p>HSF&#x2F;Dubbo服务端业务代码中抛出异常现在常见的有几类：</p>
+<ol>
+<li><code>BizException</code>；</li>
+<li><code>IllegalArgumentException</code>、<code>IllegalStateException</code>等非法参数或状态异常；</li>
+<li>未知异常，例如<code>NullPointerException</code>、<code>SQLException</code>等；</li>
+</ol>
+<p>其中第1和第2类本质上属于业务主动抛出，表示已知的执行逻辑异常状态（例如某些校验逻辑），属于业务自身感知到的错误，而第3类则属于业务无感知的一些错误。对于这两种情况，需要使用不同策略处理：</p>
+<ul>
+<li>对于业务代码中主动抛出的<code>BizException</code>，需要在HSF调用完成后进行捕获，封装到通用响应对象<code>HSFResult</code>中；</li>
+<li>对于业务未知或未处理异常，往往是代码没有考虑到的点出现了问题，一般是需要需要进行修复的。我的想法是需要通过监控告警之类的手段暴露出来，而不是封装到<code>HSFResult</code>中被掩盖掉；</li>
+</ul>
+<h2 id="问题：不规范的HSF异常处理机制"><a href="#问题：不规范的HSF异常处理机制" class="headerlink" title="问题：不规范的HSF异常处理机制"></a>问题：不规范的HSF异常处理机制</h2><p>对异常处理，不同服务没有统一的标准，比较随意。这里列举几种常见的情况，都或多或少存在问题。</p>
+<ul>
+<li><p>使用AOP进行捕获，封装到<code>HSFResult</code>中返回给调用方，但是把所有异常都封装进去了： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Aspect</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AopConfig</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="type">Logger</span> <span class="variable">LOGGER</span> <span class="operator">=</span> LoggerFactory.getLogger(AopConfig.class);</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Pointcut(&quot;execution(public * com.alibaba.rhino.dtech.hsf.provider.*.*(..))&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addAdvice</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Around(&quot;addAdvice()&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">around</span><span class="params">(ProceedingJoinPoint pjp)</span> &#123;</span><br><span class="line">        Object result;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            result = pjp.proceed();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (BizException e) &#123;</span><br><span class="line">            LOGGER.error(<span class="string">&quot;发生业务异常&quot;</span>, e);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">HSFResult</span>(e.getMessageCode());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalStateException e) &#123;</span><br><span class="line">            LOGGER.error(<span class="string">&quot;发生业务异常&quot;</span>, e);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">HSFResult</span>(<span class="keyword">new</span> <span class="title class_">MessageCodeTranslate</span>(TechnologyCenterMessageCodeEnum.GENERAL_ERROR.getCode(),e.getMessage()));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalArgumentException e) &#123;</span><br><span class="line">            LOGGER.error(<span class="string">&quot;发生参数校验异常&quot;</span>, e);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">HSFResult</span>(<span class="keyword">new</span> <span class="title class_">MessageCodeTranslate</span>(TechnologyCenterMessageCodeEnum.GENERAL_ERROR.getCode(), e.getMessage()));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            LOGGER.error(<span class="string">&quot;发生未知异常&quot;</span>, e);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">HSFResult</span>(BaseMessageCodeEnum.SERVER_HSF_INTERFACE_ERROR);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+<li><p>有些服务使用了AOP进行捕获，但没有封装到<code>HSFResult</code>中，而是直接抛出： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Aspect</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AopConfig</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="type">Logger</span> <span class="variable">logger</span> <span class="operator">=</span> LoggerFactory.getLogger(AopConfig.class);</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Pointcut(&quot;execution(public * com.alibaba.rhino.biz.hsf.provider.*.*(..))&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addAdvice</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Around(&quot;addAdvice()&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">around</span><span class="params">(ProceedingJoinPoint pjp)</span> &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="type">long</span> <span class="variable">startTime</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            result = pjp.proceed();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (BizException | IllegalArgumentException e) &#123;</span><br><span class="line">            logger.error(<span class="string">&quot;hsfService exception, bizCode:&#123;&#125;, errorMsg:&#123;&#125;&quot;</span>, pjp.getSignature().getName(), e.toString(), e);</span><br><span class="line">            <span class="keyword">throw</span> e;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            logger.error(<span class="string">&quot;hsfService exception, bizCode:&#123;&#125;, errorMsg:&#123;&#125;&quot;</span>, pjp.getSignature().getName(), e.toString(), e);</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e.getMessage());</span><br><span class="line">        &#125;</span><br><span class="line">        logger.info(<span class="string">&quot;hsfService finish, bizCode:&#123;&#125;, cost:&#123;&#125;&quot;</span>, pjp.getSignature().getName(),</span><br><span class="line">            System.currentTimeMillis() - startTime);</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+<li><p>有些服务没有使用AOP进行捕获，而是选择在业务代码中捕获<code>Exception</code>，然后返回对应错误的<code>HSFResult</code>，导致业务代码中耦合了大量<code>HSFResult</code>的返回处理逻辑： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">HSFResult</span> <span class="variable">hsfResult</span> <span class="operator">=</span> doSomething(param);</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">return</span> hsfResult;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    result.setMessageCode(OrderMessageCodeEnum.FAIL_ORDER);</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>另外存在一些通用问题，包括：</p>
+<ol>
+<li>在服务端对HSF出口进行把控，目前通用的做法是配置AOP - 缺点是不通用，需要配置HSF Provider类的包名，如果HSF Provider的实现类分散在不同包中，或者HSF Provider包下有非实现类的类不想被切面，配置上就比较麻烦；</li>
+<li>在客户端对服务端返回的异常响应进行处理时，只能看到对应的code和简单的message（通常使用<code>BaseMessageCodeEnum</code>类型来构造<code>HSFResult</code>，但<code>BaseMessageCodeEnum</code>包含的信息有限，目前代码中有一个折中的方案是把异常堆栈转成String放到<code>HSFResult.externalMsgInfo</code>中），在调用方（例如SaaS应用）日志中很难看出来为什么出错，需要找到对应调用的应用节点，到日志中查找异常堆栈才能获知具体信息；</li>
+</ol>
+<h2 id="统一HSF-x2F-Dubbo异常处理规范"><a href="#统一HSF-x2F-Dubbo异常处理规范" class="headerlink" title="统一HSF&#x2F;Dubbo异常处理规范"></a>统一HSF&#x2F;Dubbo异常处理规范</h2><p>像HSF&#x2F;Dubbo这类框架，一般都有提供扩展点机制，允许在Provider&#x2F;Consumer在调用前后做切面处理。因此统一服务端异常处理，就可以使用<code>HSF Filter</code>代替AOP，免去AOP的配置；在<code>Filter</code>中根据异常类型来做封装或是抛出。这个<code>Filter</code>可以封装到公用包中供所有应用引入。</p>
+<p>HSF服务端<code>Filter</code>如下，对调用过程中出现的异常进行归类处理：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 服务端HSF过滤器，统一处理业务调用中抛出的异常</span></span><br><span class="line"><span class="comment"> * Order：视业务情况配置，如果要优先于其他Filter（例如EagleEyeServerFilter）触发onResponse方法，则默认最大值</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Order()</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ServerExceptionFilter</span> <span class="keyword">implements</span> <span class="title class_">ServerFilter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> ListenableFuture&lt;RPCResult&gt; <span class="title function_">invoke</span><span class="params">(InvocationHandler invocationHandler, Invocation invocation)</span></span><br><span class="line">        <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="keyword">return</span> invocationHandler.invoke(invocation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onResponse</span><span class="params">(Invocation invocation, RPCResult rpcResult)</span> &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">response</span> <span class="operator">=</span> rpcResult.getAppResponse();</span><br><span class="line">        <span class="keyword">if</span> (response <span class="keyword">instanceof</span> Throwable</span><br><span class="line">            &amp;&amp; HSFResult.class.isAssignableFrom(invocation.getReturnClass())) &#123;</span><br><span class="line">            handleError(rpcResult, (Throwable)response);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">handleError</span><span class="params">(RPCResult rpcResult, Throwable throwable)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (throwable <span class="keyword">instanceof</span> BizException) &#123;</span><br><span class="line">            <span class="type">BizException</span> <span class="variable">e</span> <span class="operator">=</span> (BizException)throwable;</span><br><span class="line">            <span class="comment">// 对于业务中故意抛出的BizException，封装为HSFResult对外透出</span></span><br><span class="line">            log.error(<span class="string">&quot;发生业务异常&quot;</span>, e);</span><br><span class="line">            rpcResult.setErrorType(<span class="literal">null</span>);</span><br><span class="line">            rpcResult.setAppResponse(HSFResult.getErrorResult(e.getMessageCode()));</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (throwable <span class="keyword">instanceof</span> IllegalArgumentException || throwable <span class="keyword">instanceof</span> IllegalStateException) &#123;</span><br><span class="line">            <span class="comment">// 对于特定类型的非法参数或状态异常，同样封装为HSFResult对外透出</span></span><br><span class="line">            log.error(<span class="string">&quot;发生非法参数异常&quot;</span>, throwable);</span><br><span class="line">            rpcResult.setErrorType(<span class="literal">null</span>); </span><br><span class="line">            rpcResult.setAppResponse(HSFResult.getErrorResult(BaseMessageCodeEnum.SERVER_HSF_ILLEGAL_ARGUMENT_ERROR));</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 对于其他类型的异常或错误，则直接抛出，可以在告警中看到</span></span><br><span class="line">            log.error(<span class="string">&quot;发生未知异常/错误&quot;</span>, throwable);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>HSF客户端<code>Filter</code>如下，对服务端返回的错误进行打印：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 客户端异常处理过滤器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Order()</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientExceptionFilter</span> <span class="keyword">implements</span> <span class="title class_">ClientFilter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> ListenableFuture&lt;RPCResult&gt; <span class="title function_">invoke</span><span class="params">(InvocationHandler invocationHandler, Invocation invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="keyword">return</span> invocationHandler.invoke(invocation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onResponse</span><span class="params">(Invocation invocation, RPCResult rpcResult)</span> &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">response</span> <span class="operator">=</span> rpcResult.getAppResponse();</span><br><span class="line">        <span class="keyword">if</span> (response <span class="keyword">instanceof</span> HSFResult) &#123;</span><br><span class="line">            <span class="type">HSFResult</span> <span class="variable">hsfResult</span> <span class="operator">=</span> (HSFResult)response;</span><br><span class="line">            <span class="keyword">if</span> (!hsfResult.isSuccess()) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;HSF调用失败: &#123;&#125; &#123;&#125;&quot;</span>, hsfResult.getCode(), hsfResult.getMessage());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (response <span class="keyword">instanceof</span> Throwable) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;HSF调用出现服务端异常/错误&quot;</span>, response);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h1><p>在统一异常处理的基础上，我们可以做更多事情，比如：</p>
+<ul>
+<li>MessageCode的动态配置，如果要修改某个code的错误提示信息，正常要重新部署代码，是否可以借用配置中心的能力，做到不需要重新部署代码，配置MessageCode？</li>
+<li>埋点统计不同错误出现的频率，可以看应用的哪个接口报错最多，报的最多的是什么错，等等。</li>
+</ul>
+
+        </div>
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%8E%A5%E5%8F%A3%E7%BB%93%E6%9E%84%E8%A7%84%E8%8C%83%E5%8C%96"><span class="top-box-text">异常与接口结构规范化</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#HTTP%E6%8E%A5%E5%8F%A3%E7%BB%9F%E4%B8%80%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="top-box-text">HTTP接口统一异常处理</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#RPC%E6%8E%A5%E5%8F%A3%E7%BB%9F%E4%B8%80%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="top-box-text">RPC接口统一异常处理</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%BC%82%E5%B8%B8%E7%B1%BB%E5%9E%8B"><span class="top-box-text">服务端异常类型</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%97%AE%E9%A2%98%EF%BC%9A%E4%B8%8D%E8%A7%84%E8%8C%83%E7%9A%84HSF%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6"><span class="top-box-text">问题：不规范的HSF异常处理机制</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%BB%9F%E4%B8%80HSF-x2F-Dubbo%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E8%A7%84%E8%8C%83"><span class="top-box-text">统一HSF&#x2F;Dubbo异常处理规范</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%89%A9%E5%B1%95"><span class="top-box-text">扩展</span></a></li></ol>
+        </div>
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2019/01/21/netty-zhi-bei-xi-lie-2-wang-luo-chou-xiang-he-he-xin-zu-jian/">
+          <h3 class="post-title">
+            下一篇：Netty指北系列2-网络抽象和核心组件
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  </body>
+</html>
+
