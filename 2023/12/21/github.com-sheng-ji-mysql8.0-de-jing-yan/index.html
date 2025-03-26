@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>github.com升级MySQL8.0的经验</title>
+<meta name="keywords" content="github.com升级MySQL8.0的经验, jffu&#39;s blog">
+<meta name="description" content="GitHub是如何将他们庞大的MySQL集群无缝升级到MySQL8.0的？">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="github.com升级MySQL8.0的经验">
+<meta property="og:description" content="GitHub是如何将他们庞大的MySQL集群无缝升级到MySQL8.0的？">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">github.com升级MySQL8.0的经验</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2023-12-21</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">
+              数据库
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p>GitHub 最近在其官方博客分享了一篇文章，介绍他们如何<a target="_blank" rel="noopener" href="https://github.blog/2023-12-07-upgrading-github-com-to-mysql-8-0/">将庞大的MySQL数据库集群无缝升级到MySQL8.0</a>。正好最近碰到一个日常和线上数据库版本不一致的问题，这篇文章还是有一些参考价值的。</p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>其实 GitHub 的MySQL数据库集群出岔子不是一两回了，随便一搜去年（2022年）就有几次：</p>
+<blockquote>
+<p>GitHub 交待频繁宕机原因：MySQL 负载过重</p>
+<p>本月，GitHub 分别在 3 月 16 日、17 日、22 日、23 日发生严重宕机事件，影响众多用户的使用体验。</p>
+<p>据官方分析，过去几周导致 GitHub 频繁宕机的最初主要原因是其 mysql1 集群负载增加，数据库代理达到最大连接数，导致服务中断。在中断期间，所有写入操作都无法运行，包括 git 操作、webhook、拉取请求、API 请求、issues、GitHub Packages、GitHub 代码空间、GitHub 操作和 GitHub 页面服务。</p>
+<p>为了防止将来发生此类事件，GitHub 已开始在高峰时段对该特定数据库的负载模式进行审计，并根据这些审计进行一系列性能修复。作为其中的一部分，他们正在将流量转移到其他数据库，以减少负载并加快故障转移时间，并审查其变更管理程序，特别是与生产中高负载期间相关的监控和变更。</p>
+</blockquote>
+<p>在更早之前（2018年）还出现过超24小时的宕机故障。这些故障的原因关键还是要归因于 GitHub 庞大的 MySQL 数据库基础设施：</p>
+<ul>
+<li>Github 使用 MySQL 存储所有非 git 的内容，包括用户配置、仓库、Issue, Pull Request, 评论，组织，通知等等</li>
+<li>由 1200 多台主机组成，包括数据中心中的 Azure 虚拟机和裸机主机</li>
+<li>存储超过 300 TB 的数据，并在 50 多个数据库集群中每秒处理 550 万次查询（非常惊人的QPS，世界最大同性交友网站名不虚传）</li>
+<li>每个集群都配置为主从架构，写主读从，半同步复制</li>
+<li>分区存储数据 — 从一开始的单主集群，演变到水平和垂直分库分表，GitHub 使用水平分片的 <a target="_blank" rel="noopener" href="https://vitess.io/">Vitess</a> 集群作为中间层</li>
+<li>庞大的工具生态，包括 Percona Toolkit、<a target="_blank" rel="noopener" href="https://github.com/github/gh-ost">gh-ost</a>（GitHub’s Online Schema-migration Tool）、orchestrator（负责故障检测和转移）、<a target="_blank" rel="noopener" href="https://github.com/github/freno">freno</a> 和用于操作主机集群的内部自动化工具</li>
+</ul>
+<p>对这样大的一个系统做无缝升级并不容易。整个过程，从规划、测试到升级本身总共花了一年多时间。</p>
+<h1 id="为什么要升级"><a href="#为什么要升级" class="headerlink" title="为什么要升级"></a>为什么要升级</h1><p>一提到基础设施的大版本升级很多人会有顾虑，但 MySQL 8.0 相比 5.7 在性能和功能上都有比较大的提升，升级的理由还是很充分的：</p>
+<ul>
+<li>新功能：例如窗口函数、公用表表达式（CTE）和增强的 JSON 支持。</li>
+<li>性能提升：查询优化、事务处理性能提升等等。按官方说法，8.0 要比 5.7 快2倍。从各种实际测试结果看，当线程数增加时 8.0 确实有明显的优势。</li>
+<li>更安全：引入了角色和其他安全控制能力。</li>
+<li>其他：5.7 在2023.11将End-of-Life。</li>
+</ul>
+<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h1><p>GitHub 在文章里写了一些升级过程的要求，总结一下：</p>
+<ol>
+<li>基础设施准备：为 MySQL 8.0 确定一些默认参数，执行基准测试，内部工具能够处理混合版本，了解版本之间的语法差异。</li>
+<li>兼容性测试：在CI中同时并行运行 MySQL 5.7 和 8.0，尽早发现各种错误和不兼容性。</li>
+<li>保持沟通和透明度：使用 GitHub Projects 创建滚动日历，在内部沟通和跟踪升级计划，并创建问题模板来跟踪应用程序团队和数据库团队的checklist以协调升级（这一点值得借鉴）。</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmUA3wSumHKH6blLmW2jpt8PnoUr.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmUA3wSumHKH6blLmW2jpt8PnoUr.png"  lazyload></a></p>
+<h1 id="升级流程"><a href="#升级流程" class="headerlink" title="升级流程"></a>升级流程</h1><blockquote>
+<p>变更三板斧：可灰度. 可监控. 可回滚。</p>
+</blockquote>
+<p>GitHub 整体采用逐步升级策略，升级计划如下。</p>
+<p><strong>步骤 1：升级滚动副本 (rolling replica)</strong></p>
+<ol>
+<li>先升级单个副本，不上线，离线状态下进行监控，确保基本功能稳定。</li>
+<li>启用生产流量，继续监控查询延迟、系统指标和应用程序指标。</li>
+<li>更新更多副本，直到升级整个数据中心。</li>
+<li>与此同时，保留足够的 5.7 版本的服务器以便回滚</li>
+<li>将线上流量切到 8.0 服务器提供所有读取流量。</li>
+</ol>
+<p>在这一步骤中，主节点保持不变，只升级只读副本。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnggoD4vlgbCJQpF4p_Wv_RnvaHE.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnggoD4vlgbCJQpF4p_Wv_RnvaHE.png"  lazyload></a></p>
+<p><strong>步骤 2：升级复制拓扑 (replication topology)</strong></p>
+<p>所有读流量都切换至 8.0 后，调整复制拓扑：</p>
+<ol>
+<li>将一个 8.0 服务器作为当前 5.7 主节点的从节点副本。</li>
+<li>创建两个下游复制链：<ul>
+<li>一组仅 5.7 的副本（不提供流量，但准备好以防回滚）</li>
+<li>一组仅 8.0 的副本（提供流量）</li>
+</ul>
+</li>
+<li>这种拓扑结构仅维持很短的时间（最多几小时），然后进入下一步骤。</li>
+</ol>
+<p>这里隐含了一个关键点，就是要保证 8.0 到 5.7 的数据复制兼容性。在后面也会讲到。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgyloNUwTstSXXX3l1cUk6Btdg-B.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgyloNUwTstSXXX3l1cUk6Btdg-B.png"  lazyload></a></p>
+<p><strong>步骤 3：将 MySQL 8.0 服务器提升为主节点</strong></p>
+<p>GitHub 没有在原来的 5.7 主节点上做原地升级（很危险），而是使用其 <a target="_blank" rel="noopener" href="https://github.com/openark/orchestrator">Orchestrator</a> 工具提供的优雅故障转移机制将 8.0 副本提升为主节点，复制拓扑保持不变：即一组用于回滚的 5.7 副本和提供流量的 8.0 副本。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqiSYJNB98gWRqSXC-b0AHjk8wCm.webp"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqiSYJNB98gWRqSXC-b0AHjk8wCm.webp"  lazyload></a></p>
+<p>Orchestrator 是 GitHub 研发的故障检测和恢复工具，在整个 GitHub 的高可用架构中的位置如下：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpoJr1XP8vvX3F3R3WmT0VuBzKm9.jpg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpoJr1XP8vvX3F3R3WmT0VuBzKm9.jpg"  lazyload></a><br>上图中包含了几个不同组件：</p>
+<ul>
+<li>GLB&#x2F;HAProxy 作为负载均衡，应用程序通过其连接到数据库的 master 节点</li>
+<li>Consul 作为键值存储保存当前 master 节点的信息，GLB&#x2F;HAProxy 会监听Consul中数据的变更来更新路由</li>
+<li>Orchestrator 负责故障检测和故障转移，节点间通过 raft 协议通信</li>
+</ul>
+<p>整个故障转移（主节点切换）的流程如下：</p>
+<ol>
+<li><p>orchestrator 节点检测到故障。</p>
+</li>
+<li><p>orchestrator&#x2F;raft 主导节点开始恢复。一个新的主节点被设置为 promoted 状态。在升级流程中，就是将 8.0 的节点设置成promoted 主节点。</p>
+</li>
+<li><p>orchestrator&#x2F;raft 向所有 raft 集群节点通知主节点变更。</p>
+</li>
+<li><p>所有 orchestrator&#x2F;raft 成员接收到主节点变更的通知。每个成员都向本地 Consul 写入包含新主节点身份的 KV 记录。</p>
+</li>
+<li><p>每个 GLB&#x2F;HAProxy 都运行一个 consul 模版，用于监视 Consul KV 存储的变化，并重新配置和重新加载 HAProxy。</p>
+</li>
+<li><p>客户端流量被重定向到新的主节点上。对于升级过程，至此就完成了流量从原 5.7 主节点到新的 8.0 主节点的切换。</p>
+</li>
+</ol>
+<p><strong>步骤 4：升级面向内部的实例类型</strong></p>
+<p>这一步将内部用于备份或非生产工作负载的辅助服务器进行升级以保持一致性。</p>
+<p><strong>步骤 5：清理</strong></p>
+<p>确认集群不需要回滚并成功升级到 MySQL 8.0 后，下线 5.7 服务器。验证工作会至少经历一个完整的 24 小时流量周期，以确保在高峰流量期间不会出现问题。</p>
+<h1 id="回滚能力"><a href="#回滚能力" class="headerlink" title="回滚能力"></a>回滚能力</h1><p>升级过程很重要的一点是需要确保可回滚：</p>
+<ul>
+<li>对于只读副本，拓扑中有两个复制链，其中一个保证了有足够的 5.7 副本保持在线状态，可以用于回滚。如果监控到 8.0 副本性能问题，可以通过禁用它们来启动回滚。</li>
+<li>对于主节点，为了在不丢失数据或不中断服务的情况下回滚，需要能够在 8.0 和 5.7 之间维持向后数据复制。</li>
+</ul>
+<p>可以看到，不管是复制链中 8.0 到 5.7 副本的数据同步，还是将主节点从 8.0 回滚到 5.7，都需要保证 5.7 到 8.0 的向上兼容。MySQL 支持从一个版本到下一个更高版本的复制，但不明确支持相反的操作（<a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/replication-compatibility.html">MySQL 复制兼容性</a>）。</p>
+<p>GitHub 列举了这一过程中克服的两个问题：</p>
+<ul>
+<li>默认字符集问题：MySQL 8.0 默认使用<code>utf8mb4</code>字符集并使用<code>utf8mb4_0900_ai_ci</code>排序规则，需要改成 5.7 的默认字符集<code>utf8</code>和排序规则<code>utf8_unicode_ci</code>。</li>
+<li>角色功能问题：MySQL 5.7 不支持 8.0 中引入的角色功能，需要临时调整定义权限来解决。</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>在升级过程中，GitHub 还遇到了复制延迟、大<code>WHERE IN</code>子句查询导致 MySQL 崩溃等问题，整个升级过程耗时“长达”一年多。整篇文章我总结下来最大的经验教训就是：</p>
+<blockquote>
+<p>This upgrade highlighted the importance of our observability platform, testing plan, and rollback capabilities. The testing and gradual rollout strategy allowed us to identify problems early and reduce the likelihood for encountering new failure modes for the primary upgrade.</p>
+</blockquote>
+<p>说白了好像还是变更三板斧啊。</p>
+
+        </div>
+          
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%89%8D%E8%A8%80"><span class="top-box-text">前言</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%8D%87%E7%BA%A7"><span class="top-box-text">为什么要升级</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="top-box-text">准备工作</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8D%87%E7%BA%A7%E6%B5%81%E7%A8%8B"><span class="top-box-text">升级流程</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%9B%9E%E6%BB%9A%E8%83%BD%E5%8A%9B"><span class="top-box-text">回滚能力</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%80%BB%E7%BB%93"><span class="top-box-text">总结</span></a></li></ol>
+        </div>
+          
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2023/05/30/spring-bing-xing-chu-shi-hua-jia-su-de-si-lu-he-shi-xian/">
+          <h3 class="post-title">
+            下一篇：Spring并行初始化加速的思路和实现
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

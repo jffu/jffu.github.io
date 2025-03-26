@@ -349,9 +349,11 @@
 <p>随便瞎YY下，作为向前兼容性做得最好的语言（可能没有之一），现有的线程机制会跟新的虚拟线程共存很久。对于普通开发者而言，虚拟线程应该不会有太大的影响，大部分情况下我们都是直接使用各种封装好的类库来操作线程。但虚拟线程在性能、可扩展性、代码可维护性等方面的优势，对于类库的开发者会有很大的吸引力。相信很快我们能看到”Tomcat on VT”、”Netty on VT”或者”Spring on VT”。</p>
 
         </div>
+          
         <div class="top-div">
           <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%BA%BF%E7%A8%8B%E7%AE%80%E5%8F%B2"><span class="top-box-text">线程简史</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Java%E7%BA%BF%E7%A8%8B%E5%8F%91%E5%B1%95%E5%8F%B2"><span class="top-box-text">Java线程发展史</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E6%9C%89%E8%99%9A%E6%8B%9F%E7%BA%BF%E7%A8%8B%EF%BC%9F"><span class="top-box-text">为什么要有虚拟线程？</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%8E%B0%E5%9C%A8%E6%89%8D%E6%9C%89%E8%99%9A%E6%8B%9F%E7%BA%BF%E7%A8%8B%EF%BC%9F"><span class="top-box-text">为什么现在才有虚拟线程？</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%9B%B2%E7%BA%BF%E6%95%91%E5%9B%BD%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="top-box-text">曲线救国的实现</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%B8%8A%E6%89%8B%E8%99%9A%E6%8B%9F%E7%BA%BF%E7%A8%8B"><span class="top-box-text">上手虚拟线程</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#API%E4%B8%8A%E6%89%8B"><span class="top-box-text">API上手</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94"><span class="top-box-text">性能对比</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E2%80%9C%E6%9C%80%E4%BD%B3%E2%80%9D%E5%AE%9E%E8%B7%B5"><span class="top-box-text">“最佳”实践</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%B7%B1%E5%85%A5%E8%99%9A%E6%8B%9F%E7%BA%BF%E7%A8%8B"><span class="top-box-text">深入虚拟线程</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#thread-x3D-continuation-scheduler"><span class="top-box-text">thread &#x3D; continuation + scheduler</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%BA%90%E7%A0%81%E4%B8%80%E7%AA%A5"><span class="top-box-text">源码一窥</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%9C%AA%E6%9D%A5%EF%BC%9F"><span class="top-box-text">未来？</span></a></li></ol>
         </div>
+          
       </div>
     </div>
 
@@ -383,6 +385,10 @@
         <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
           <i class="icon icon-github"></i>
         </a>
+      
+    
+      
+    
       
     
       

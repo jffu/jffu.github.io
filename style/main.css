@@ -290,10 +290,9 @@ summary {
   }
 }
 @font-face {
-  font-display: block;
   font-family: "iconfont"; /* Project id 3522054 */
-  src: url("../fonts/iconfont.eot?t=1657783088004"); /* IE9 */
-  src: url("../fonts/iconfont.eot?t=1657783088004#iefix") format('embedded-opentype'), url("../fonts/iconfont.woff2?t=1657783088004") format('woff2'), url("../fonts/iconfont.woff?t=1657783088004") format('woff'), url("../fonts/iconfont.ttf?t=1657783088004") format('truetype'), url("../fonts/iconfont.svg?t=1657783088004#iconfont") format('svg');
+  src: url("../fonts/iconfont.eot?t=1724986230549"); /* IE9 */
+  src: url("../fonts/iconfont.eot?t=1724986230549#iefix") format('embedded-opentype'), url("../fonts/iconfont.woff2?t=1724986230549") format('woff2'), url("../fonts/iconfont.woff?t=1724986230549") format('woff'), url("../fonts/iconfont.ttf?t=1724986230549") format('truetype'), url("../fonts/iconfont.svg?t=1724986230549#iconfont") format('svg');
 }
 .icon {
   font-family: "iconfont" !important;
@@ -301,6 +300,12 @@ summary {
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+.icon-rss:before {
+  content: "\e600";
+}
+.icon-email:before {
+  content: "\e908";
 }
 .icon-copy:before {
   content: "\e67f";
@@ -715,9 +720,13 @@ nav {
 }
 .post-content table {
   border-collapse: collapse;
+  overflow-x: auto;
+  display: table;
+  margin: 1rem auto;
+}
+.post-content figure table {
   margin: 1rem 0;
   display: block;
-  overflow-x: auto;
 }
 .post-content tr {
   border-top: 1px solid #dfe2e5;
@@ -745,7 +754,7 @@ nav {
 .post-content-wrapper {
   display: flex;
 }
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .top-box {
     display: none;
   }
@@ -764,7 +773,7 @@ nav {
 #twikoo p {
   margin: revert;
 }
-@media (min-width: 1200px) {
+@media (min-width: 1400px) {
   .top-div {
     box-sizing: border-box;
     margin: 0;
