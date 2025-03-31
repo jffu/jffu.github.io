@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>走读ConfigServer</title>
+<meta name="keywords" content="走读ConfigServer, jffu&#39;s blog">
+<meta name="description" content="走读ConfigServer作为HSF的注册中心的实现代码">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="走读ConfigServer">
+<meta property="og:description" content="走读ConfigServer作为HSF的注册中心的实现代码">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">走读ConfigServer</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2018-11-07</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/Java/">
+              Java
+                
+                  ，
+                
+              </a>
+            
+              <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/">
+              中间件
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>ConfigServer是阿里内部RPC框架 HSF 的默认注册中心，对应开源的<code>Nacos</code>或常见的ZK。这是其早期代码的走读。总体来说，可以分成Client和Server两大块。</p>
+<h1 id="1-ConfigClient"><a href="#1-ConfigClient" class="headerlink" title="1 ConfigClient"></a>1 ConfigClient</h1><p><code>ConfigClient</code>的两类使用场景：</p>
+<ul>
+<li>发布：作为<code>publisher</code>向<code>ConfigServer</code>发布数据</li>
+<li>订阅：作为<code>subscriber</code>从<code>ConfigServer</code>订阅数据，<code>ConfigServer</code>根据订阅的<code>DataID</code>和<code>Group</code>推送数据</li>
+</ul>
+<h2 id="1-1-总体设计"><a href="#1-1-总体设计" class="headerlink" title="1.1 总体设计"></a>1.1 总体设计</h2><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhtwHgnbx7YGsm6_wu3lJXfwljDo.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhtwHgnbx7YGsm6_wu3lJXfwljDo.png"  lazyload></a></p>
+<p><code>ConfigClient</code>发布对应的概念：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>用途</th>
+<th>备注</th>
+<th>样例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>publisherName</td>
+<td>发布者的名称，用于在管理中识别发布者。建议使用完整的类名（加上可选的后缀以区分不同实例）</td>
+<td>发布者名称是一个身份标识，只用于鉴权、统计、管理员维护等管理事物中，对功能没有影响，不要求唯一性。但为了管理的方便，请尽可能的保持其唯一性</td>
+<td>HSFProvider-com.alibaba.test.service.HelloWorldService:1.0.0</td>
+</tr>
+<tr>
+<td>dataId</td>
+<td>待发布数据的唯一标识，订阅者必须使用相同的标识订阅相应的数据。</td>
+<td>建议使用类似package的命名方式</td>
+<td>com.alibaba.test.service.HelloWorldService:1.0.0</td>
+</tr>
+<tr>
+<td>group</td>
+<td>服务分组名。配置数据的订阅者和发布者可以被划分为多个组，订阅者只能收到位于同一组中的发布者所发布的数据</td>
+<td>未设置组别的发布者和订阅者将被分入一个全局唯一的默认组中，这个组与其它任何显式指定的组均彼此隔离</td>
+<td>HSF</td>
+</tr>
+<tr>
+<td>data</td>
+<td>发布的数据</td>
+<td></td>
+<td>1.1.1.1:54822?_p&#x3D;hessian2&amp;v&#x3D;2.0&amp;_TIMEOUT&#x3D;3000&amp;_ih2&#x3D;y&amp;_SERIALIZETYPE&#x3D;hessian&amp;ut&#x3D;CENTER</td>
+</tr>
+<tr>
+<td>datumId</td>
+<td>待发布数据集中具体数据项的唯一标识，订阅者可通过指定此标识获取同一个DataID中采用相同的此标识的发布者所发布的数据项</td>
+<td>ConfigServer会根据DataId、Group自动合并DatumId数据，并推送给订阅者</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="1-2-主要类"><a href="#1-2-主要类" class="headerlink" title="1.2 主要类"></a>1.2 主要类</h2><h3 id="1-2-1-客户端类"><a href="#1-2-1-客户端类" class="headerlink" title="1.2.1 客户端类"></a>1.2.1 客户端类</h3><ul>
+<li><p>客户端类<code>Publisher</code>和<code>Subscriber</code>分别提供发布和订阅方法，对应实现类为<code>DefaultPublisher</code>和<code>DefaultSubscriber</code>。</p>
+</li>
+<li><p>公共接口<code>ConfigClient</code>和<code>DataClient</code>定义了获取<code>DataId</code>和对应注册类<code>Registration</code>的方法</p>
+</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnLanfdUlOS7V8Q4kt3Nzbs4bv3Q.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnLanfdUlOS7V8Q4kt3Nzbs4bv3Q.png"  lazyload></a></p>
+<h3 id="1-2-2-客户端注册类"><a href="#1-2-2-客户端注册类" class="headerlink" title="1.2.2 客户端注册类"></a>1.2.2 客户端注册类</h3><p>客户端注册类配置客户端对象。通过其设置<code>DataId</code>、<code>Group</code>等属性，另外还提供了<code>Attribute</code>的读写方法，<code>Attribute</code>用来保存配置信息，例如center&#x2F;server等影响<code>ConfigServer</code>选址的配置。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fq39WOCDarjhiOyhv80iOeHyjO0S.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fq39WOCDarjhiOyhv80iOeHyjO0S.png"  lazyload></a></p>
+<h3 id="1-2-3-工作线程"><a href="#1-2-3-工作线程" class="headerlink" title="1.2.3 工作线程"></a>1.2.3 工作线程</h3><p><code>ConfigClient</code>使用一个<code>ConfigClientWorker</code>代表工作线程，负责和<code>ConfigServer</code>服务端的交互，聚合处理客户端所有需要向服务端发送的事件和服务端推送的数据。</p>
+<ul>
+<li>使用单例实现，<code>ConfigClient</code>全局只使用一个工作线程（不包括其他用于通知等任务的线程）</li>
+<li>使用一个容量为1的阻塞队列<code>bell</code>控制唤醒，另外每3s会自动唤醒</li>
+<li>使用一个容量为1024的阻塞队列<code>mailbox</code>保存服务端推送来的数据</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Flr1USzBYQ-tEHlFJXAdDZdUSCsJ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Flr1USzBYQ-tEHlFJXAdDZdUSCsJ.png"  lazyload></a></p>
+<h3 id="1-2-4-连接和服务端地址管理"><a href="#1-2-4-连接和服务端地址管理" class="headerlink" title="1.2.4 连接和服务端地址管理"></a>1.2.4 连接和服务端地址管理</h3><ul>
+<li><code>ServerListManager</code>用于管理<code>ConfigServer</code>服务端的地址列表，初始化时从VIP获取一次服务器地址列表，后续在定时任务中获取并更新；</li>
+<li><code>ConnectionProxy</code>类使用<code>com.taobao.remoting</code>框架能力，提供网络连接相关的功能，包括连接和发送数据等；</li>
+</ul>
+<h2 id="1-3-线程模型"><a href="#1-3-线程模型" class="headerlink" title="1.3 线程模型"></a>1.3 线程模型</h2><ul>
+<li>一个单例的<code>ConfigClientWorker</code>实现的<code>Worker</code>线程与服务端交互，包括接收和发送都在这个线程里完成；</li>
+<li>一个单例的<code>ConfigClientNotifier</code>实现的Notifier线程通知应用方新数据被接收，<code>Worker</code>线程从一个<code>mailBox</code>中获取服务端推送数据后，放到<code>notifyQueue</code>中交给<code>Notifier</code>线程处理；</li>
+<li><code>Timer</code>线程 负责一些琐事，比如运行模式检测，ServerList 检测数据变化，切缓存等；</li>
+<li>I&#x2F;O线程，<code>ConfigClient</code>使用<code>com.taobao.remoting.network.core</code>框架进行网络I&#x2F;O，底层用的是apache mina；</li>
+</ul>
+<p><code>Worker</code>线程和<code>Notifier</code>线程都使用<code>BlockingQueue</code>控制线程运行&#x2F;阻塞状态。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrQQNyLAvmrQggK6ucoJ6y4wsQZw.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrQQNyLAvmrQggK6ucoJ6y4wsQZw.png"  lazyload></a></p>
+<h2 id="1-4-发布"><a href="#1-4-发布" class="headerlink" title="1.4 发布"></a>1.4 发布</h2><h3 id="1-4-1-发布样例"><a href="#1-4-1-发布样例" class="headerlink" title="1.4.1 发布样例"></a>1.4.1 发布样例</h3><p>使用<code>ConfigClient</code>发布数据的使用样例如下。基本流程：</p>
+<ol>
+<li>获取<code>PublisherRegistration</code>对象，配置<code>publiserName</code>、<code>dataId</code>、<code>group</code>参数，指定连接的<code>server</code>（可选）</li>
+<li>注册<code>PublisherRegistration</code>对象，得到<code>Publisher</code></li>
+<li>调用<code>Publisher#publish</code>发布数据</li>
+</ol>
+<blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">publish</span><span class="params">()</span> &#123;</span><br><span class="line"> <span class="type">String</span> <span class="variable">publisherName</span> <span class="operator">=</span> <span class="string">&quot;caogu-publisher.&quot;</span>;<span class="comment">//本地唯一,长度不要超过dataId的长度</span></span><br><span class="line"> PublisherRegistration&lt;String&gt; registration</span><br><span class="line">         = <span class="keyword">new</span> <span class="title class_">PublisherRegistration</span>&lt;String&gt;(publisherName, dataId);</span><br><span class="line"> registration.setGroup(<span class="string">&quot;HSF&quot;</span>);<span class="comment">//设置服务分组，如果没有设置，默认是DEFAULT_GROUP</span></span><br><span class="line"> <span class="comment">//registration.setLocalAttribute(&quot;!Server&quot;, &quot;10.73.17.103?orgio=1&quot;);  //指定连接的server，生产环境请勿使用</span></span><br><span class="line"> Publisher&lt;String&gt; publisher = PublisherRegistrar.register(registration);</span><br><span class="line"> publisher.publish(<span class="string">&quot;192.168.0.1&quot;</span>);   <span class="comment">// 发布数据(一般是server的ip或者hfs的provider的地址)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="1-4-2-流程代码"><a href="#1-4-2-流程代码" class="headerlink" title="1.4.2 流程代码"></a>1.4.2 流程代码</h3><h4 id="1-4-2-1-配置PublisherRegistration"><a href="#1-4-2-1-配置PublisherRegistration" class="headerlink" title="1.4.2.1 配置PublisherRegistration"></a>1.4.2.1 配置<code>PublisherRegistration</code></h4><p>在这一步完成发布所需数据的配置，包括<code>publisherName</code>、<code>dataId</code>等，实际上对应了<code>PublisherRegistration</code>对象的构造。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PublisherRegistration#PublisherRegistration</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">PublisherRegistration</span><span class="params">(String publisherName, String dataId, String datumId)</span> &#123;</span><br><span class="line">    <span class="built_in">super</span>(publisherName, dataId, datumId);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DataClientRegistration#DataClientRegistration</span></span><br><span class="line"><span class="keyword">protected</span> <span class="title function_">DataClientRegistration</span><span class="params">(<span class="keyword">final</span> String clientName, <span class="keyword">final</span> String dataId, <span class="keyword">final</span> String datumId)</span> &#123;</span><br><span class="line">    <span class="built_in">super</span>(clientName, instanceIdKeeper.getNewInstanceId(clientName));</span><br><span class="line">    <span class="keyword">if</span> (dataId == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;dataId is null.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">this</span>.dataId = dataId;</span><br><span class="line">    <span class="built_in">this</span>.datumId = datumId;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-4-2-2-注册Publisher"><a href="#1-4-2-2-注册Publisher" class="headerlink" title="1.4.2.2 注册Publisher"></a>1.4.2.2 注册<code>Publisher</code></h4><p>这一步通过调用<code>PublisherRegistrar#register</code>构造了发布需要用到的<code>Publisher</code>对象，后续通过<code>Publisher#publish</code>发布数据。</p>
+<ul>
+<li><p>注册时会根据<code>dataId</code>&#x2F;<code>groupId</code>&#x2F;<code>center</code>&#x2F;<code>server</code>等属性判断是否有已经注册过的publisher，避免重复注册</p>
+</li>
+<li><p>注册后将<code>publisher</code>对象放到缓存Map中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">static</span> <span class="keyword">final</span> Map&lt;String <span class="comment">/*clientId*/</span>, DefaultPublisher&lt;?&gt;&gt; clients = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;String, DefaultPublisher&lt;?&gt;&gt;();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>PublisherRegistrar#register</code>为同步方法（后续的发布同样也是）</p>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PublisherRegistrar#register</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注册一个新的发布者身份以发布数据</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> registration 发布者登记表</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> 注册通过的发布者凭证，或null表示注册失败（是否使用同一份登记表注册了多次？）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> &lt;T <span class="keyword">extends</span> <span class="title class_">Serializable</span>&gt; Publisher&lt;T&gt; <span class="title function_">register</span><span class="params">(</span></span><br><span class="line"><span class="params">        PublisherRegistration&lt;T&gt; registration)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> == registration) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;registration is null&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">dataId</span> <span class="operator">=</span> registration.getDataId();</span><br><span class="line">    <span class="type">String</span> <span class="variable">groupId</span> <span class="operator">=</span> registration.getGroup();</span><br><span class="line">    <span class="type">String</span> <span class="variable">clientId</span> <span class="operator">=</span> registration.getClientId();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重复注册，重用一个发布者</span></span><br><span class="line">    DefaultPublisher&lt;T&gt; publisher = (DefaultPublisher&lt;T&gt;)findExisting(registration);</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != publisher) &#123;</span><br><span class="line">        log.info(LogConstants.PREFIX_IMPORTANT + <span class="string">&quot;[reuse-publisher] &quot;</span> + publisher);</span><br><span class="line">        <span class="keyword">return</span> publisher;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    log.info(<span class="string">&quot;[Registrar] Register new publisher. dataId=&quot;</span> + dataId + <span class="string">&quot;, groupId=&quot;</span> + groupId</span><br><span class="line">            + <span class="string">&quot;, clientId=&quot;</span> + clientId);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 构造publisher对象并放到缓存Map中</span></span><br><span class="line">        publisher = <span class="keyword">new</span> <span class="title class_">DefaultPublisher</span>&lt;T&gt;(registration);</span><br><span class="line">        clients.put(clientId, publisher);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[Internal] Exception in registering subscriber: &quot;</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> publisher;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-4-2-3-发布数据"><a href="#1-4-2-3-发布数据" class="headerlink" title="1.4.2.3 发布数据"></a>1.4.2.3 发布数据</h4><p>发布者通过调用<code>Publisher#publish</code>将数据发布到<code>ConfigServer</code>。</p>
+<p>关键步骤：</p>
+<ol>
+<li><p>前置校验，包括通过写<code>ObjectOutputStream</code>判断数据对象是否可序列化</p>
+</li>
+<li><p>异步发布，通过给阻塞队列添加数据的方式唤醒<code>ConfigClientWorker</code>线程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">publish</span><span class="params">(T datum)</span> &#123;</span><br><span class="line">	<span class="comment">// 1. 省略部分校验代码，尝试写ObjectOutputStream判断数据是否可序列化</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(<span class="keyword">new</span> <span class="title class_">OutputStream</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(<span class="type">int</span> b)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).writeObject(datum);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;Not serializable datum&quot;</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2.1 进行发布</span></span><br><span class="line">    doPublish(datum);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">doPublish</span><span class="params">(Object datum)</span> &#123;</span><br><span class="line">	<span class="comment">// 省略日志打印代码</span></span><br><span class="line">    <span class="comment">// 2.2 异步发布，给ConfigClientWorker发信号唤醒</span></span><br><span class="line">    signalWorker();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DefaultDataClient#signalWorker</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">signalWorker</span><span class="params">()</span> &#123;</span><br><span class="line">    ConfigClientWorker.singleton.signal();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>ConfigClientWorker</code>线程通过一个大小为1的阻塞队列阻塞</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> BlockingQueue&lt;Object&gt; bell = <span class="keyword">new</span> <span class="title class_">ArrayBlockingQueue</span>&lt;Object&gt;(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">    log.info(<span class="string">&quot;[Global] Deliverer thread is starting...&quot;</span>);</span><br><span class="line">    <span class="keyword">while</span> (isContinue) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            runOnce();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;%s&quot;</span>, <span class="string">&quot;[Internal] Unhandled exception in deliverer: &quot;</span>, e);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                rest(<span class="number">3000L</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;%s&quot;</span>, <span class="string">&quot;[Internal] rest is error Unhandled exception in deliverer: &quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">signal</span><span class="params">()</span> &#123;</span><br><span class="line">    bell.offer(bellItem);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">rest</span><span class="params">(<span class="type">long</span> timeoutMs)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">    bell.poll(timeoutMs, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>ConfigClientWorker#runOnce</code>方法中，真正将数据的写给ConfigServer服务端。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">runOnce</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">		<span class="comment">// 省略</span></span><br><span class="line">        <span class="comment">// 1. 通过serverMgr进行分组，一个serverMgr对应一个环境的ConfigServer服务端</span></span><br><span class="line">        Map&lt;ServerListManager, List&lt;DefaultDataClient&gt;&gt; clientGroups = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;ServerListManager, List&lt;DefaultDataClient&gt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (Iterator&lt;?&gt; iter = FluentIterator.asIterator(PublisherRegistrar.publisherIterator(), SubscriberRegistrar.subscriberIterator()); iter.hasNext();) &#123;</span><br><span class="line">            <span class="type">DefaultDataClient</span> <span class="variable">dataClient</span> <span class="operator">=</span> (DefaultDataClient) iter.next();</span><br><span class="line">            List&lt;DefaultDataClient&gt; clients = clientGroups.get(dataClient.serverMgr);</span><br><span class="line">            <span class="keyword">if</span> (<span class="literal">null</span> == clients) &#123;</span><br><span class="line">                clients = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;DefaultDataClient&gt;();</span><br><span class="line">                clientGroups.put(dataClient.serverMgr, clients);</span><br><span class="line">            &#125;</span><br><span class="line">            clients.add(dataClient);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 2. 根据ServerMgr发送数据</span></span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;ServerListManager, List&lt;DefaultDataClient&gt;&gt; entry : clientGroups.entrySet()) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="type">ServerListManager</span> <span class="variable">serverMgr</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="keyword">final</span> List&lt;DefaultDataClient&gt; clients = entry.getValue();</span><br><span class="line">			<span class="comment">// 省略对clients进行排序部分代码</span></span><br><span class="line">            <span class="keyword">final</span> Iterator&lt;DefaultDataClient&gt; iter = clients.iterator();</span><br><span class="line">            <span class="keyword">while</span> (iter.hasNext()) &#123;</span><br><span class="line">                <span class="comment">// 3. 使用ProtocolPackage类包装数据</span></span><br><span class="line">                <span class="keyword">final</span> <span class="type">ProtocolPackage</span> <span class="variable">packagee</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProtocolPackage</span>();                                      			</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">actualCount</span> <span class="operator">=</span> <span class="number">0</span>; iter.hasNext() &amp;&amp; actualCount &lt;= SEND_BATCH; actualCount++) &#123;</span><br><span class="line">                    <span class="type">DefaultDataClient</span> <span class="variable">dataClient</span> <span class="operator">=</span> iter.next();</span><br><span class="line">                    <span class="keyword">if</span> (!dataClient.isSynchronized()) &#123;</span><br><span class="line">                        <span class="comment">// 将dataClient对应的数据封装到package中</span></span><br><span class="line">                        dataClient.addPackage(packagee);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (packagee.countElements() &gt; <span class="number">1</span>) &#123;</span><br><span class="line">                    <span class="comment">// 4. 确保与服务端的连接，如果未连接，会进行连接动作</span></span><br><span class="line">                    <span class="keyword">if</span> (!ensureConnected(serverMgr)) &#123;</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="comment">// 5. 关键步骤：发送数据</span></span><br><span class="line">handleServerMessage(serverMgr.connectionProxy.sendReceive(packagee));</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">// 省略异常处理部分代码</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="1-5-订阅"><a href="#1-5-订阅" class="headerlink" title="1.5 订阅"></a>1.5 订阅</h2><h3 id="1-5-1-订阅样例"><a href="#1-5-1-订阅样例" class="headerlink" title="1.5.1 订阅样例"></a>1.5.1 订阅样例</h3><p>使用<code>ConfigClient</code>订阅数据的使用样例如下。基本流程与发布类似：</p>
+<ol>
+<li>获取<code>SubscriberRegistration</code>对象，配置<code>subscriberName</code>、<code>dataId</code>、<code>group</code>参数，指定连接的<code>server</code>（可选）</li>
+<li>注册<code>SubscriberRegistration</code>对象，得到<code>Subscriber</code></li>
+<li>调用<code>Subscriber#setDataObserver</code>设置自定义的<code>SubscriberDataObserver</code>，完成推送消息到达后的回调</li>
+</ol>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">//订阅服务</span><br><span class="line">public class ConfigClientDemoSubscriber &#123;</span><br><span class="line"></span><br><span class="line"> static String dataId = &quot;com.playboy.magzine&quot;;//订阅的服务名称</span><br><span class="line"> public void subscribe() &#123;</span><br><span class="line">     String subscriberName = &quot;Mr. Wish&quot;;//本地唯一，长度不要超过dataId的长度</span><br><span class="line">     SubscriberRegistration registration = new SubscriberRegistration(subscriberName, dataId);</span><br><span class="line">     registration.setGroup(&quot;HSF&quot;);//设置订阅的服务分组，如果没有设置，默认是DEFAULT_GROUP</span><br><span class="line">  //   registration.setLocalAttribute(&quot;!Server&quot;, &quot;10.73.17.103?orgio=1&quot;);//指定连接的server，生产环境请勿使用</span><br><span class="line">     Subscriber subscriber = SubscriberRegistrar.register(registration); // 开始订阅</span><br><span class="line">     subscriber.setDataObserver(new NewIssueNotifier());//设置回调函数，获取订阅到的数据</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//回调函数实现</span><br><span class="line">class NewIssueNotifier implements SubscriberDataObserver &#123;</span><br><span class="line"> public void handleData(String dataId, List&lt;Object&gt; data) &#123;//只要data内容有任何变更，都会回调这个方法</span><br><span class="line">     System.out.println(&quot;New issue(s) arrived: &quot; + data);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3 id="1-5-2-流程代码"><a href="#1-5-2-流程代码" class="headerlink" title="1.5.2 流程代码"></a>1.5.2 流程代码</h3><h4 id="1-5-2-1-注册Subscriber"><a href="#1-5-2-1-注册Subscriber" class="headerlink" title="1.5.2.1 注册Subscriber"></a>1.5.2.1 注册<code>Subscriber</code></h4><p>订阅的流程与发布的流程非常类似，与注册<code>Publisher</code>对应需要注册<code>Subscriber</code>，最大的区别在于注册的<code>Subscriber</code>需要设置收到数据时的回调。</p>
+<p>另外，订阅部分增加了一个简单的事件监听机制，通过<code>EventDispatcher#fireEvent</code>派发事件给感兴趣的监听器。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> Subscriber <span class="title function_">register</span><span class="params">(SubscriberRegistration registration)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> == registration) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;registration is null&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">String</span> <span class="variable">clientId</span> <span class="operator">=</span> registration.getClientId();</span><br><span class="line">    <span class="comment">// 与发布一样，会检查是否有重复的订阅者，避免重复订阅</span></span><br><span class="line">    <span class="type">DefaultSubscriber</span> <span class="variable">subscriber</span> <span class="operator">=</span> findExitSub(registration);</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != subscriber) &#123;</span><br><span class="line">        log.info(LogConstants.PREFIX_IMPORTANT + <span class="string">&quot;[reuse-subscriber] &quot;</span> + subscriber);</span><br><span class="line">        <span class="keyword">return</span> subscriber;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 构造DefaultSubscriber，在里面会唤醒ConfigWorker线程</span></span><br><span class="line">        subscriber = <span class="keyword">new</span> <span class="title class_">DefaultSubscriber</span>(registration);</span><br><span class="line">        clients.put(clientId, subscriber);</span><br><span class="line">        <span class="comment">// 派发AddSubscriberEvent事件给监听器</span></span><br><span class="line">        EventDispatcher.fireEvent(<span class="keyword">new</span> <span class="title class_">AddSubscriberEvent</span>(subscriber));</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;%s&quot;</span>, <span class="string">&quot;[Internal] Exception in registering subscriber: &quot;</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> subscriber;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-5-2-2-订阅数据"><a href="#1-5-2-2-订阅数据" class="headerlink" title="1.5.2.2 订阅数据"></a>1.5.2.2 订阅数据</h4><p>订阅数据同样会通过唤醒<code>ConfigClientWorker</code>线程发送订阅数据包给<code>ConfigServer</code>实现。区别在于数据包中封装的主要数据类型为<code>SubscriberRegReqPacket</code>，而发布则是<code>PublisherRegReqPacket</code>。</p>
+<h4 id="1-5-2-3-订阅回调"><a href="#1-5-2-3-订阅回调" class="headerlink" title="1.5.2.3 订阅回调"></a>1.5.2.3 订阅回调</h4><p>订阅回调同样通过<code>ConfigClientWorker</code>传递。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmDmdKHjJ3k-e-CA93K_K8BZqVpC.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmDmdKHjJ3k-e-CA93K_K8BZqVpC.png"  lazyload></a></p>
+<p>初始化<code>ConfigClientWorker</code>的工作线程<code>WorkerThread</code>时，构造了<code>requestProcessors</code>，包含一个对<code>ProtocolPackage</code>进行处理的<code>RequestProcessor</code>，在与<code>ConfigServer</code>服务端建立长连接后，使用这个<code>RequestProcessor</code>处理服务端写过来的数据。</p>
+<p><code>RequestProcessor</code>实现了<code>handleRequest()</code>方法，主要实现了几个关键步骤：</p>
+<ol>
+<li><p>向<code>mailBox</code>投递服务端发过来的请求对象<code>appRequest</code>。<code>ConfigClientWorker</code>线程每次唤醒时，会从<code>mailBox</code>中读请求出来处理；</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> BlockingQueue&lt;ProtocolPackage&gt; mailbox = <span class="keyword">new</span> <span class="title class_">LinkedBlockingQueue</span>&lt;ProtocolPackage&gt;(MAX_MAILBOX_SIZE);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>唤醒工作线程，同样通过<code>signal()</code>方法；</p>
+</li>
+<li><p>向服务端写回响应（应该是通过这种方式告诉服务端已经成功收到推送的订阅消息，服务端后续不再尝试推送）</p>
+</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> RequestProcessor&lt;ProtocolPackage&gt; requestProcessor = <span class="keyword">new</span> <span class="title class_">RequestProcessor</span>&lt;ProtocolPackage&gt;() &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleRequest</span><span class="params">(ProtocolPackage appRequest, AppResponseOutput connResp)</span> &#123;</span><br><span class="line">        <span class="comment">// 1. 投递请求给mailBox，在工作线程唤醒时进行处理</span></span><br><span class="line">        <span class="keyword">if</span> (mailbox.offer(appRequest)) &#123;</span><br><span class="line">            <span class="comment">// 2. 唤醒工作线程</span></span><br><span class="line">            signal();</span><br><span class="line">            <span class="comment">// 3. 向服务端写回响应</span></span><br><span class="line">            connResp.write(<span class="keyword">new</span> <span class="title class_">ProtocolPackage</span>());</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            log.error(<span class="string">&quot;[Global] Push message discarded &#x27;cause mailbox overflow.&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="comment">// 省略</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><code>ConfigClientWorker</code>工作线程从<code>mailBox</code>中取出请求之后，会解析请求的<code>Element</code>交给对应的<code>ProtocolElementProcessor</code>处理，其中数据部分的处理交由<code>UserDataElementProcessor</code>处理，对应<code>UserDataElementProcessor#process</code>。<code>UserDataElementProcessor#process</code>调用每个<code>Subscriber</code>的<code>update()</code>方法更新数据。</p>
+<p><code>Subscriber</code>更新完数据又绕了一次，通过唤醒<code>ConfigClientNotifier</code>的线程来异步处理更新后的数据。这一点可能是考虑不把业务处理逻辑直接放到回调中，避免耗时的业务逻辑占用单例的工作线程。</p>
+<p>因为<code>Notifier</code>线程同样只是单线程，不能在<code>Observer</code>中执行耗时操作，否则容易阻塞<code>Notifier</code>线程，导致推送实时性降低。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Subscriber#update</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">update</span><span class="params">(Revision revision, List&lt;Object&gt; datas)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (isDisable()) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 更新数据，并且原子更新dataPushCount</span></span><br><span class="line">    data = <span class="keyword">new</span> <span class="title class_">RevisedData</span>(datas, revision);</span><br><span class="line">    dataPushCount.incrementAndGet();</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">size</span> <span class="operator">=</span> (<span class="literal">null</span> == datas) ? <span class="number">0</span> : datas.size();</span><br><span class="line">    log.info(LogConstants.PREFIX_IMPORTANT + <span class="string">&quot;[subscriber-update] &quot;</span> + <span class="built_in">this</span> + <span class="string">&quot;, revision=&quot;</span> + data.getRevision() + <span class="string">&quot;, count=&quot;</span> + size);</span><br><span class="line">    <span class="comment">// 通知Observer</span></span><br><span class="line">    notifyObServer();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">notifyObServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (isEnable()) &#123;</span><br><span class="line">        <span class="comment">// 通过唤醒ConfigClientNotifier线程来处理数据</span></span><br><span class="line">        <span class="comment">// 唤醒方法是给阻塞在阻塞队列上的Notifier线程放subscriber对象</span></span><br><span class="line">        ConfigClientNotifier.notify(<span class="built_in">this</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        log.error(<span class="string">&quot;s%&quot;</span>,<span class="string">&quot;[subscriber] disable subscriber received push data.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ConfigClientNotifier#notify</span></span><br><span class="line"><span class="comment">// ConfigClientNotifier的方法实现：给notifierThread.queue放一条数据，唤醒给notifierThread</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">notify</span><span class="params">(DefaultSubscriber subscriber)</span> &#123;</span><br><span class="line">    notifierThread.queue.offer(subscriber);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NotifierThread#run</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">    log.info(<span class="string">&quot;[Notifier] Notifier thread is starting...&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 阻塞获取subscriber</span></span><br><span class="line">            <span class="type">DefaultSubscriber</span> <span class="variable">subscriber</span> <span class="operator">=</span> getNotifyTask();</span><br><span class="line">			<span class="comment">// 有subscriber对象后调用其signalObservers()方法通知Observer</span></span><br><span class="line">            subscriber.signalObservers();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">			<span class="comment">// 省略</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">DefaultSubscriber <span class="title function_">getNotifyTask</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">    <span class="type">DefaultSubscriber</span> <span class="variable">subscriber</span> <span class="operator">=</span> queue.take(); <span class="comment">// 没有数据时阻塞</span></span><br><span class="line">    <span class="keyword">while</span> (queue.remove(subscriber)) &#123;&#125; <span class="comment">// 合并通知</span></span><br><span class="line">    <span class="keyword">return</span> subscriber;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-6-其他"><a href="#1-6-其他" class="headerlink" title="1.6 其他"></a>1.6 其他</h2><h3 id="1-6-1-服务端地址获取和更新"><a href="#1-6-1-服务端地址获取和更新" class="headerlink" title="1.6.1 服务端地址获取和更新"></a>1.6.1 服务端地址获取和更新</h3><p><code>ConfigServer</code>的服务端地址管理在<code>ServerListManager</code>中实现。</p>
+<ol>
+<li>从<code>http://jmenv.tbsite.net:8080/configserver/serverlist</code>获取地址，对应方法<code>ServerListManager#getServerListByAs</code></li>
+<li>判断是否更新服务端地址列表，对应方法<code>ServerListManager#updateIfChanged</code></li>
+</ol>
+<p><code>Timer</code>线程启动定时任务<code>GetServerListTask</code>来获取和更新服务端地址。</p>
+<h3 id="1-6-2-容灾保护"><a href="#1-6-2-容灾保护" class="headerlink" title="1.6.2 容灾保护"></a>1.6.2 容灾保护</h3><p><code>ConfigClient</code>端实现了容灾保护策略：</p>
+<ol>
+<li>连接重连：当与一台<code>ConfigServer</code>服务器断开连接后，会自动尝试重连，知道找到可用服务器；</li>
+<li>本地缓存：本地缓存容灾数据文件，极端情况下所有<code>ConfigServer</code>集群全都不可用时使用；</li>
+</ol>
+<h4 id="1-6-2-1-连接重连"><a href="#1-6-2-1-连接重连" class="headerlink" title="1.6.2.1 连接重连"></a>1.6.2.1 连接重连</h4><p><code>ConfigClient</code>针对连接断开后进行了容灾保护。在<code>Worker</code>线程中，发送数据前会调用<code>ensureConnected()</code>确保连接正常。如果发现连接断开，会自动进行重连，重连时会轮询之前获得的服务端地址列表，直到找到一台可用的服务器为止，这一过程是同步的。参考<code>ConnectionProxy#connect</code>。</p>
+<h4 id="1-6-2-2-本地缓存"><a href="#1-6-2-2-本地缓存" class="headerlink" title="1.6.2.2 本地缓存"></a>1.6.2.2 本地缓存</h4><p><code>ConfigClient</code>提供了一个<code>CachePersist</code>类用于保存JSON结构化的数据到本地文件，包括服务端地址和推送的数据等，并提供读取解析方法。参考目录<code>~/configclient/snapshot/DEFAULT_ENV</code>。</p>
+<h1 id="2-ConfigServer"><a href="#2-ConfigServer" class="headerlink" title="2 ConfigServer"></a>2 ConfigServer</h1><h2 id="2-1-总体设计"><a href="#2-1-总体设计" class="headerlink" title="2.1 总体设计"></a>2.1 总体设计</h2><h3 id="2-1-1-职责和特性"><a href="#2-1-1-职责和特性" class="headerlink" title="2.1.1 职责和特性"></a>2.1.1 职责和特性</h3><p><code>ConfigServer</code>服务端的主要工作：</p>
+<ul>
+<li>来自客户端的发布者注册、数据发布、发布者注销、订阅者注册事件</li>
+<li>来自集群中其他服务器的同步、删除、心跳事件</li>
+</ul>
+<p>特性：</p>
+<ul>
+<li>分布式部署，去中心化</li>
+<li>两类客户端：来自集群内其他节点的<code>cluster client</code>和来自<code>ConfigClient</code>的<code>native client</code></li>
+</ul>
+<h3 id="2-1-2-主要类"><a href="#2-1-2-主要类" class="headerlink" title="2.1.2 主要类"></a>2.1.2 主要类</h3><h4 id="2-1-2-1-ClientConnection"><a href="#2-1-2-1-ClientConnection" class="headerlink" title="2.1.2.1 ClientConnection"></a>2.1.2.1 <code>ClientConnection</code></h4><blockquote>
+<p>客户端连接对象，通过 subscribers 、publishers 两个哈希表记录连接上的订阅者、发布者。对于直连到本服务器的连接， originalCsIp 保存 本服务器ip ， originalHostId 保存客户端ip：port ， connection 保存 客户端连接 ；对于由其他服务器同步来的连接， originalCsIp 保存 来源服务器的ip ， originalHostId 保存连接到来源服务器的 客户端ip：port </p>
+</blockquote>
+<h4 id="2-1-2-2-ClientConnectionWorker-x2F-ClientConnectionWorkers"><a href="#2-1-2-2-ClientConnectionWorker-x2F-ClientConnectionWorkers" class="headerlink" title="2.1.2.2 ClientConnectionWorker&#x2F;ClientConnectionWorkers"></a>2.1.2.2 <code>ClientConnectionWorker</code>&#x2F;<code>ClientConnectionWorkers</code></h4><p><code>ClientConnectionWorker</code>类是<code>ConfigServer</code>服务端事件处理的核心。与<code>ConfigClient</code>中的设计一样，设计为生产者消费者模型，通过一个<code>BlockingQueue</code>对象<code>queue</code>驱动。</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Server端负责管理连接的线程，其职责包括：处理连接上的请求，向连接推送数据。</span><br><span class="line">每个connectionWorker线程负责管理一组连接。由连接的哈希值对线程个数取模，</span><br><span class="line">来决定由哪个连接来管理这个连接。</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><code>ClientConnectionWorkers</code>用于管理一组<code>ClientConnectionWorker</code>，提供向<code>ClientConnectionWorker</code>线程分派任务的静态方法。</p>
+<h4 id="2-1-2-3-DataService-x2F-DataSource"><a href="#2-1-2-3-DataService-x2F-DataSource" class="headerlink" title="2.1.2.3 DataService&#x2F;DataSource"></a>2.1.2.3 <code>DataService</code>&#x2F;<code>DataSource</code></h4><p><code>DataService</code>是数据处理服务接口，默认实现类是<code>DefaultDataService</code>。<br>通过<code>DataService</code>来添加<code>Publisher</code>和<code>Subscriber</code>，并发布来自<code>Publisher</code>的数据。<br>两个属性<code>persistDS</code>和<code>nonPersistDS</code>分别代表持久化和非持久化的数据源。<br>实际上<code>DataService</code>对数据的处理根据是否需要持久化交给了对应的<code>DataSource</code>对象处理。</p>
+<p><code>DataSource</code>接口与常见的数据库<code>DataSource</code>类似，表示数据源对象。<code>ConfigServer</code>根据是否持久化有两类<code>DataSource</code>：</p>
+<ul>
+<li><code>DiamondDataSource</code></li>
+<li><code>NonPersistDataSource</code></li>
+</ul>
+<h4 id="2-1-2-4-EventListener-x2F-EventDispatcher"><a href="#2-1-2-4-EventListener-x2F-EventDispatcher" class="headerlink" title="2.1.2.4 EventListener&#x2F;EventDispatcher"></a>2.1.2.4 <code>EventListener</code>&#x2F;<code>EventDispatcher</code></h4><p><code>ConfigServer</code>使用类似<code>ConfigClient</code>的内部事件总线机制。</p>
+<ul>
+<li>事件监听器接口<code>EventListener</code>定义感兴趣的事件列表和处理事件方法</li>
+<li><code>EventDispatcher</code>派发不同类型事件</li>
+</ul>
+<h4 id="2-1-2-5-NonPersistDataMerge"><a href="#2-1-2-5-NonPersistDataMerge" class="headerlink" title="2.1.2.5 NonPersistDataMerge"></a>2.1.2.5 <code>NonPersistDataMerge</code></h4><p><code>NonPersistDataMerge</code>内部维护一个数据聚合线程，负责接受各种非持久数据变化事件，对数据进行聚合。</p>
+<p>其本身是一个<code>EventListener</code>，处理3类事件：</p>
+<ul>
+<li><code>NonPersistDataPublishedEvent</code></li>
+<li><code>NonPersistPublisherRemovedEvent</code></li>
+<li><code>ClientDisconnectedEvent</code></li>
+</ul>
+<h4 id="2-1-2-6-PushDataService"><a href="#2-1-2-6-PushDataService" class="headerlink" title="2.1.2.6 PushDataService"></a>2.1.2.6 <code>PushDataService</code></h4><p>默认实现类<code>DefaultPushService</code>，提供向客户端推送数据的能力。</p>
+<h3 id="2-1-3-线程模型"><a href="#2-1-3-线程模型" class="headerlink" title="2.1.3 线程模型"></a>2.1.3 线程模型</h3><p><code>ConfigServer</code>中主要包含几类线程：</p>
+<ul>
+<li><p><code>ClientConnectionWorker</code>线程</p>
+<p><code>ConfigServer</code>内有多个<code>ClientConnectionWorker</code>线程（通过<code>ClientConnectionWorkers</code>进行管理），每个负责不同的client集合，包括集群client。每个<code>ClientConnectionWorker</code>线程负责管理一组连接。由连接的哈希值对线程个数取模，来决定由哪个连接来管理这个连接。</p>
+<ul>
+<li>负责处理原生client发送过来的请求</li>
+<li>负责向原生client推送数据</li>
+<li>负责发送和处理集群间数据同步请求(包括同步添加，同步删除，同步renew)</li>
+<li>针对原生client，定期向其他server发送renew包</li>
+<li>针对集群client，定期检查心跳包是否absent超过一定时间</li>
+<li>负责统计管辖client的各种信息</li>
+</ul>
+</li>
+<li><p><code>PushTaskManager</code></p>
+<ul>
+<li><p>负责推送任务的调度和合并。在推送要执行的时刻，向各个clientWorker线程发送请求，把数据拿过来聚合，最后把推送任务派发给各个clientWorker线程</p>
+</li>
+<li><p>只有一个线程</p>
+</li>
+</ul>
+</li>
+<li><p><code>SyncTaskManager</code></p>
+<ul>
+<li>负责同步任务的调度和合并，在执行同步时，把同步任务委派给负责该client的<code>clientWorker</code>线程</li>
+<li>只有一个线程</li>
+</ul>
+</li>
+<li><p>定时线程</p>
+<ul>
+<li>定时统计server内连接个数&#x2F;发布者个数&#x2F;订阅者个数,定时器线程执行把<code>SyncRenewTask</code>派发给所有client线程，对管辖的所有native client，向其他server发送心跳</li>
+</ul>
+</li>
+<li><p>http线程</p>
+<ul>
+<li>处理<code>configSdk</code>请求</li>
+</ul>
+</li>
+</ul>
+<h2 id="2-2-代码流程"><a href="#2-2-代码流程" class="headerlink" title="2.2 代码流程"></a>2.2 代码流程</h2><h3 id="2-2-1-启动"><a href="#2-2-1-启动" class="headerlink" title="2.2.1 启动"></a>2.2.1 启动</h3><p>代码入口<code>com.taobao.config.server.Main#main</code>。</p>
+<p>构造<code>ConfigServer</code>类实例时，完成了3类服务监听工作：</p>
+<ul>
+<li>集群间通信服务</li>
+<li>客户端连接接收和处理服务</li>
+<li>HTTP服务器</li>
+</ul>
+<p>服务器使用<code>Server</code>类（来自<code>com.taobao.remoting</code>框架）表示，<code>Server</code>类实例由<code>AbstractServerConnectionFactory</code>抽象类的不同实现类生成。<code>AbstractServerConnectionFactory</code>与普通的工厂类稍微不一样，它实际上只有一个对应的<code>Server</code>对象实例，并且不对外暴露。</p>
+<p>启动一个Server的过程：</p>
+<ol>
+<li>配置连接监听器<code>IOEventListener</code></li>
+<li>配置连接处理器<code>RequestProcessor</code></li>
+<li><code>Server#start</code></li>
+</ol>
+<p>客户端监听的例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AbstractServerConnectionFactory</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">log</span> <span class="operator">=</span> LoggerFactory.getLogger(AbstractServerConnectionFactory.class);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">protected</span> Server server; <span class="comment">// Server对象，不对外暴露</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> <span class="keyword">throws</span> RemotingException &#123;</span><br><span class="line">        server.start();	<span class="comment">// 启动服务端监听</span></span><br><span class="line">        log.info(<span class="string">&quot;Config server is listening on &quot;</span> + server.getPort());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">stop</span><span class="params">()</span> <span class="keyword">throws</span> RemotingException &#123;</span><br><span class="line">        <span class="keyword">if</span> (server.isStarted())</span><br><span class="line">            server.stop();</span><br><span class="line">        log.info(<span class="string">&quot;Config server is stoped&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConfigServerConnectionFactory</span> <span class="keyword">extends</span> <span class="title class_">AbstractServerConnectionFactory</span> &#123;</span><br><span class="line">    <span class="meta">@Inject</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ConfigServerConnectionFactory</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 1. 配置连接监听器</span></span><br><span class="line">        List&lt;IOEventListener&gt; listeners = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;IOEventListener&gt;();</span><br><span class="line">        listeners.add(<span class="keyword">new</span> <span class="title class_">IncomingConnectionListener</span>());</span><br><span class="line">        <span class="comment">// 2. 配置连接处理器</span></span><br><span class="line">        List&lt;RequestProcessor&lt;?&gt;&gt; processors = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;RequestProcessor&lt;?&gt;&gt;();</span><br><span class="line">        processors.add(<span class="keyword">new</span> <span class="title class_">ConfigPackageProcessor</span>());</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 3. 生成Server对象</span></span><br><span class="line">        server = Remoting.serverMgr().getServer(isBlank(serverIp) ? <span class="literal">null</span> : serverIp,</span><br><span class="line">                (<span class="type">int</span>) serverPort, listeners, processors);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// DON&#x27;T close connection when unbind</span></span><br><span class="line">        <span class="type">IoAcceptor</span> <span class="variable">acceptor</span> <span class="operator">=</span> (IoAcceptor) ReflectionUtil.getPrivateField(server, <span class="string">&quot;acceptor&quot;</span>);</span><br><span class="line">        ((IoAcceptorConfig) acceptor.getDefaultConfig()).setDisconnectOnUnbind(<span class="literal">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-2-事件监听机制"><a href="#2-2-2-事件监听机制" class="headerlink" title="2.2.2 事件监听机制"></a>2.2.2 事件监听机制</h3><h4 id="2-2-2-1-事件类型"><a href="#2-2-2-1-事件类型" class="headerlink" title="2.2.2.1 事件类型"></a>2.2.2.1 事件类型</h4><p>ConfigServer的事件<code>Event</code>包含了暗示事件的概念，发布的事件类型可以指定一组<code>implyEvents</code>，在派发时会首先派发这些“暗示事件”，然后派发主事件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 事件</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">Event</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 该事件可能暗示了其他事件。默认实现为空。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">    <span class="keyword">protected</span> List&lt;Event&gt; <span class="title function_">implyEvents</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Collections.EMPTY_LIST;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Events</code>中定义了4类事件。</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NonPersistDataPublishedEvent</td>
+<td>非持久数据发布事件，包括原生发布和集群间发布</td>
+</tr>
+<tr>
+<td>NonPersistPublisherRemovedEvent</td>
+<td>注销非持久发布者事件</td>
+</tr>
+<tr>
+<td>ClientDisconnectedEvent</td>
+<td>连接断开事件</td>
+</tr>
+<tr>
+<td>SubscriberAddedEvent</td>
+<td>新增订阅者事件</td>
+</tr>
+<tr>
+<td>GroupDataChangedEvent</td>
+<td>组数据变化事件</td>
+</tr>
+</tbody></table>
+<h4 id="2-2-2-2-代码实现"><a href="#2-2-2-2-代码实现" class="headerlink" title="2.2.2.2 代码实现"></a>2.2.2.2 代码实现</h4><p>与ConfigClient的内部事件监听机制类似。</p>
+<ol>
+<li><p>注册一个事件监听器抽象类<code>EventListener</code>的具体实现，指定感兴趣的事件列表<code>interest()</code>以及事件处理方法<code>onEvent(Event event)</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 事件监听器。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">EventListener</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">EventListener</span><span class="params">()</span> &#123;</span><br><span class="line">        EventDispatcher.addEventListener(<span class="built_in">this</span>); <span class="comment">// 自动注册给EventDispatcher</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 感兴趣的事件列表</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="keyword">public</span> List&lt;Class&lt;? <span class="keyword">extends</span> <span class="title class_">Event</span>&gt;&gt; interest();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 处理事件</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event event)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>使用<code>EventDispatcher#fireEvent</code>发布事件给对应的事件监听器</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用一个Value类型为CopyOnWriteArrayList的HashMap保存注册的EventListener </span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> Map&lt;Class&lt;? <span class="keyword">extends</span> <span class="title class_">Event</span>&gt;, CopyOnWriteArrayList&lt;EventListener&gt;&gt; listenerMap <span class="comment">//</span></span><br><span class="line">    = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;Class&lt;? <span class="keyword">extends</span> <span class="title class_">Event</span>&gt;, CopyOnWriteArrayList&lt;EventListener&gt;&gt;();</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发布事件，首先发布该事件暗示的其他事件，最后通知所有对应的监听器。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fireEvent</span><span class="params">(Event event)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> == event) &#123; <span class="comment">// 保护</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发布该事件暗示的其他事件</span></span><br><span class="line">    <span class="keyword">for</span> (Event implyEvent : event.implyEvents()) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (event != implyEvent) &#123; <span class="comment">// 避免死循环</span></span><br><span class="line">                fireEvent(implyEvent);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            log.error(e.toString(), e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这一步简单地从listenerMap中拿到对应class的监听器列表，依次调用onEvent()</span></span><br><span class="line">    <span class="keyword">for</span> (EventListener listener : getListenerList(event.getClass())) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            listener.onEvent(event);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            log.error(e.toString(), e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>不同实现类的<code>onEvent(Event event)</code>调用处理事件</p>
+<p>因为在<code>EventDispatcher#fireEvent</code>中是遍历<code>EventListener</code>依次调用，ConfigServer会在一些<code>EventListener</code>中将实际操作放到异步线程中，避免阻塞事件派发。</p>
+</li>
+</ol>
+<h3 id="2-2-3-Worker线程"><a href="#2-2-3-Worker线程" class="headerlink" title="2.2.3 Worker线程"></a>2.2.3 Worker线程</h3><h4 id="2-2-3-1-ClientConnectionWorkers"><a href="#2-2-3-1-ClientConnectionWorkers" class="headerlink" title="2.2.3.1 ClientConnectionWorkers"></a>2.2.3.1 <code>ClientConnectionWorkers</code></h4><p>与ConfigClient的Worker线程类似，区别在于服务端维护了一组Worker线程，用<code>ClientConnectionWorker</code>表示。这组线程用于处理处理连接上的请求和向连接推送数据。</p>
+<p><code>ClientConnectionWorkers</code>类实现了类似线程池的能力。初始化时会创建一组线程，数目为大于等于CPU核数2倍的最小2的幂。这个数目计算方法类似于HashMap底层的数组槽大小计算。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">private</span> <span class="keyword">final</span> ClientConnectionWorker[] clientWorkers; <span class="comment">// power of 2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="comment">// Find a power of 2 &gt;= cpuCores * 2</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">int</span> <span class="variable">coreCount</span> <span class="operator">=</span> Runtime.getRuntime().availableProcessors();</span><br><span class="line">    <span class="type">int</span> <span class="variable">workerCount</span> <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">while</span> (workerCount &lt; coreCount * <span class="number">2</span>) &#123;</span><br><span class="line">        workerCount &lt;&lt;= <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="comment">// 在ClientConnectionWorker的构造方法中就启动了线程</span></span><br><span class="line">    clientWorkers = <span class="keyword">new</span> <span class="title class_">ClientConnectionWorker</span>[workerCount];</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">mod</span> <span class="operator">=</span> <span class="number">0</span>; mod &lt; workerCount; ++mod) &#123;</span><br><span class="line">        clientWorkers[mod] = <span class="keyword">new</span> <span class="title class_">ClientConnectionWorker</span>(mod, workerCount);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在派发任务时，选择线程是通过对客户端ip字符串的hashCode取模的方式来计算的，因为线程数目是2的幂，所以可以快速计算。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 由originalHostId找到负责处理的client线程</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">private</span> ClientConnectionWorker <span class="title function_">getWorker</span><span class="params">(String clientIp)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">idx</span> <span class="operator">=</span> clientIp.hashCode() &amp; (clientWorkers.length - <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> clientWorkers[idx];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>派发任务的完整流程：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 由originalClientIp找到client线程，并向其分派执行任务。请求线程不需要知道结果。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">dispatch</span><span class="params">(String clientIp, Runnable task)</span> &#123;</span><br><span class="line">	<span class="comment">// 省略入参校验</span></span><br><span class="line">	</span><br><span class="line">    <span class="type">ClientConnectionWorker</span> <span class="variable">worker</span> <span class="operator">=</span> getWorker(clientIp);</span><br><span class="line">    worker.execute(task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-3-2-ClientConnectionWorker"><a href="#2-2-3-2-ClientConnectionWorker" class="headerlink" title="2.2.3.2 ClientConnectionWorker"></a>2.2.3.2 <code>ClientConnectionWorker</code></h4><p><code>ClientConnectionWorker</code>是ConfigServer端的Worker对象。</p>
+<ul>
+<li><p>每个实例绑定了一个<code>InnerWorker</code>线程，在构造时启动</p>
+</li>
+<li><p>使用一个<code>QUEUE_CAPACITY</code>为5000的<code>ArrayBlockingQueue</code>保存任务，等待<code>ClientConnectionWorkers</code>派发任务后执行。模型上整个ConfigServer的客户端和服务端线程执行任务的方式都是以阻塞队列驱动的生产者消费者</p>
+</li>
+<li><p>使用两个Map保存了这个Worker管理的客户端对象，包括cluster client和native client</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;Connection, ClientConnection&gt; nativeClients;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;String, ClientConnection&gt; clusterClients;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>两类任务提交执行方式：</p>
+<ul>
+<li><code>void execute(Runnable task)</code>：不需要知道执行结果</li>
+<li><code>&lt;V&gt; Future&lt;V&gt; execute(Callable&lt;V&gt; task)</code>：如果需要知道任务的执行结果，返回Future</li>
+</ul>
+<h3 id="2-2-4-客户端事件处理"><a href="#2-2-4-客户端事件处理" class="headerlink" title="2.2.4 客户端事件处理"></a>2.2.4 客户端事件处理</h3><h4 id="2-2-4-1-客户端连接"><a href="#2-2-4-1-客户端连接" class="headerlink" title="2.2.4.1 客户端连接"></a>2.2.4.1 客户端连接</h4><p>客户端连接事件通过启动时配置的<code>IncomingConnectionListener</code>实现，主要任务是在客户端断开时注销订阅者和非持久发布者。</p>
+<p>通过<code>ClientConnectionWorkers</code>派发<code>ClientDisconnectJob</code>实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 处理与client直连连接断开。立即注销订阅者，非持久发布者。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">normalConnClosed</span><span class="params">(Connection conn)</span> &#123;</span><br><span class="line">    <span class="comment">// 通过ClientConnectionWorkers派发ClientDisconnectJob</span></span><br><span class="line">    ClientConnectionWorkers.dispatch(conn.getRemoteAddress(), <span class="keyword">new</span> <span class="title class_">ClientDisconnectJob</span>(conn));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ClientDisconnectJob</code>任务中简单地从<code>ClientConnectionWorker</code>管理的客户端中删除了对应的连接对象或者集群节点hostId。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ClientConnectionWorker</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// 任务从创建到开始执行时间的记录</span></span><br><span class="line">    <span class="type">long</span> <span class="variable">pendingTime</span> <span class="operator">=</span> System.currentTimeMillis() - createTime;</span><br><span class="line">    <span class="keyword">if</span> (pendingTime &gt;= <span class="number">600</span>) &#123;</span><br><span class="line">        log.warn(<span class="string">&quot;[diconnect-client-request] Pending too long in queue. &quot;</span> + pendingTime);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 通过conn连接对象区分是clusterClient还是nativeClient</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != conn) &#123;</span><br><span class="line">        ClientConnectionWorker.getWorker().removeClient(conn);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ClientConnectionWorker.getWorker().removeClusterClient(originalHostId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ClientConnectionWorker</span></span><br><span class="line"><span class="keyword">public</span> ClientConnection <span class="title function_">removeClient</span><span class="params">(Connection conn)</span> &#123;</span><br><span class="line">    <span class="type">ClientConnection</span> <span class="variable">client</span> <span class="operator">=</span> nativeClients.remove(conn);</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != client) &#123;</span><br><span class="line">        log.warn(<span class="string">&quot;[client-removed] &quot;</span> + client);</span><br><span class="line"></span><br><span class="line">        EventDispatcher.fireEvent(<span class="keyword">new</span> <span class="title class_">ClientDisconnectedEvent</span>(client));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> client;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> ClientConnection <span class="title function_">removeClusterClient</span><span class="params">(String originalHostId)</span> &#123;</span><br><span class="line">    <span class="type">ClientConnection</span> <span class="variable">client</span> <span class="operator">=</span> clusterClients.remove(originalHostId);</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != client) &#123;</span><br><span class="line">        log.warn(<span class="string">&quot;[client-removed] &quot;</span> + client);</span><br><span class="line"></span><br><span class="line">        EventDispatcher.fireEvent(<span class="keyword">new</span> <span class="title class_">ClientDisconnectedEvent</span>(client));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> client;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-4-2-客户端请求"><a href="#2-2-4-2-客户端请求" class="headerlink" title="2.2.4.2 客户端请求"></a>2.2.4.2 客户端请求</h4><p>Native Client的服务端工厂类<code>ConfigServerConnectionFactory</code>启动时会注册请求处理器<code>ConfigPackageProcessor</code>。收到请求时生成一个<code>ClientRequestJob</code>交由<code>ClientConnectionWorker</code>线程处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ConfigPackageProcessor#handleRequest</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleRequest</span><span class="params">(ProtocolPackage request, AppResponseOutput output)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">Connection</span> <span class="variable">conn</span> <span class="operator">=</span> output.getConnection();</span><br><span class="line">    <span class="type">String</span> <span class="variable">clientIp</span> <span class="operator">=</span> conn.getRemoteAddress();</span><br><span class="line">    RecordCounterHolder.getHolder().increaseProcessRequestCount();</span><br><span class="line">    <span class="comment">// 生成和派发ClientRequestJob任务</span></span><br><span class="line">    ClientConnectionWorkers.dispatch(clientIp, <span class="keyword">new</span> <span class="title class_">ClientRequestJob</span>(request, output));</span><br><span class="line">    log.debug(<span class="string">&quot;[submit] Connection=&quot;</span> + conn + <span class="string">&quot;, &quot;</span> + request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ClientRequestJob</code>会根据数据包类型进行不同处理。这一层实际上做了一次封装，底层调用<code>DataService</code>的方法。</p>
+<ul>
+<li><code>PublisherRegReqPacket</code>：发布者注册请求，调用<code>DataService#addPublisher</code></li>
+<li><code>PublisherDataElement</code>：发布者发布的数据，调用<code>DataService#publishData</code></li>
+<li><code>SubscriberRegReqPacket</code>：订阅者注册请求，调用<code>DataService#addSubscriber</code></li>
+<li><code>AttributeElement</code>：属性请求，可以通过这个配置一些客户端属性，只看到配置GZIP压缩</li>
+</ul>
+<p><code>DataService</code>的默认实现类是<code>DefaultDataService</code>。根据是否需要持久化，底层调用不同<code>DataSource</code>处理数据。以非持久化的<code>DataSource</code>的处理为例，调用了<code>ClientConnection</code>的对应方法。例如发布数据：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NonPersistDataSource#publishData</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">publishData</span><span class="params">(ClientConnection client, GroupId group, String clientID, List&lt;Swizzle&gt; data, Revision newRev)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (data.isEmpty()) &#123;</span><br><span class="line">        client.removePublisher(group, clientID);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    client.publishData(group, data.get(<span class="number">0</span>), newRev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ClientConnection</code>保存或删除注册的发布者、订阅者，在发布者发布数据或者新订阅者注册时，都需要推送数据。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpesIA4-BQgHGuxwulhAEAf66nCw.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpesIA4-BQgHGuxwulhAEAf66nCw.png"  lazyload></a></p>
+<h3 id="2-2-5-数据推送"><a href="#2-2-5-数据推送" class="headerlink" title="2.2.5 数据推送"></a>2.2.5 数据推送</h3><p>客户端事件会触发数据推送：</p>
+<ul>
+<li>发布者发布数据事件：全量推送同组数据给所有订阅者</li>
+<li>发布者注销事件：全量推送同组数据给所有订阅者</li>
+<li>新订阅者注册：单推数据给新增的订阅者</li>
+</ul>
+<h4 id="2-2-5-1-推送流程"><a href="#2-2-5-1-推送流程" class="headerlink" title="2.2.5.1 推送流程"></a>2.2.5.1 推送流程</h4><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fg1m6hvxaNRwSNop9JYgeLedFaW7.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fg1m6hvxaNRwSNop9JYgeLedFaW7.png"  lazyload></a></p>
+<ol>
+<li><p>客户端事件处理中，收到<code>PublisherDataElement</code>协议包代表有发布者发布了数据，这时候需要将同组的数据聚合后推送给所有订阅者。非持久化场景下对应的事件类型为<code>NonPersistDataPublishedEvent</code>；</p>
+</li>
+<li><p><code>NonPersistDataMerge</code>记录<code>Group -&gt; List&lt;ClientConnection&gt; </code>的关系，找到发布数据对应的Group后触发<code>GroupDataChangedEvent</code>事件；</p>
+</li>
+<li><p><code>DefaultPushService</code>中监听<code>GroupDataChangedEvent</code>和<code>SubscriberAddedEvent</code>事件，因此在发布数据和新增订阅者时都会触发这里的数据推送（全推or单推），给<code>PushTaskManager</code>添加<code>PushDelayTask</code>任务；</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event event)</span> &#123;</span><br><span class="line">    <span class="comment">// 组数据变化，全推</span></span><br><span class="line">    <span class="keyword">if</span> (event <span class="keyword">instanceof</span> GroupDataChangedEvent) &#123;</span><br><span class="line">        <span class="type">GroupDataChangedEvent</span> <span class="variable">gdce</span> <span class="operator">=</span> (GroupDataChangedEvent) event;</span><br><span class="line">        scheduleAllPush(gdce.group);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 新增订阅者，单推</span></span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (event <span class="keyword">instanceof</span> SubscriberAddedEvent) &#123;</span><br><span class="line">        <span class="type">SubscriberAddedEvent</span> <span class="variable">sae</span> <span class="operator">=</span> (SubscriberAddedEvent) event;</span><br><span class="line">        scheduleSinglePush(sae.group, sae.client);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">scheduleAllPush</span><span class="params">(GroupId group)</span> &#123;</span><br><span class="line">    <span class="comment">// 构建一个PushDelayTask交给pushTaskManager执行</span></span><br><span class="line">    <span class="type">PushDelayTask</span> <span class="variable">task</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PushDelayTask</span>(group);</span><br><span class="line">    pushTaskManager.addTask(task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>PushDelayTask</code>的<code>PushDataTaskProcessor</code>先从<code>DataService</code>获取指定<code>Group</code>的数据；</p>
+<ul>
+<li><p><code>DataService</code>从数据源，例如<code>NonPersistDataSource</code>中读数据；</p>
+</li>
+<li><p><code>NonPersistDataSource</code>又从负责聚合的<code>NonPersistDataMerge</code>中读取；</p>
+</li>
+<li><p><code>NonPersistDataMerge</code>实际上收集对应<code>Group</code>的所有<code>ClientConnection</code>发布的数据；</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 取得组数据，格式：originalHostId -&gt; Data</span></span><br><span class="line">Map&lt;String,Swizzle&gt; <span class="title function_">getDatumData</span><span class="params">(GroupId group)</span> &#123;</span><br><span class="line">    Map&lt;String,Swizzle&gt; result = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, Swizzle&gt;();</span><br><span class="line">    <span class="comment">// 获得指定group的发布者列表</span></span><br><span class="line">    Collection&lt;ClientConnection&gt; contributors = groupContributors(group);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 省略部分代码</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 遍历发布者列表，添加数据</span></span><br><span class="line">    <span class="keyword">for</span> (ClientConnection client : contributors) &#123;</span><br><span class="line">        result.put(client.originalHostId(), client.groupData(group));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p><code>PushDataTaskProcessor</code>拿到数据后，构造一个<code>PushExecuteTask</code>开始给订阅客户端推送数据；</p>
+</li>
+</ol>
+<h4 id="2-2-5-2-推送实现"><a href="#2-2-5-2-推送实现" class="headerlink" title="2.2.5.2 推送实现"></a>2.2.5.2 推送实现</h4><p>推送数据的实现在<code>PushExecuteTask#run</code>中，基本流程：</p>
+<ol>
+<li>判断是否全推，构造对应的推送客户端列表</li>
+<li>判断是否需要进行压缩</li>
+<li>遍历客户端列表，进行推送<ol>
+<li>判断发送压缩数据对象还是未压缩数据对象</li>
+<li>判断是否需要流控</li>
+<li>构造发送数据包</li>
+<li>获取Connection连接对象发送数据，并设置回调</li>
+</ol>
+</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PushExecuteTask#run</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">    Iterator&lt;ClientConnection&gt; clientIter = <span class="literal">null</span>;</span><br><span class="line">    <span class="comment">// 1. 判断是否全推</span></span><br><span class="line">    <span class="keyword">if</span> (isPushToAll) &#123;</span><br><span class="line">        clientIter = ClientConnectionWorker.globalNativeClientsIter();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        clientIter = Arrays.asList(dest).iterator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 判断是否需要压缩</span></span><br><span class="line">    <span class="comment">// 压缩条件：非持久数据 &amp;&amp; 超过10条数据 &amp;&amp; client支持压缩</span></span><br><span class="line">    <span class="type">UserDataElement</span> <span class="variable">dataElement</span> <span class="operator">=</span> constructUserDataElement(group.dataId, dataList,</span><br><span class="line">            dataRevision);</span><br><span class="line">    <span class="type">UserDataElement</span> <span class="variable">gzipDataElement</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        gzipDataElement = (group.isNonPersist() &amp;&amp; dataList.size() &gt;= <span class="number">10</span>) ? constructGzipDataElement(</span><br><span class="line">                group.dataId, dataList, dataRevision) : <span class="literal">null</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[gzip-error] &quot;</span> + group.dataId + <span class="string">&quot;, &quot;</span> + ioe.toString(), ioe);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">null</span> != gzipDataElement) &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">originalSize</span> <span class="operator">=</span> estimatePkgSize(dataElement);</span><br><span class="line">        <span class="type">long</span> <span class="variable">compressedSize</span> <span class="operator">=</span> estimatePkgSize(gzipDataElement);</span><br><span class="line">        log.info(<span class="string">&quot;[gzip-size] &#123;&#125;, &#123;&#125; -&gt; &#123;&#125;&quot;</span>,</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">Object</span>[] &#123; group, originalSize, compressedSize &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">isOverFlow</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 遍历客户端列表进行推送</span></span><br><span class="line">    <span class="keyword">while</span> (clientIter.hasNext()) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">ClientConnection</span> <span class="variable">client</span> <span class="operator">=</span> clientIter.next();</span><br><span class="line">        <span class="type">String</span> <span class="variable">clientId</span> <span class="operator">=</span> client.isSubscriber(group);</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> == clientId) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!client.getConnection().isConnected()) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 3.1 判断是否发送压缩对象</span></span><br><span class="line">        <span class="keyword">final</span> <span class="type">boolean</span> <span class="variable">sendGzip</span> <span class="operator">=</span> <span class="literal">null</span> != gzipDataElement &amp;&amp; client.isSupportGzip();</span><br><span class="line">        <span class="keyword">final</span> <span class="type">UserDataElement</span> <span class="variable">userData</span> <span class="operator">=</span> sendGzip ? gzipDataElement : dataElement;</span><br><span class="line">        <span class="keyword">if</span> (sendGzip) &#123;</span><br><span class="line">            log.info(<span class="string">&quot;[gzip-push] push &#123;&#125; to &#123;&#125;&quot;</span>, group.dataId, client.getConnection()</span><br><span class="line">                    .getRemoteAddress());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 3.2 流控</span></span><br><span class="line">        <span class="keyword">if</span> (isOverFlow || !PushFlowControl.isAllowed(estimatePkgSize(userData))) &#123;</span><br><span class="line">            ServiceHolder.getPushService().scheduleSinglePush(group, client);</span><br><span class="line">            isOverFlow = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 3.3 构造发送数据包</span></span><br><span class="line">        userData.clientIds = <span class="keyword">new</span> <span class="title class_">String</span>[] &#123; clientId &#125;;</span><br><span class="line">        <span class="type">ProtocolPackage</span> <span class="variable">pp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProtocolPackage</span>();</span><br><span class="line">        pp.addElement(userData);</span><br><span class="line">        <span class="keyword">if</span> (sendGzip) &#123;</span><br><span class="line">            pp.addElement(<span class="keyword">new</span> <span class="title class_">AttributeElement</span>(AttributeElement.ATTRIBUTE_ZIP, <span class="literal">true</span>));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 3.4 获取Connection连接对象发送数据，并设置回调</span></span><br><span class="line">        <span class="type">Connection</span> <span class="variable">connection</span> <span class="operator">=</span> client.getConnection();</span><br><span class="line">        <span class="type">RequestControl</span> <span class="variable">control</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RequestControlImpl</span>(connection.lastRequestProtocol(),</span><br><span class="line">                RESP_TIMEOUT);</span><br><span class="line">        <span class="type">ResponseCallback</span> <span class="variable">callback</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PushDataCallback</span>(client);</span><br><span class="line">        connection.getClient().invokeWithCallback(pp, callback, control);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-5-3-失败处理"><a href="#2-2-5-3-失败处理" class="headerlink" title="2.2.5.3 失败处理"></a>2.2.5.3 失败处理</h4><p>如果推送失败，在回调<code>PushDataCallback</code>中进行处理。策略是给失败的客户端进行单推。推送的前提是连接状态正常。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PushDataCallback</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onRemotingException</span><span class="params">(<span class="type">int</span> errorType, String errorMsg)</span> &#123;</span><br><span class="line">    <span class="comment">// 省略错误打印</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造一个单推任务</span></span><br><span class="line">    ServiceHolder.getPushService().scheduleSinglePush(group, dest);</span><br><span class="line">    <span class="comment">// 记录失败次数</span></span><br><span class="line">    RecordCounterHolder.getHolder().increasePushFailedCount();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-3-集群同步"><a href="#2-3-集群同步" class="headerlink" title="2.3 集群同步"></a>2.3 集群同步</h2><p><code>ConfigServer</code> 2.0架构下，每个<code>ConfigServer</code>节点保存全量数据，并且在发布数据时以多写（写到<code>cluster client</code>）的方式进行集群同步，属于两两互写的网状写结构。这种架构我理解最大的问题是难以扩容：</p>
+<ul>
+<li><code>ConfigServer</code> 2.0下集群节点存储在配置文件中，扩容时需要变更每个Server节点的配置</li>
+<li>随着网状结构中节点数目的增多，每次发布数据需要写的数据量变大，容易达到网卡瓶颈</li>
+<li>单个Server节点保存全量未压缩数据，承担了多重职责</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FonLMYJoaZrGGFz3lvQ0F-XPFZqa.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FonLMYJoaZrGGFz3lvQ0F-XPFZqa.png"  lazyload></a></p>
+<p>集群同步架构在<code>ConfigServer</code> 3.0后改为<code>Session</code>集群<code>+Data</code>集群的方式。</p>
+<ul>
+<li><code>Client</code>与<code>Session Server</code>连接，发布和订阅数据</li>
+<li><code>Session Server</code>负责将数据多写到<code>Data Server</code>集群，<code>Data Server</code>只用处理来自<code>Session Server</code>的写请求</li>
+<li><code>Data Server</code>集群的每一台机器存储全量的pub数据，根据服务名称聚合数据，压缩后推送给<code>Session Server</code>集群</li>
+<li><code>Session Server</code>缓存来自<code>Data Server</code>的推送的全量压缩数据，推送给订阅者</li>
+</ul>
+<p>扩容行为：</p>
+<ul>
+<li><code>Session Server</code>集群可以根据业务的发展需要不限制扩容，推送能力不会受到影响</li>
+<li><code>Data Server</code>一般不会随着业务的增长而需要扩容更多的机器，不扩容的情况下多写压力固定</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlkpjArm2A7KedQEQTeA2THK_QPJ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FlkpjArm2A7KedQEQTeA2THK_QPJ.png"  lazyload></a></p>
+<p>带来的好处：</p>
+<blockquote>
+<ol>
+<li>不同的configclient天然分布存储到不同的session服务器上，session集群可以根据业务的发展来进行水平扩容</li>
+<li>session集群虽然仍然是「多写」给data集群的所有的机器，但是data集群不会随着业务的增长而需要扩容更多的机器；也就是每台session需要多写的data集群机器数是固定的</li>
+<li>data集群中的每台机器存储全量的configclient，优点是data集群天然具备failover机制，任何一台data宕机都不会影响服务的可用性，运维很方便；劣势是随着业务量将来的继续发展，data集群单机如果存储不下全量的数据，就需要再对结构进行调整了</li>
+</ol>
+</blockquote>
+<p><code>ConfigServer</code> 3.0架构下，注册和发布数据的流程：</p>
+<ol>
+<li><code>ConfigClient</code>选择一台<code>Session Server</code>集群中的机器建立长连接；</li>
+<li><code>ConfigClient</code>发布数据给<code>Session Server</code>，<code>Session Server</code>把数据写给<code>Data Server</code>集群，这里需要保证一定会写成功；</li>
+<li><code>Data Server</code>对数据进行聚合后，生成一份压缩后的全量数据缓存在本地，然后把这份数据推送给<code>Session Server</code>集群，同样需要保证可靠地推送；</li>
+<li><code>Session</code>集群缓存data推送给他的压缩过的全量的数据</li>
+<li>一个订阅者连接到<code>Session Server</code>时，<code>Session Server</code>把本地缓存的全量压缩后数据推送给订阅者</li>
+</ol>
+
+        </div>
+          
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%89%8D%E8%A8%80"><span class="top-box-text">前言</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#1-ConfigClient"><span class="top-box-text">1 ConfigClient</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-1-%E6%80%BB%E4%BD%93%E8%AE%BE%E8%AE%A1"><span class="top-box-text">1.1 总体设计</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-2-%E4%B8%BB%E8%A6%81%E7%B1%BB"><span class="top-box-text">1.2 主要类</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-2-1-%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%B1%BB"><span class="top-box-text">1.2.1 客户端类</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-2-2-%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B3%A8%E5%86%8C%E7%B1%BB"><span class="top-box-text">1.2.2 客户端注册类</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-2-3-%E5%B7%A5%E4%BD%9C%E7%BA%BF%E7%A8%8B"><span class="top-box-text">1.2.3 工作线程</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-2-4-%E8%BF%9E%E6%8E%A5%E5%92%8C%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%9C%B0%E5%9D%80%E7%AE%A1%E7%90%86"><span class="top-box-text">1.2.4 连接和服务端地址管理</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-3-%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="top-box-text">1.3 线程模型</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-4-%E5%8F%91%E5%B8%83"><span class="top-box-text">1.4 发布</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-4-1-%E5%8F%91%E5%B8%83%E6%A0%B7%E4%BE%8B"><span class="top-box-text">1.4.1 发布样例</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-4-2-%E6%B5%81%E7%A8%8B%E4%BB%A3%E7%A0%81"><span class="top-box-text">1.4.2 流程代码</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-5-%E8%AE%A2%E9%98%85"><span class="top-box-text">1.5 订阅</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-5-1-%E8%AE%A2%E9%98%85%E6%A0%B7%E4%BE%8B"><span class="top-box-text">1.5.1 订阅样例</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-5-2-%E6%B5%81%E7%A8%8B%E4%BB%A3%E7%A0%81"><span class="top-box-text">1.5.2 流程代码</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#1-6-%E5%85%B6%E4%BB%96"><span class="top-box-text">1.6 其他</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-6-1-%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%9C%B0%E5%9D%80%E8%8E%B7%E5%8F%96%E5%92%8C%E6%9B%B4%E6%96%B0"><span class="top-box-text">1.6.1 服务端地址获取和更新</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#1-6-2-%E5%AE%B9%E7%81%BE%E4%BF%9D%E6%8A%A4"><span class="top-box-text">1.6.2 容灾保护</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#2-ConfigServer"><span class="top-box-text">2 ConfigServer</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-1-%E6%80%BB%E4%BD%93%E8%AE%BE%E8%AE%A1"><span class="top-box-text">2.1 总体设计</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-1-1-%E8%81%8C%E8%B4%A3%E5%92%8C%E7%89%B9%E6%80%A7"><span class="top-box-text">2.1.1 职责和特性</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-1-2-%E4%B8%BB%E8%A6%81%E7%B1%BB"><span class="top-box-text">2.1.2 主要类</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-1-3-%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="top-box-text">2.1.3 线程模型</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-2-%E4%BB%A3%E7%A0%81%E6%B5%81%E7%A8%8B"><span class="top-box-text">2.2 代码流程</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-2-1-%E5%90%AF%E5%8A%A8"><span class="top-box-text">2.2.1 启动</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-2-2-%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E6%9C%BA%E5%88%B6"><span class="top-box-text">2.2.2 事件监听机制</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-2-3-Worker%E7%BA%BF%E7%A8%8B"><span class="top-box-text">2.2.3 Worker线程</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-2-4-%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86"><span class="top-box-text">2.2.4 客户端事件处理</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#2-2-5-%E6%95%B0%E6%8D%AE%E6%8E%A8%E9%80%81"><span class="top-box-text">2.2.5 数据推送</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#2-3-%E9%9B%86%E7%BE%A4%E5%90%8C%E6%AD%A5"><span class="top-box-text">2.3 集群同步</span></a></li></ol></li></ol>
+        </div>
+          
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2018/11/06/cong-shang-wang-xia-du-hsf-yuan-ma/">
+          <h3 class="post-title">
+            下一篇：从上往下读HSF源码
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>从一个上传问题出发了解统一接入</title>
+<meta name="keywords" content="从一个上传问题出发了解统一接入, jffu&#39;s blog">
+<meta name="description" content="由一个文件上传慢的问题，引出集团统一接入、DNS配置等内容。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="从一个上传问题出发了解统一接入">
+<meta property="og:description" content="由一个文件上传慢的问题，引出集团统一接入、DNS配置等内容。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">从一个上传问题出发了解统一接入</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-08-07</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E7%BD%91%E7%BB%9C/">
+              网络
+                
+                  ，
+                
+              </a>
+            
+              <a href="/tags/%E6%9E%B6%E6%9E%84/">
+              架构
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p>这是之前周会上分享的内容，由一个文件上传慢的问题，引出统一接入、DNS配置等内容。</p>
+<hr>
+<h1 id="上传问题"><a href="#上传问题" class="headerlink" title="上传问题"></a>上传问题</h1><p>简单地阐述下问题背景：在新应用中，增加了一个上传图片的功能，图片会先上传到应用服务器，然后处理后转存到OSS上，实际使用时，发现随着图片文件变大，上传时间变得很长，不到2M的文件上传需要6s多，而5M的文件要将近20s，用户体验自然不太好。</p>
+<blockquote>
+<p>这里多说一句，直接传文件到应用服务器并不是一个好的实践，不管从性能还是内存占用上都有隐患。一般的对象存储服务都会提供前端直传的能力，应该尽量使用这类能力上传文件。</p>
+</blockquote>
+<h2 id="排查步骤"><a href="#排查步骤" class="headerlink" title="排查步骤"></a>排查步骤</h2><p>由于是第一次碰到，没有直接的问题解决思路。采用了比较笨的排除法来定位。</p>
+<p>首先<strong>排除前端的问题</strong>，确认上传的耗时还是在调用后端上传接口本身上面。后面的测试主要就是靠Postman等工具进行。</p>
+<p>其次<strong>排除应用服务器和OSS之间的传输问题</strong>，打印了下应用controller收到文件开始处理的时间和发给OSS花的时间。发现大部分时间花在调用上传接口 –&gt; controller收到文件之间。</p>
+<p>然后怀疑是应用流程的问题，因为文件是先传到应用服务器，再通过应用服务器传到OSS，这其中包含了一次隐形的转换：Spring boot会将收到的文件流写到内存或缓存目录（看文件大小），然后再调用controller方法，controller读取文件流成<code>MutipartFile</code>再发给OSS。于是尝试<strong>直接读取上传文件流处理后传给OSS</strong>，结果是有一点改善，但是效果不明显。</p>
+<p>到这里有点怀疑不是应用本身的问题了，既然应用会缓存文件流，想到<strong>Nginx也会缓存</strong>。按照Nginx官方文档<code>proxy_request_buffering on</code>时，Nginx会缓存完整请求，全部读完后再发给后端服务器：</p>
+<blockquote>
+<p>When buffering is enabled, the entire request body is <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_buffer_size">read</a> from the client before sending the request to a proxied server.</p>
+</blockquote>
+<p>于是设置<code>proxy_request_buffering off</code>开启流式上传，观察了下效果，发现基本没有变化。</p>
+<p>到这一步基本没招了，没办法，抓个包看下吧。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsRRxWbMc5jO1FxhqbjhUMWjyZ8U.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsRRxWbMc5jO1FxhqbjhUMWjyZ8U.png"  lazyload></a></p>
+<p>一抓包，以我有限的网络知识也能看出几个问题：</p>
+<ol>
+<li>TCP包ACK回来得很慢，图上面看花了40多ms；</li>
+<li>服务端ACK的窗口有时候很小，Win&#x3D;30；</li>
+</ol>
+<p>咨询了下集团网络接入的同学，再做了几次试验，基本上确定是物理链路的原因导致的上传超长。之前日常和预发机器都部署在上海机房，而线上应用部署在张北中心机房，由于链路物理延时从毫秒级别放大到几十毫秒，导致了传输变慢。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqq1DYOxFvM1igi1U2-D9aqDw2Vi.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fqq1DYOxFvM1igi1U2-D9aqDw2Vi.png"  lazyload></a></p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>确定了问题原因后，解决起来就比较容易了。</p>
+<ol>
+<li>申请了两个VIP，一个位于上海机房，一个位于张北机房；</li>
+<li>DNS上重新配置了下解析线路，按地域选择正确的线程组，比如中南部地区使用上海机房VIP，北部地区使用张北机房VIP；</li>
+</ol>
+<p>配置后，以杭州IP为例，原来默认都会走到张北VIP的请求，现在会被解析到上海机房，物理链路短了，传输速度自然快了。</p>
+<p>对比测试数据看，耗时平均下降了50%，还是很明显的。如果再进一步优化的话，可以考虑将应用服务器也部署到张北和上海多机房，然后设置VIPServer使得上海VIP访问上海的应用机房IP，张北VIP访问张北的应用机房IP。</p>
+<table>
+<thead>
+<tr>
+<th>耗时(s)</th>
+<th>4.85M</th>
+<th>1.77M</th>
+<th>340K</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>张北vip</td>
+<td>16.702</td>
+<td>6.075</td>
+<td>1.209</td>
+</tr>
+<tr>
+<td>上海vip</td>
+<td>7.673</td>
+<td>2.961</td>
+<td>0.746</td>
+</tr>
+</tbody></table>
+<p>正好借此契机，了解一下统一接入。</p>
+<h1 id="几个问题"><a href="#几个问题" class="headerlink" title="几个问题"></a>几个问题</h1><p>在看网络接入之前，先来看看这些问题：</p>
+<ol>
+<li>新应用上线时怎么进行接入配置？</li>
+<li>一个请求如何通过用户发起最终到达应用服务器？路由和负载均衡是怎么做的？</li>
+<li>常说的ADNS&#x2F;AServer&#x2F;VIPServer&#x2F;Tengine等等都是什么？</li>
+<li>VIP和VIPServer是什么关系？域名跟VIPServer Key是什么关系？</li>
+<li>淘宝的Tengine跟Nginx有什么区别？</li>
+<li>等等…</li>
+</ol>
+<h1 id="接入配置"><a href="#接入配置" class="headerlink" title="接入配置"></a>接入配置</h1><p>这边暂时略过，因为每个公司的配置不一样。</p>
+<h1 id="统一接入架构"><a href="#统一接入架构" class="headerlink" title="统一接入架构"></a>统一接入架构</h1><p><strong>整体架构：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpRekUEAcfKVb2jfV6WA9ZI4wyPU.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FpRekUEAcfKVb2jfV6WA9ZI4wyPU.png"  lazyload></a></p>
+<p>涉及到的几个关键点：</p>
+<ul>
+<li>DNS解析</li>
+<li>VIP（基于LVS）</li>
+<li>AServer</li>
+<li>VipServer</li>
+<li>Tengine</li>
+</ul>
+<p><strong>用户一次访问的流程：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoVSv_hjur7qVvpDH2U1WTomlZyH.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoVSv_hjur7qVvpDH2U1WTomlZyH.png"  lazyload></a></p>
+<blockquote>
+<ul>
+<li><p>公网域名DNS解析获取IP，此时的IP为 Tengine&#x2F;AServer 统一接入层的 VIP。</p>
+</li>
+<li><p>通过VIP 机制，请求会被分发到RealServer， 此时的RS为统一接入层aserver的集群 。</p>
+</li>
+<li><p>Aserver具备的核心功能包括：nginx服务器层tengine、web静态数据缓存层是swift、动态数据获取层ESI。</p>
+</li>
+<li><p>Aserver 先通过 Keyserver（HTTPS 统一接入层）完成SSL的握手会话，建立通道</p>
+</li>
+<li><p>而后通过 VIPServer 检查域名对应的目标RS节点</p>
+</li>
+<li><ul>
+<li>VIPServer 先检测“域名-VIPSever Key”映射，获取 VIPSever Key</li>
+<li>通过 VIPSever Key 获取其下下挂的 RealServer 节点</li>
+<li>检测 RealServer 节点监控整体，返回一个合适的 RS 节点地址给 Aserver</li>
+</ul>
+</li>
+<li><p>Aserver 获取到 RS 节点，通过 Tengine 进行转发。</p>
+</li>
+<li><p>RS 响应回流到Aserver，Aserver 直接回流给Client。</p>
+</li>
+</ul>
+</blockquote>
+<h1 id="DNS解析"><a href="#DNS解析" class="headerlink" title="DNS解析"></a>DNS解析</h1><h2 id="DNS基本概念"><a href="#DNS基本概念" class="headerlink" title="DNS基本概念"></a>DNS基本概念</h2><p><strong>域、域名服务器</strong></p>
+<ul>
+<li>根域：所谓的”.”，13台根域服务器</li>
+<li>顶级域（一级域）：.com.、.net、.org、.gov、.edu等等，权威域名服务器</li>
+<li>二级域：taobao.com，alibaba.com等等</li>
+<li>依次类推</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xunxi.  alibaba.  com     .</span><br><span class="line">三级域   二级域     顶级域   根域</span><br></pre></td></tr></table></figure>
+
+<p><strong>DNS记录类型</strong></p>
+<blockquote>
+<p>DNS返回的每一条记录叫做资源记录(Resource Record),资源记录是一个包含了下列字段的4元组：</p>
+<p>（Name, Value, Type, TTL）</p>
+<p>Name和Value的值取决于Type:</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>记录类型</th>
+<th>类型说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>Name是主机名，value是该主机名对应的IPv4地址。因此一条类型为A的资源记录提供了标准的主机名到ip地址的映射。例如 (<a target="_blank" rel="noopener" href="http://www.xxx.com/">www.xxx.com</a>, 123.123.123.123, A)就是一条类型A记录</td>
+</tr>
+<tr>
+<td>AAAA</td>
+<td>与A的区别就是value是主机名对应的IPv6地址</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td>如果Type&#x3D;CNAME,则Value是别名为Name的主机对应的规范主机名。该记录能够向查询的主机提供主机名对应的规范主机名。例如(foo.com, relay1.bar.foo.com, CNAME)就是一条CNAME类型的记录。</td>
+</tr>
+<tr>
+<td>MX</td>
+<td>建立电子邮箱服务，将指向邮件服务器地址，需要设置MX记录。Value是别名为Name的邮件服务器的规范主机名</td>
+</tr>
+<tr>
+<td>TXT</td>
+<td>可任意填写（可为空），通常用做SPF记录（反垃圾邮件）使用，很少用</td>
+</tr>
+<tr>
+<td>NS</td>
+<td>Name是个域（如foo.com),而Value是个知道如何获得该域中主机Ip地址的权威DNS服务器的主机名。这个记录用于沿着查询链来路由DNS查询。例如(foo.com, dns.foo.com, NS)就是一条类型为NS的记录。</td>
+</tr>
+</tbody></table>
+<p><strong>TTL</strong></p>
+<p>TTL(Time-To-Live)是一条域名解析记录在 DNS 服务器中的存留时间。</p>
+<p>当各地的 DNS 服务器接受到解析请求时，就会向域名指定的 NS 服务器发出解析请求从而获得解析记录；</p>
+<p>在获得这个记录之后，记录会在 DNS 服务器中保存一段时间，这段时间内如果再接到这个域名的解析请求，</p>
+<p>DNS 服务器将不再向 NS 服务器发出请求，而是直接返回刚才获得的记录；而这个记录在 DNS 服务器上保留的时间，就是 TTL 值。</p>
+<p>作用：</p>
+<ol>
+<li><p>增大 TTL 值，以节约域名解析时间，给网站访问加速</p>
+</li>
+<li><p>减小 TTL 值，以减少更换空间或域名更改时的不可访问时间</p>
+</li>
+</ol>
+<h2 id="一次DNS解析过程"><a href="#一次DNS解析过程" class="headerlink" title="一次DNS解析过程"></a>一次DNS解析过程</h2><p>常用DNS命令：<code>ping</code>、<code>dig</code>、<code>nslookup</code>。</p>
+<ol>
+<li>查看本地DNS地址</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">networksetup -getdnsservers Wi-Fi</span><br></pre></td></tr></table></figure>
+
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrrOLX3YUmZvgixyA1rLm3NFPKv6.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrrOLX3YUmZvgixyA1rLm3NFPKv6.png"  lazyload></a></p>
+<p>从dig命令结果看DNS解析的过程：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FthRaVVNf224SV7a2Bw9uhkz5cQZ.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FthRaVVNf224SV7a2Bw9uhkz5cQZ.png"  lazyload></a></p>
+<ol>
+<li>向本地DNS服务器地址10.20.0.98（ISP分配，也可以自定义，例如8.8.8.8）发起DNS解析请求；</li>
+<li>（如果本地DNS服务器没有缓存，每一级都可能缓存，下面省略）本地DNS服务器返回13个根域名服务器地址（a~m.root-servers.net.）；</li>
+<li>选择其中一台根域名服务器e.root-servers.net发起请求，返回com域中的NS记录，一般来说是13台主机名和IP（a~m.gtld-servers.net.）；</li>
+<li>选择其中一台d.gtld-servers.net继续请求xunxi.com的DNS，发现xunxi.com这个域有两台权威域名服务器（ns1~ns2.alibabadns.com）；</li>
+<li>选择其中一台ns1.alibabadns.com继续请求，返回了一条CNAME记录et2-eu13.wagbridge.work.alibabacorp.com.；</li>
+</ol>
+<p>可以看到，这条CNAME记录正是在idns上配置的其中一条。</p>
+<p>如果继续对et2-eu13.wagbridge.work.alibabacorp.com这个域名做DNS解析，经过跟上面同样的过程后，最终得到的是另外一条CNAME et2-eu13.wagbridge.work.alibabacorp.com.gds.alibabadns.com。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoGGKZLpLcTTles7TKJi_jaSsQPh.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoGGKZLpLcTTles7TKJi_jaSsQPh.png"  lazyload></a></p>
+<p>继续对新拿到的CNAME域名dig，最终拿到了一条A记录，IP是106.11.248.91。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FneD6g45O4lGviHl_xvLBrIU2yCR.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FneD6g45O4lGviHl_xvLBrIU2yCR.png"  lazyload></a><br>这跟使用ping命令拿到的结果对上了。<br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrZ0TplmHGb4QRT6fDVoGyviUa1b.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrZ0TplmHGb4QRT6fDVoGyviUa1b.png"  lazyload></a></p>
+<h2 id="ADNS"><a href="#ADNS" class="headerlink" title="ADNS"></a>ADNS</h2><p>ADNS是阿里集团自研的高性能权威DNS，提供了分线路智能解析、机房自动&#x2F;手动灾备切换、分机房流量调度等功能。</p>
+<blockquote>
+<p>ADNS的运行原理：业务域名CNAME —&gt; gds域名 —&gt; 解析A记录IP，以上面的DNS解析过程为例，业务域名对应m.xunxi.com，gds域名对应et2-eu13.wagbridge.work.alibabacorp.com.gds.alibabadns.com，ADNS经过解析后最终返回的106.11.248.91就是A记录IP。</p>
+</blockquote>
+<p>ADNS支持两类算法：</p>
+<ul>
+<li>ALL-RR(默认)</li>
+</ul>
+<blockquote>
+<p>权威 DNS每次会返回全部的 A 记录。因为递归缓存后会每次调整所有 A 记录的排列顺序，所以客户端的解析效果就是所有 A 记录轮询（客户端系统一般默认只取 A 记录列表中的第一条作为解析记录）</p>
+</blockquote>
+<ul>
+<li>ratio 算法（按比例解析）</li>
+</ul>
+<blockquote>
+<p>（只针对 A 记录）权威 DNS 按照解析记录的权重值按照概率返回某一条 A 记录。比如域名 a 有三条 A 记录，三条 A 记录的权重值分别为 w1、 w2、 w3，那么权威 DNS 返回第一条 A 记录的概率是 w1&#x2F;(w1+w2+w3)。关于记录的权重值配置的要求是 <strong>每条 A 记录的权重值必须为 1-100 的整数；所有记录的权重值总和加起来不能超过 1000</strong></p>
+</blockquote>
+<p><strong>线路组</strong></p>
+<p>IDNS以国内省份运营商 + 海外国家 的粒度划分了最细粒度的解析线路（view），ADNS 可以根据 DNS 请求源来返回特定线路的解析结果。由于最细粒度的线路(view)太多，为了方便配置，便将这些 view 按照不同的维度和逻辑聚合成线路, 同一批聚合出的线路归为一个线路组。</p>
+<blockquote>
+<p>由于访问权威 DNS 的并不是用户终端，而是递归 DNS ，因此权威 DNS 实际上是根据递归 DNS 的源 IP 归属地而不是终端用户的源 IP 归属地来判断线路的，不过一般用户默认使用的都是当地网络运营商的递归 DNS，所以在大部分场景下也能实现根据用户地域进行调度。</p>
+</blockquote>
+<p><strong>健康检查</strong></p>
+<p>ADNS 支持针对 VIP 的健康检查，当线路中某个 VIP 状态异常时，会停止该 VIP 的解析。检查方式以 TCP_80 为例就是检查目标 VIP 的 80 端口是否能建立 TCP 链接。</p>
+<h1 id="LVS"><a href="#LVS" class="headerlink" title="LVS"></a>LVS</h1><p>DNS解析完成后，请求就来到了VIP（Virtual IP），VIP基于LVS，LVS属于四层负载均衡，工作在OSI模型的传输层（相对应的Nginx属于七层负载均衡，工作在应用层）。网上介绍很多，这里只简单介绍下。</p>
+<p>基于LVS的服务器集群主要由两部分组成，即负载调度器（Load Balancer，简称LB）和真正提供服务的服务器（Real Server，简称RS）。RS对外是不可见的，用户需要通过访问LB来获得服务，所以LB也称为虚拟服务器（Virtual Server）,它对外公开的IP称为VIP（Virtual IP）。</p>
+<p>LB接收到用户的请求后，会根据设置的转发模式和负载均衡调度算法将请求转发给RS，RS再将结果返回给LB或用户（返回给谁跟转发模式有关）。</p>
+<p>相关术语：</p>
+<ul>
+<li>RS：Real Server，处理实际请求的后端服务器节点。</li>
+<li>DS：Director Server，指的是负载均衡器节点，负责接收客户端请求，并转发给RS。</li>
+<li>VIP：Virtual IP address，DS用于和客户端通信的IP地址，作为客户端请求的目标IP地址。</li>
+<li>DIP：Directors IP address，DS用于和内部RS通信的IP地址。</li>
+<li>RIP：Real IP address，后端服务器的IP地址。</li>
+<li>CIP：Client IP address，客户端的IP地址。</li>
+</ul>
+<h2 id="转发模式"><a href="#转发模式" class="headerlink" title="转发模式"></a>转发模式</h2><p>LVS的三种转发模式：</p>
+<ul>
+<li>网络地址转换（NAT，Network Address Translation）</li>
+<li>直接路由（DR，Direct Routing）</li>
+<li>IP隧道（TUN，IP Tunneling）</li>
+</ul>
+<p><strong>NAT</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgkDnH9Sh6M3b96enZYhTyHWE6WO.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgkDnH9Sh6M3b96enZYhTyHWE6WO.png"  lazyload></a></p>
+<p>LVS 修改请求报文的目标地址为 RIP，转发至后端的 RealServer（RS视角：包是客户端直接发过来的），并修改后端响应报文的源地址为 VIP，响应至客户端（客户端视角：包是 LVS 直接返回给它的）。</p>
+<p>LVS-NAT 的特性：</p>
+<ul>
+<li>集群节点跟 Director 必须在同一个 IP 网络中</li>
+<li>RIP 通常是私有地址，仅用于各集群节点间的通信</li>
+<li>Director 位于 client 和 Realserver 之间，负责处理进出的所有报文（<strong>容易成为性能瓶颈</strong>）</li>
+<li>Realserver 必须将网关指向 DIP</li>
+<li>支持端口映射</li>
+</ul>
+<p><strong>DR</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmjlA2yaONvoYhQ3PvJqPctcbDxp.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmjlA2yaONvoYhQ3PvJqPctcbDxp.png"  lazyload></a></p>
+<p>请求报文发送至 Director 的 VIP（Realserver在lo上配置相同VIP但不会响应 ARP 请求，只用于响应客户端请求），Director 将客户端报文的源和目标 MAC 地址进行重新封装，将报文转发至 Realserver，Realserver 接收转发的报文（RS视角：看到的报文MAC和目的IP都是发给它的，感知不到Director存在）。此时报文的源 IP 和目标 IP 都没有被修改，因此 Realserver 接受到的请求报文的目标 IP 地址为本机配置的 VIP，它将使用自己的 VIP 直接响应客户端。</p>
+<p>LVS-DR 的特性：</p>
+<ul>
+<li><p>保证前端路由器将目标地址为 VIP 的报文通过 ARP 解析后送往 Director</p>
+<ul>
+<li><p>静态绑定：在前端路由将 VIP 对应的目标 MAC 地址静态配置为Director VIP 接口的 MAC 地址</p>
+</li>
+<li><p>arptables：在各 Realserver 上，通过 arptables 规则拒绝其响应对 VIP 的 ARP 广播请求</p>
+</li>
+<li><p>修改内核参数：在 Realserver 上修改内核参数，并结合地址的配置方式实现拒绝响应对 VIP 的 ARP 广播请求</p>
+</li>
+</ul>
+</li>
+<li><p>各RIP 必须与 DIP 在同一个物理网络中</p>
+</li>
+<li><p>RS 的 RIP 可以使用私有地址，也可以使用公网地址，以方便配置</p>
+</li>
+<li><p><strong>Director 仅负责处理入站请求，响应报文由 Realserver 直接发往客户端</strong>。这点对性能提升很关键，因为大部分网络请求是请求小，响应大。</p>
+</li>
+<li><p>Realserver 不能将网关指向 DIP，而直接使用前端网关</p>
+</li>
+<li><p>不支持端口映射</p>
+</li>
+</ul>
+<p><strong>TUN</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FvBA5KLYtycv2DBD5DQof9huYxi-.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FvBA5KLYtycv2DBD5DQof9huYxi-.png"  lazyload></a></p>
+<p>和 DR 模型类似，Realserver 都配有不可见的 VIP，Realserver 的 RIP 是公网地址，且可能和 DIP 不再同一网络中。当请求到达 Director 后，Director 不修改请求报文的源 IP 和目标 IP 地址，而是使用 <strong>IP 隧道技术</strong>，使用 DIP 作为源 IP，RIP 作为目标 IP 再次封装此请求报文，转发至 RIP 的 Realserver 上，Realserver 解析报文后仍然使用 VIP 作为源地址响应客户端。</p>
+<p>LVS-TUN 的特性：</p>
+<ul>
+<li>集群节点和可以跨越 Internet</li>
+<li>RIP，DIP，VIP 都是公网地址</li>
+<li>Director 仅负责处理入站请求，响应报文由 Realserver 直接发往客户端</li>
+<li>Realserver 使用自己的网关而不是 Director</li>
+<li>Realserver 只能使用支持隧道功能的操作系统</li>
+<li>不支持端口映射</li>
+</ul>
+<h2 id="调度算法"><a href="#调度算法" class="headerlink" title="调度算法"></a>调度算法</h2><ol>
+<li><p>静态调度</p>
+<ul>
+<li>轮询（round robin）</li>
+<li>加权轮询(weighted round robin)</li>
+<li>源地址哈希（source hash）</li>
+<li>请求地址哈希（destination hash）</li>
+</ul>
+</li>
+<li><p>动态调度</p>
+<ul>
+<li>最少连接（least connted）：动态地将网络请求调度到已建立的链接数最少的服务器上。如果集群系统的真实服务器具有相近的系统性能，采用“最小连接”调度算法可以较好地均衡负载。</li>
+<li>加权最少连接（weighted lc）：具有较高权值的服务器将承受较大比例的活动连接负载。调度器可以自动问询真实服务器的负载情况，并动态地调整其权值。</li>
+<li>基于局部性的最少连接（shortest expected delay）：相当于 目标地址哈希(dh) + 加权最少连接（wlc），正常请求下使用 dh 算法进行调度，如果服务器超载，则使用 wlc 算法调度至其他服务器。</li>
+<li>基于局部性的带复制功能的最少连接（locality based least connection with replication）：与 LBLC 不同的是 LVS 将请求 IP 映射至一个服务池中，使用 dh 算法调度请求至对应的服务池中，使用 lc 算法选择服务池中的节点，当服务池中的所有节点超载，使用 lc 算法从所有后端 Realserver 中选择一个添加至服务池中。</li>
+<li>最短期望延迟（shortest expected delay）：它不对 inactive 状态的连接进行计算，根据 <code>overhead = (active+1)*256/weight</code> 计算服务器负载，选择 overhead 最小的服务器进行调度。</li>
+<li>最少队列（never queue）：当有空闲服务器时，直接调度至空闲服务器，当没有空闲服务器时，使用 SED 算法进行调度。</li>
+</ul>
+</li>
+</ol>
+<h2 id="Ali-LVS"><a href="#Ali-LVS" class="headerlink" title="Ali-LVS"></a>Ali-LVS</h2><p>Ali-LVS在官方LVS的基础上增加了两大特性：SYNPROXY防synflood洪水攻击和FullNAT转发模式。重点看下FullNAT。</p>
+<p>FullNAT: 与NAT不同的是，在FullNAT模式下：</p>
+<ul>
+<li>Director将请求转发给RealServer前会<strong>同时修改报文的目标地址和来源地址，将源IP改成DIP</strong>；</li>
+<li>同时在将响应转发给客户端时，会同时<strong>修改报文的目标地址和来源地址，将目标IP改为CIP</strong>；</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkFnRFcawb6DWgOg5U7chI6gNiOx.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FkFnRFcawb6DWgOg5U7chI6gNiOx.png"  lazyload></a></p>
+<p>这样修改的原因是什么？无论是NAT还是DR模式，<strong>Director和RS必须在同一个VLAN下</strong>。以NAT模式为例，<strong>RS必须将网关指向Director</strong>，这是因为Director需要在返回RS响应包给client前将来源SIP修改成VIP，否则client不认（因为请求是发给VIP的）。如果Director不是网关，因为RS返回响应包时的目标DIP是客户端CIP，可能会导致RS响应包走其他路由，导致Director没有机会修改来源SIP。</p>
+<p>这一限制导致了两个问题：</p>
+<ul>
+<li><p>同一个VLAN的限制导致运维不方便，跨VLAN的RS无法接入。</p>
+</li>
+<li><p>LVS的水平扩展受到制约。当RS水平扩容时，单点LVS会成为瓶颈。</p>
+</li>
+</ul>
+<p>在FullNAT模式下，数据包从Director转到RS的过程中，源地址从客户端IP被替换成了Director的内网IP（CIP —&gt; DIP），同时RS返回的响应包也会发给Director的内网IP。因此Director与RS间的通信就可以走普通的网络通信，可以允许通过中间的交换机来跨VLAN通信，这样就绕开了两者必须在同一VLAN下的部署限制。</p>
+<h1 id="AServer"><a href="#AServer" class="headerlink" title="AServer"></a>AServer</h1><p>统一接入层的真正入口，是一个Tengine运行的web server代理，由它主要负责承担全网用户的http&#x2F;https请求，然后请求转发(proxy_pass)给后端的应用服务器。</p>
+<p>一般常见的接入结构里，一般LVS直接转发给Nginx就可以了，为什么需要AServer这一层做流量转发？主要是为了统一HTTPS证书的维护：</p>
+<blockquote>
+<p>直接原因：全网https项目，需要将所有前端应用的请求协议由http转换成https，由于https涉及到ssl证书，ssl证书以.key和.crt的文件的方式存放在tengine的配置里。而ssl证书每隔若干年就要更新一次，如果采取以前应用流量分流到每个应该单独的vip的方式，将带来海量证书过期的不可维护性。因此集团决定统一https入口。</p>
+</blockquote>
+<p>AServer的基础架构图如下：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsoCnDjAzD1jDGtkYKzcGx0b9GmB.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsoCnDjAzD1jDGtkYKzcGx0b9GmB.png"  lazyload></a></p>
+<ol>
+<li>用户的请求会先到统一接入的VIP；</li>
+<li>统一接入通过HTTP请求的HOST头部来获取此次请求的域名；</li>
+<li>然后查找该域名对应的VIPServer Key；</li>
+<li>然后在使用VIPServer的服务通过VIPServer Key获取对应机器的IP和端口，并转发请求；</li>
+</ol>
+<p><strong>SSL-KeyCenter</strong></p>
+<p>负责密钥的存储、使用、分发、更新等，并提供数据加密解密、签名验签 API。</p>
+<p>提供SSL handshake过程中的私钥服务，Keyserver内存中存储了域名的私钥证书。在统一接入时负责证书的验证。</p>
+<p><strong>Tengine</strong></p>
+<p>Tengine作为统一接入层核心组件之一，主要负责访问流量的代理与转发。Tengine 配置中主要存储了域名的公钥证书、以及业务域名和vipserver key的对应关系。后面会详细介绍。</p>
+<h1 id="VIPServer"><a href="#VIPServer" class="headerlink" title="VIPServer"></a>VIPServer</h1><blockquote>
+<p>VIPServer 是软件负载均衡系统。通过集中式的配置向客户提供路由信息，以非网关的形式实现负载均衡功能；支持多种映射策略；通过健康探测机制，自动剔除不健康的机器，实现集群之间调用的透明化；对调用量、调用方等数据也有一定程度的反馈。</p>
+</blockquote>
+<p>VIPServer是一种软负载均衡。与“硬”负载均衡的最大区别是只作为请求的旁路，负责提供可用服务器信息，客户端与服务器之间P2P直连，请求流量不会真正走VIPServer。原理上有点类似HSF中服务发现用到的ConfigServer，MetaQ中的NameServer等等，相对应的概念是客户端负载均衡和服务端负载均衡。</p>
+<p>在此基础上，VIPServer还提供了实时健康状态检查、域名自动扩缩容、多负载均衡策略、环境隔离等等功能。</p>
+<p>VIPServer最多的应用场景是做服务发现，在接入层、业务层、中间件、数据库都会用到。其中，接入层（Aserver）通过 VIPServer 发现后端可用机器；业务层通过 VIPServer 做服务发现和调用；中间件通过 VIPServer 做环境路由；数据库（corona）则通过 VIPServer 解决 DNS 解析和优雅上、下线问题。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5MmGDMtz_wkKRAd4F7yKGVZt9W.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Ft5MmGDMtz_wkKRAd4F7yKGVZt9W.png"  lazyload></a></p>
+<h1 id="Tengine"><a href="#Tengine" class="headerlink" title="Tengine"></a>Tengine</h1><p>Tengine基于Nginx。属于7层负载均衡。相比LVS性能作为负载均衡的性能稍差，但可以对HTTP报文作分析，做动静分离等各种配置。</p>
+<p>Tengine在Nginx的基础上添加了很多功能模块，比如VIPServer模块实现了对upstream的动态管理功能，Diamond模块支持从Diamond读取配置赋值给变量…更多的模块可以参考官方Wiki。在应用的<code>nginx-proxy.conf</code>文件中能看到很多跟常见Nginx配置不一样的指令，例如<code>eagleeye_traceid_var</code>就是来自Tengine的eagleeye模块，用来插入鹰眼的traceid。</p>
+
+        </div>
+          
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E4%B8%8A%E4%BC%A0%E9%97%AE%E9%A2%98"><span class="top-box-text">上传问题</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%8E%92%E6%9F%A5%E6%AD%A5%E9%AA%A4"><span class="top-box-text">排查步骤</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="top-box-text">解决方案</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%87%A0%E4%B8%AA%E9%97%AE%E9%A2%98"><span class="top-box-text">几个问题</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E6%8E%A5%E5%85%A5%E9%85%8D%E7%BD%AE"><span class="top-box-text">接入配置</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%BB%9F%E4%B8%80%E6%8E%A5%E5%85%A5%E6%9E%B6%E6%9E%84"><span class="top-box-text">统一接入架构</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#DNS%E8%A7%A3%E6%9E%90"><span class="top-box-text">DNS解析</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#DNS%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="top-box-text">DNS基本概念</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%80%E6%AC%A1DNS%E8%A7%A3%E6%9E%90%E8%BF%87%E7%A8%8B"><span class="top-box-text">一次DNS解析过程</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#ADNS"><span class="top-box-text">ADNS</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#LVS"><span class="top-box-text">LVS</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%BD%AC%E5%8F%91%E6%A8%A1%E5%BC%8F"><span class="top-box-text">转发模式</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95"><span class="top-box-text">调度算法</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#Ali-LVS"><span class="top-box-text">Ali-LVS</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#AServer"><span class="top-box-text">AServer</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#VIPServer"><span class="top-box-text">VIPServer</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Tengine"><span class="top-box-text">Tengine</span></a></li></ol>
+        </div>
+          
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2019/08/07/yi-ge-spring-shi-jian-hong-fa-wen-ti-de-ding-wei-guo-cheng/">
+          <h3 class="post-title">
+            下一篇：一个Spring事件触发问题的定位过程
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+
