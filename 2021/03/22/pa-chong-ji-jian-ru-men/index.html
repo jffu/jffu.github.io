@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>爬虫极简入门</title>
+<meta name="keywords" content="爬虫极简入门, jffu&#39;s blog">
+<meta name="description" content="言简意赅说说爬虫。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="爬虫极简入门">
+<meta property="og:description" content="言简意赅说说爬虫。">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">爬虫极简入门</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2021-03-22</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E7%BD%91%E7%BB%9C/">
+              网络
+                
+                  ，
+                
+              </a>
+            
+              <a href="/tags/%E7%88%AC%E8%99%AB/">
+              爬虫
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <p>这是之前周会上分享的内容，算是个爬虫的极简入门。</p>
+<hr>
+<h1 id="爬虫基础"><a href="#爬虫基础" class="headerlink" title="爬虫基础"></a>爬虫基础</h1><p>简单地说，爬虫可以分3步：</p>
+<ol>
+<li>获取网页</li>
+<li>解析提取</li>
+<li>存储数据</li>
+</ol>
+<p>预备知识：</p>
+<ul>
+<li>HTTP</li>
+<li>HTML（JavaScript）</li>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000022633988">浏览器原理</a></li>
+<li>一门编程语言（主流：Python&#x2F;Java）</li>
+</ul>
+<h1 id="爬虫工具"><a href="#爬虫工具" class="headerlink" title="爬虫工具"></a>爬虫工具</h1><p>以比较成熟的Python为例，爬虫过程中根据场景不同会用到不同的工具。</p>
+<h2 id="HTTP请求库"><a href="#HTTP请求库" class="headerlink" title="HTTP请求库"></a>HTTP请求库</h2><p>HTTP请求库一般用熟悉的即可，常见的有：</p>
+<ol>
+<li><code>urllib</code><br>Python内置，不需要额外安装。使用 <code>urllib</code> 的 <code>request</code> 模块 ，可以实现请求发送并得到相应。</li>
+</ol>
+<blockquote>
+<p>urllibPython2中有urllib和urllib2两个版本的库，Python3统一为urllib</p>
+</blockquote>
+<ol start="2">
+<li><code>requests</code><br>相比urllib功能更加强大，使用上更加简单，容易理解和阅读。</li>
+<li><code>aiohttp</code><br><code>urllib</code>和<code>requests</code>都是阻塞式的HTTP请求库，<code>aiphttp</code>提供异步接口，借助Python的<code>async/wait</code>机制实现，适合对性能有要求的场景。</li>
+</ol>
+<h2 id="解析库"><a href="#解析库" class="headerlink" title="解析库"></a>解析库</h2><p>对于json内容可以直接用内置的json模块解析，对于一些简单的页面也可以直接使用内置的re模块进行正式表达式解析。</p>
+<p>对于最常见的HTML页面，常用库：</p>
+<ol>
+<li><code>lxml</code><br>lxml 是 Python 的一个解析库 ， 支持 HTML 和 XML 的解析，支持<code>XPath</code>解析方式，解析效率非常高 。<br>参考官网介绍：</li>
+</ol>
+<blockquote>
+<p>lxml is the most feature-rich and easy-to-use library for processing XML and HTML in the Python language.</p>
+<p>XPath，全称 XML Path Language，XML 路径语言，是一门在 XML 文档中查找信息的语言 。</p>
+<p><a target="_blank" rel="noopener" href="https://www.w3school.com.cn/xpath/index.asp">教程</a></p>
+</blockquote>
+<ol start="2">
+<li><code>BeautifulSoup</code><br><code>BeautifulSoup</code>是 Python 的一个 HTML&#x2F;XML解析库，可以用它来方便地从网页中提取数据 。 BeautifulSoup支持多种解析器，包括<code>lxml</code>。</li>
+</ol>
+<blockquote>
+<p>BeautifulSoup提供一些简单的、 Python 式的函数来处理导航、搜索、修改分析树等功能 。 它是一个工具箱，通过解析文档为用户提供需要#.取的数据，因为简单，所以不需要多少代 码就可以写出一个完整的应用程序 。</p>
+</blockquote>
+<ol start="3">
+<li><code>pyquery</code><br>适合喜欢用CSS选择器，了解jQuery的同学。</li>
+</ol>
+<h2 id="存储库"><a href="#存储库" class="headerlink" title="存储库"></a>存储库</h2><p>爬虫爬到的数据解析后最终需要进行持久化存储，抛开简单的文本存储（csv、Excel等等）外，Python对主流的数据库都提供了很好的支持，例如：</p>
+<ul>
+<li>MySQL：PyMySQL，更高级别的ORM框架<font style="color:#666666;">SQLAlchemy</font></li>
+<li>Reids：redis-py</li>
+<li>MongoDB：PyMongo</li>
+</ul>
+<h2 id="爬虫框架"><a href="#爬虫框架" class="headerlink" title="爬虫框架"></a>爬虫框架</h2><p>实际应用时，一般使用爬虫框架来实现抓取、解析等模块功能。使用爬虫框架不必关心爬虫的全部流程，异常处理、任务调度等 都会集成在框架中。 我们只需要关心爬虫的核心逻辑部分即可，如页面信息的提取、下一步请求的生成等。</p>
+<p>爬虫框架提供的：</p>
+<ol>
+<li>URL管理，URL去重</li>
+<li>多线程抓取，线程池管理</li>
+<li>代理</li>
+<li>指定cookie</li>
+<li>集成网页解析器</li>
+<li>广度遍历或者深度遍历抓取</li>
+</ol>
+<p>常用的Python爬虫框架有Scrapy、pyspider等。</p>
+<ul>
+<li>Scrapy功能非常强大，爬取效率高，相关扩展组件多，可配置和可扩展程度非常高，几乎可以应对所有反爬网站，是目前 Python 中使用最广泛的爬虫框架 。</li>
+<li>pyspider带有强大的 WebUI、脚本编辑器、任务监控器、项目管理器以及结果处理器，它支持多<br>种数据库后端 、 多种消息队列、 JavaScript渲染页面的爬取，使用起来非常方便 。</li>
+</ul>
+<p>总体来说，pyspider使用和调试更加简单，而Scrapy功能更加强大。两者的比较：</p>
+<ul>
+<li>pyspider提供 了 WebUI，爬虫的编写、调试都是在 WebUI 中进行的 。 而 Scrapy原生不具备这个功能，它采用的是代码和命令行操作，但可以通过对接 Portia实现可视化配置。</li>
+<li>pyspider调试非常方便 ，WebUI操作便捷直观。Scrapy则是使用 parse命令进行调试，方便程度不及pyspider。</li>
+<li>pyspider支持 PhantomJS（无界面浏览器）来进行 JavaScript谊染页面的采集 。 Scrapy可以对接 Scrapy-Splash组件，这需要额外配置 。</li>
+<li>pyspider中内置了 pyquery作为选择器。 Scrapy对接了 XPath、 css选择器和正则匹配。</li>
+<li>pyspider 的可扩展程度不足，可配制化程度不高 。 Scrapy 可以通过对接 Middleware、 Pipeline、 Extension等组件实现非常强大的功能， 模块之间的稠合程度低，可扩展程度极高 。</li>
+</ul>
+<blockquote>
+<p>另一个对比</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>语言</th>
+<th>插件</th>
+<th>上手难度</th>
+<th>支持分布式</th>
+<th>支持JS页面抓取</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Nutch</td>
+<td>Java</td>
+<td>支持，开发复杂</td>
+<td>高</td>
+<td>支持</td>
+<td>不支持</td>
+<td>专门为搜索引擎设计</td>
+</tr>
+<tr>
+<td>Crawler4j</td>
+<td>Java</td>
+<td>不支持</td>
+<td>低</td>
+<td>不支持</td>
+<td>不支持</td>
+<td>简单</td>
+</tr>
+<tr>
+<td>WebMagic</td>
+<td>Java</td>
+<td>支持</td>
+<td>低</td>
+<td>不支持</td>
+<td>不支持</td>
+<td>scrapy的Java版本</td>
+</tr>
+<tr>
+<td>WebCollector</td>
+<td>Java</td>
+<td>支持</td>
+<td>低</td>
+<td>不支持</td>
+<td>支持</td>
+<td>内置selenium</td>
+</tr>
+<tr>
+<td>Heritrix</td>
+<td>Java</td>
+<td>支持</td>
+<td>低</td>
+<td>不支持</td>
+<td>不支持</td>
+<td>扩展性较好</td>
+</tr>
+<tr>
+<td>scrapy</td>
+<td>python</td>
+<td>支持</td>
+<td>低</td>
+<td>扩展可支持</td>
+<td>不支持</td>
+<td>扩展性强</td>
+</tr>
+<tr>
+<td>pyspider</td>
+<td>python</td>
+<td>支持</td>
+<td>低</td>
+<td>支持</td>
+<td>支持</td>
+<td>强大的爬虫管理和监控</td>
+</tr>
+</tbody></table>
+<h2 id="其他工具"><a href="#其他工具" class="headerlink" title="其他工具"></a>其他工具</h2><h3 id="浏览器自动化测试模拟"><a href="#浏览器自动化测试模拟" class="headerlink" title="浏览器自动化测试模拟"></a>浏览器自动化测试模拟</h3><p>浏览器自动化模拟的适用场景：</p>
+<ol>
+<li>页面适用JS动态渲染，通过XHR请求很难解析数据。这时候直接模拟浏览器抓取得到最终渲染后的源码，不用关心网页内部的渲染逻辑，做可见即可爬。</li>
+<li>某些数据需要页面交互，例如点击、下拉，滑动等，可以使用自动化工具进行模拟。</li>
+</ol>
+<p>Python中这类工具库有Selenium、 Playwright、Splash、 PyV8、Ghost 等等。</p>
+<p>由于需要驱动特定的浏览器，因此在使用前还需要安装对应浏览器的Driver，例如Chrome对应ChromeDriver，FireFox对应GeckoDriver。</p>
+<h3 id="验证码分析"><a href="#验证码分析" class="headerlink" title="验证码分析"></a>验证码分析</h3><p>对于不同的验证码，需要采取不同的策略识别。对于常见的图形验证码，可以使用OCR技术识别，在Python中可以使用tesserocr、pytesseract等。对于一些复杂的图形验证码，可能还需要先进行二值化和降噪处理。</p>
+<h3 id="代理"><a href="#代理" class="headerlink" title="代理"></a>代理</h3><p>一些网站会对请求IP采取限流措施来反爬，这时候需要用到代理IP池，在请求时通过代理IP访问目标网站，绕开IP限制。urllib、requests、Selenium等常见库都支持设置代理。</p>
+<ul>
+<li>使用代理时，一般需要设置一个代理IP池，因为单一代理IP同样会被封。</li>
+<li>由于代理提供的IP可能不稳定，或者IP被其他人用来爬取目标网站而被封禁，因此需要有IP健康检查机制。</li>
+</ul>
+<blockquote>
+<p>参考VIPServer，爬虫应用在请求前向ProxyServer获取可用代理IP列表，使用随机&#x2F;轮询等方式获取一个IP作为代理访问；ProxyServer内部可以使用Redis等保存IP池，并设置健康检查策略。</p>
+</blockquote>
+<ul>
+<li>免费代理不太稳定，有条件的话上付费代理。</li>
+</ul>
+<p>同代理IP池一样，网站可能会针对账号粒度进行反爬保护，这时候就需要用到<strong>Cookie池</strong>。</p>
+<h3 id="抓包工具"><a href="#抓包工具" class="headerlink" title="抓包工具"></a>抓包工具</h3><p>对于App的爬取，不像Web页面一样可以通过浏览器的开发者工具监听请求和响应，要查看网络请求内容需要借助抓包工具。在抓到数据包后，后面的解析跟Web端是一致的。</p>
+<p>常用的抓包工具有：WireShark、Filddler、Charles、 mitmproxy、 AnyProxy 等。</p>
+<h3 id="App自动化测试模拟"><a href="#App自动化测试模拟" class="headerlink" title="App自动化测试模拟"></a>App自动化测试模拟</h3><p>类似于Web端的Selenium，移动端也有成熟的自动化工具，来进行自动化测试模拟。例如Appium提供的特性：</p>
+<ul>
+<li>支持iOS和Android；</li>
+<li>参考官网，它支持native, <a target="_blank" rel="noopener" href="http://appium.io/docs/en/writing-running-appium/web/hybrid/">hybrid</a>  mobile web apps</li>
+<li>可以模拟 App 内部的各种操作，如点击、滑动、文本输入等；</li>
+</ul>
+<h3 id="Web库"><a href="#Web库" class="headerlink" title="Web库"></a>Web库</h3><p>搭建代理IP池、Cookie池等场景，需要借助于一个Server提供API给爬虫应用调用，这时候就需要搭建一个Web服务应用。</p>
+<p>Python中的Web库常用的有Flask、Django、Tornado 等。</p>
+<h1 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h1><h2 id="爬取猫眼电影Top100，存到MySQL"><a href="#爬取猫眼电影Top100，存到MySQL" class="headerlink" title="爬取猫眼电影Top100，存到MySQL"></a>爬取猫眼电影Top100，存到MySQL</h2><blockquote>
+<p>猫眼电影Top100网址：<a target="_blank" rel="noopener" href="https://maoyan.com/board/4">https://maoyan.com/board/4</a></p>
+</blockquote>
+<p>这是一个静态页面，适合入门爬虫。</p>
+<ol>
+<li>打开页面，直接查看源代码或者检查元素；</li>
+<li>可以发现数据嵌在html标签中，如图：</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FvDpbGRJlogGY4zPQKKiyKDY2VUX.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FvDpbGRJlogGY4zPQKKiyKDY2VUX.png"  lazyload></a></p>
+<ol start="3">
+<li>使用html解析工具找到并解析对应html标签就能获取所需数据；</li>
+</ol>
+<p><strong>爬取流程：</strong></p>
+<ol>
+<li>使用requests构造和发送get请求，获取html源码；</li>
+<li>使用lxml和BeautifulSoup两个库作为示例，解析html转换成目标数据；</li>
+<li>获取目标数据后，插入到MySQL数据库中，使用SQLAlchemy框架。</li>
+</ol>
+<p><strong>主体代码：</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">from</span> bs4 <span class="keyword">import</span> BeautifulSoup</span><br><span class="line"><span class="keyword">from</span> lxml <span class="keyword">import</span> etree</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> maoyan.movie <span class="keyword">import</span> Movie</span><br><span class="line"><span class="keyword">from</span> maoyan.movie <span class="keyword">import</span> insert</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_one_page_html</span>(<span class="params">url</span>):</span><br><span class="line">    <span class="comment"># 一般爬虫都需要设置ua请求头</span></span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">&#x27;user-agent&#x27;</span>: <span class="string">&#x27;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) &#x27;</span></span><br><span class="line">                      <span class="string">&#x27;Chrome/77.0.3865.90 Safari/537.36 &#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 使用requests</span></span><br><span class="line">    response = requests.get(url, headers=headers)</span><br><span class="line">    <span class="keyword">if</span> response.status_code == <span class="number">200</span>:</span><br><span class="line">        <span class="keyword">return</span> response.text</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">parse_html_by_xpath</span>(<span class="params">html</span>):</span><br><span class="line">    movie_list = []</span><br><span class="line">    tree = etree.HTML(html)</span><br><span class="line">    <span class="keyword">for</span> dd <span class="keyword">in</span> tree.xpath(<span class="string">&#x27;//dl[@class=&quot;board-wrapper&quot;]/dd&#x27;</span>):</span><br><span class="line">        rank = dd.xpath(<span class="string">&#x27;i/text()&#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        poster = dd.xpath(<span class="string">&#x27;a/img[@class=&quot;board-img&quot;]/@data-src&#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        movie_item_info = dd.xpath(</span><br><span class="line">            <span class="string">&#x27;div[@class=&quot;board-item-main&quot;]/div[@class=&quot;board-item-content&quot;]/div[@class=&quot;movie-item-info&quot;]&#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        name = movie_item_info.xpath(<span class="string">&#x27;p[@class=&quot;name&quot;]/a/text()&#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        actors = movie_item_info.xpath(<span class="string">&#x27;p[@class=&quot;star&quot;]/text()&#x27;</span>)[<span class="number">0</span>].strip()</span><br><span class="line">        release_time = movie_item_info.xpath(<span class="string">&#x27;p[@class=&quot;releasetime&quot;]/text()&#x27;</span>)[<span class="number">0</span>].strip()</span><br><span class="line">        score = <span class="string">&#x27;&#x27;</span>.join(dd.xpath(<span class="string">&#x27;.//p[@class=&quot;score&quot;]/i/text()&#x27;</span>))</span><br><span class="line">        movie = Movie(name=name, poster=poster, actors=actors, release_time=release_time, rank=rank, score=score)</span><br><span class="line">        <span class="built_in">print</span>(movie)</span><br><span class="line">        movie_list.append(movie)</span><br><span class="line">    <span class="keyword">return</span> movie_list</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">parse_html_by_bs</span>(<span class="params">html</span>):</span><br><span class="line">    movie_list = []</span><br><span class="line">    soup = BeautifulSoup(html, <span class="string">&#x27;lxml&#x27;</span>)</span><br><span class="line">    content = soup.find(name=<span class="string">&#x27;dl&#x27;</span>, class_=<span class="string">&#x27;board-wrapper&#x27;</span>)</span><br><span class="line">    <span class="keyword">for</span> dd <span class="keyword">in</span> content.find_all(name=<span class="string">&#x27;dd&#x27;</span>):</span><br><span class="line">        movie_item_info = dd.find(class_=<span class="string">&#x27;movie-item-info&#x27;</span>)</span><br><span class="line">        name = movie_item_info.find(class_=<span class="string">&#x27;name&#x27;</span>).a.string</span><br><span class="line">        poster = dd.find(class_=<span class="string">&#x27;board-img&#x27;</span>).attrs[<span class="string">&#x27;data-src&#x27;</span>]</span><br><span class="line">        actors = movie_item_info.find(class_=<span class="string">&#x27;star&#x27;</span>).string.strip()</span><br><span class="line">        actors = strip_prefix(actors, <span class="string">&#x27;主演：&#x27;</span>)</span><br><span class="line">        release_time = movie_item_info.find(class_=<span class="string">&#x27;releasetime&#x27;</span>).string.strip()</span><br><span class="line">        release_time = strip_prefix(release_time, <span class="string">&#x27;上映时间：&#x27;</span>)</span><br><span class="line">        rank = dd.i.string</span><br><span class="line">        score = dd.find(class_=<span class="string">&#x27;score&#x27;</span>).find(class_=<span class="string">&#x27;integer&#x27;</span>).string + \</span><br><span class="line">                dd.find(class_=<span class="string">&#x27;score&#x27;</span>).find(class_=<span class="string">&#x27;fraction&#x27;</span>).string</span><br><span class="line">        movie = Movie(name=name, poster=poster, actors=actors, release_time=release_time, rank=rank, score=score)</span><br><span class="line">        <span class="built_in">print</span>(movie)</span><br><span class="line">        movie_list.append(movie)</span><br><span class="line">    <span class="keyword">return</span> movie_list</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">strip_prefix</span>(<span class="params">val: <span class="built_in">str</span>, prefix: <span class="built_in">str</span></span>) -&gt; <span class="built_in">str</span>:</span><br><span class="line">    <span class="keyword">if</span> val.startswith(prefix):</span><br><span class="line">        <span class="keyword">return</span> val[<span class="built_in">len</span>(prefix):]</span><br><span class="line">    <span class="keyword">return</span> val</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    <span class="comment"># 爬取前十页，每页十条</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">        <span class="comment"># 获取html源码</span></span><br><span class="line">        html = get_one_page_html(<span class="string">&#x27;https://maoyan.com/board/4?offset=&#x27;</span> + <span class="built_in">str</span>(i * <span class="number">10</span>))</span><br><span class="line">        <span class="comment"># 使用bs库/xpath解析html</span></span><br><span class="line">        movies = parse_html_by_bs(html)</span><br><span class="line">        <span class="comment"># movies = parse_html_by_xpath(html)</span></span><br><span class="line">        <span class="comment"># 插入mysql数据库</span></span><br><span class="line">        insert(movies)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    main()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="爬取头条图片"><a href="#爬取头条图片" class="headerlink" title="爬取头条图片"></a>爬取头条图片</h2><blockquote>
+<p>今日头条PC端入口：<a target="_blank" rel="noopener" href="https://www.toutiao.com/">https://www.toutiao.com/</a></p>
+</blockquote>
+<ol>
+<li>动态页面，通过Ajax动态获取数据。</li>
+<li>在搜索是查看Network，就能找到发送的对应请求，如图：</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoB_KVdakmgDvgFnEH1hclK6mSpd.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FoB_KVdakmgDvgFnEH1hclK6mSpd.png"  lazyload></a></p>
+<p><strong>爬取流程：</strong></p>
+<ol>
+<li>构造关键词，模拟发送Ajax请求；</li>
+<li>从返回的json结构体响应中解析所需要的结果，需要做数据过滤；</li>
+</ol>
+<p><strong>主体代码：</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> _md5 <span class="keyword">import</span> md5</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> urlencode</span><br><span class="line"><span class="keyword">from</span> base.exception <span class="keyword">import</span> RequestException</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_one_page_json</span>(<span class="params">offset: <span class="built_in">int</span>, keyword: <span class="built_in">str</span></span>) -&gt; <span class="built_in">dict</span>:</span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">&#x27;user-agent&#x27;</span>: <span class="string">&#x27;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) &#x27;</span></span><br><span class="line">                      <span class="string">&#x27;Chrome/77.0.3865.90 Safari/537.36 &#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;Host&#x27;</span>: <span class="string">&#x27;www.toutiao.com&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;x-requested-with&#x27;</span>: <span class="string">&#x27;XMLHttpRequest&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;cookie&#x27;</span>: <span class="string">&#x27;tt_webid=6748670390023194115; s_v_web_id=21c9f4352d78aac76ea2f44bcb4773b9; WEATHER_CITY=%E5%8C%97%E4%BA%AC; tt_webid=6748670390023194115; csrftoken=f2b6aea0da6433d39a2a564eb85db8e9&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># aid=24&amp;app_name=web_search&amp;offset=0&amp;format=json&amp;keyword=%E7%BE%8E%E5%9B%BE&amp;autoload=true&amp;count=20&amp;en_qc=1&amp;cur_tab=1&amp;from=search_tab&amp;pd=synthesis&amp;timestamp=1573464147315</span></span><br><span class="line">    params = &#123;<span class="string">&#x27;aid&#x27;</span>: <span class="string">&#x27;24&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;app_name&#x27;</span>: <span class="string">&#x27;web_search&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;offset&#x27;</span>: offset,</span><br><span class="line">              <span class="string">&#x27;format&#x27;</span>: <span class="string">&#x27;json&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;keyword&#x27;</span>: keyword,</span><br><span class="line">              <span class="string">&#x27;autoload&#x27;</span>: <span class="string">&#x27;true&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;count&#x27;</span>: <span class="string">&#x27;20&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;en_qc&#x27;</span>: <span class="string">&#x27;1&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;cur_tab&#x27;</span>: <span class="string">&#x27;1&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;from&#x27;</span>: <span class="string">&#x27;search_tab&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;pd&#x27;</span>: <span class="string">&#x27;synthesis&#x27;</span>,</span><br><span class="line">              <span class="string">&#x27;timestamp&#x27;</span>: <span class="built_in">int</span>(<span class="built_in">round</span>(time.time() * <span class="number">1000</span>))</span><br><span class="line">              &#125;</span><br><span class="line"></span><br><span class="line">    url = <span class="string">&#x27;https://www.toutiao.com/api/search/content/?&#x27;</span> + urlencode(params)</span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line"></span><br><span class="line">    response = requests.get(url, headers=headers)</span><br><span class="line">    <span class="built_in">print</span>(response.json())</span><br><span class="line">    <span class="keyword">if</span> response.status_code == <span class="number">200</span>:</span><br><span class="line">        <span class="keyword">return</span> response.json()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">raise</span> RequestException(response)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_images_from_data</span>(<span class="params">response: <span class="built_in">dict</span></span>) -&gt; <span class="built_in">dict</span>:</span><br><span class="line">    images = &#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> d <span class="keyword">in</span> response[<span class="string">&#x27;data&#x27;</span>]:</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;title&#x27;</span> <span class="keyword">in</span> d.keys() <span class="keyword">and</span> <span class="string">&#x27;large_image_url&#x27;</span> <span class="keyword">in</span> d.keys():</span><br><span class="line">            title = d[<span class="string">&#x27;title&#x27;</span>]</span><br><span class="line">            large_image_url = d[<span class="string">&#x27;large_image_url&#x27;</span>]</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">len</span>(large_image_url.strip()) &gt; <span class="number">0</span>:</span><br><span class="line">                images[title] = large_image_url</span><br><span class="line">    <span class="keyword">return</span> images</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">save_images</span>(<span class="params">path: <span class="built_in">str</span>, images: <span class="built_in">dict</span></span>):</span><br><span class="line">    <span class="keyword">for</span> title, img_url <span class="keyword">in</span> images.items():</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            response = requests.get(img_url)</span><br><span class="line">            <span class="keyword">if</span> response.status_code == <span class="number">200</span>:</span><br><span class="line">                file_name = <span class="string">&#x27;&#123;0&#125;.&#123;1&#125;&#x27;</span>.<span class="built_in">format</span>(md5(response.content).hexdigest(), <span class="string">&#x27;jpg&#x27;</span>)</span><br><span class="line">                file_path = os.path.join(path, file_name)</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(file_path):</span><br><span class="line">                    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;wb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">                        <span class="built_in">print</span>(<span class="string">&#x27;Save image, title=&#x27;</span> + title)</span><br><span class="line">                        f.write(response.content)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&#x27;Failed to fetch image file, response code: &#x27;</span> + <span class="built_in">str</span>(response.status_code))</span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&#x27;Failed to fetch image file, title: %s, img_url: %s, exception: &#x27;</span> % (title, img_url), e)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    keyword = <span class="string">&#x27;美图&#x27;</span></span><br><span class="line">    <span class="keyword">for</span> n <span class="keyword">in</span> [i * <span class="number">20</span> <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">5</span>)]:</span><br><span class="line">        data = get_one_page_json(n, keyword)</span><br><span class="line">        images = get_images_from_data(data)</span><br><span class="line">        save_images(<span class="string">&#x27;/work/tmp/toutiao&#x27;</span>, images)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    main()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="使用自动化模拟工具爬取"><a href="#使用自动化模拟工具爬取" class="headerlink" title="使用自动化模拟工具爬取"></a>使用自动化模拟工具爬取</h2><p>像selenium一类的工具支持模拟浏览器动作（不过我更喜欢Playwright），例如：</p>
+<ol>
+<li>定位页面元素</li>
+<li>模拟鼠标操作：单击、右击、双击、拖动等</li>
+<li>模拟键盘操作：输入、确认、拷贝、粘贴等</li>
+<li>切换窗口、页面等待，等等</li>
+<li>执行JavaScript脚本</li>
+</ol>
+<p>一些动态页面，单纯通过抓取Ajax请求很难解析出所需数据，一些网站并不会直接返回json响应。例如：</p>
+<ul>
+<li>微博：返回html代码，通过js渲染生成最终页面</li>
+<li>淘宝：搜索结果页面使用一种独特的加载数据的方式，既不是直接的HTML，也不是通过请求JSON数据，而是把数据放在JavaScript代码里面。</li>
+</ul>
+<p>可以通过selenium模拟浏览器行为，直接抓取渲染后的页面源码，即“可见即可爬”。</p>
+<p>示例1：模拟百度搜索</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line"><span class="keyword">from</span> selenium . webdriver.common.by <span class="keyword">import</span> By</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver.common.keys <span class="keyword">import</span> Keys</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver.support.wait <span class="keyword">import</span> WebDriverWait</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver.support <span class="keyword">import</span> expected_conditions <span class="keyword">as</span> EC</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    browser = webdriver.Chrome()</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        browser.get(<span class="string">&#x27;https://www.baidu.com&#x27;</span>)</span><br><span class="line">        <span class="built_in">input</span> = browser.find_element_by_id(<span class="string">&#x27;kw&#x27;</span>)</span><br><span class="line">        <span class="built_in">input</span>.send_keys(<span class="string">&#x27;Python&#x27;</span>)</span><br><span class="line">        <span class="built_in">input</span>.send_keys(Keys.ENTER)</span><br><span class="line">        wait = WebDriverWait(browser, <span class="number">10</span>)</span><br><span class="line">        wait.until(EC.presence_of_element_located((By.ID, <span class="string">&#x27;content_left&#x27;</span>)))</span><br><span class="line">        <span class="built_in">print</span>(browser.current_url)</span><br><span class="line">        <span class="built_in">print</span>(browser.get_cookies())</span><br><span class="line">        <span class="built_in">print</span>(browser.page_source)</span><br><span class="line">    <span class="keyword">finally</span>:</span><br><span class="line">        browser.close()</span><br></pre></td></tr></table></figure>
+
+
+
+<p>示例二：模拟淘宝商品搜索</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    browser = webdriver.Chrome()</span><br><span class="line">    browser.get(<span class="string">&#x27;https://www.taobao.com&#x27;</span>)</span><br><span class="line">    search_input = browser.find_element_by_id(<span class="string">&#x27;q&#x27;</span>)</span><br><span class="line">    search_input.send_keys(<span class="string">&#x27;iPhone&#x27;</span>)</span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    search_input.clear()</span><br><span class="line">    search_input.send_keys(<span class="string">&#x27;iPad&#x27;</span>)</span><br><span class="line">    button = browser.find_element_by_class_name(<span class="string">&#x27;btn-search&#x27;</span>)</span><br><span class="line">    button.click()</span><br><span class="line">    browser.close()</span><br></pre></td></tr></table></figure>
+
+
+
+<p>示例三：模拟动作行为</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> selenium.webdriver <span class="keyword">import</span> ActionChains</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver <span class="keyword">import</span> ChromeOptions</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver <span class="keyword">import</span> Chrome</span><br><span class="line"></span><br><span class="line">option = ChromeOptions()</span><br><span class="line">option.add_experimental_option(<span class="string">&#x27;excludeSwitches&#x27;</span>, [<span class="string">&#x27;enable-automation&#x27;</span>])</span><br><span class="line">browser = Chrome(options=option)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">drag_and_drop</span>():</span><br><span class="line">    url = <span class="string">&#x27;http://www.runoob.com/try/try.php?filename=jqueryui-api-droppable&#x27;</span></span><br><span class="line">    browser.get(url)</span><br><span class="line">    <span class="comment"># NOTE：需要切换到iframe中操作</span></span><br><span class="line">    browser.switch_to.frame(<span class="string">&#x27;iframeResult&#x27;</span>)</span><br><span class="line">    source = browser.find_element_by_id(<span class="string">&#x27;draggable&#x27;</span>)</span><br><span class="line">    target = browser.find_element_by_id(<span class="string">&#x27;droppable&#x27;</span>)</span><br><span class="line">    actions = ActionChains(browser)</span><br><span class="line">    actions.drag_and_drop(source, target)</span><br><span class="line">    actions.perform()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">scroll</span>():</span><br><span class="line">    url = <span class="string">&#x27;https://www.zhihu.com/explore&#x27;</span></span><br><span class="line">    browser.get(url)</span><br><span class="line">    browser.execute_script(<span class="string">&#x27;window.scrollTo(0, document.body.scrollHeight)&#x27;</span>)</span><br><span class="line">    browser.execute_script(<span class="string">&#x27;alert(&quot;To Bottom&quot;)&#x27;</span>)</span><br><span class="line">    time.sleep(<span class="number">30</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">open_window</span>():</span><br><span class="line">    browser.get(<span class="string">&#x27;https://www.baidu.com&#x27;</span>)</span><br><span class="line">    browser.execute_script(<span class="string">&#x27;window.open()&#x27;</span>)</span><br><span class="line">    <span class="built_in">print</span>(browser.window_handles)</span><br><span class="line">    browser.switch_to.window(browser.window_handles[<span class="number">1</span>])</span><br><span class="line">    browser.get(<span class="string">&#x27;https://www.taoboa.com&#x27;</span>)</span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    browser.switch_to.window(browser.window_handles[<span class="number">0</span>])</span><br><span class="line">    browser.get(<span class="string">&#x27;https://www.xunxi.com&#x27;</span>)</span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="comment"># scroll()</span></span><br><span class="line">    open_window()</span><br><span class="line">    browser.close()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="爬取钉钉小程序"><a href="#爬取钉钉小程序" class="headerlink" title="爬取钉钉小程序"></a>爬取钉钉小程序</h2><p>以使用Charles爬取应用为例。</p>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/6844904128104103943">准备工作</a>：在MAC上安装并配置Charles，手机设置Charles代理，并配置好SSL证书；</li>
+<li>在手机端打开犀有应用；</li>
+<li>在Charles上监听到HTTP请求如下：</li>
+</ol>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fu7_bUrw677FHKnWh3KFvJP0YJvu.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fu7_bUrw677FHKnWh3KFvJP0YJvu.png"  lazyload></a></p>
+<p>另一种方法是使用mitmproxy，配置略过，仅作示例。</p>
+<p>​					 				 			 		 	</p>
+<blockquote>
+<p>启动方式：mitmproxy –set block_global&#x3D;false 或者 mitmdump –set block_global&#x3D;false</p>
+<p>启动并执行Python脚本：mitmdump –set block_global&#x3D;false -s &#x2F;Users&#x2F;jffu&#x2F;work&#x2F;other&#x2F;py-tools&#x2F;spider&#x2F;app&#x2F;mimproxy.py</p>
+</blockquote>
+<p>测试脚本：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> mitmproxy <span class="keyword">import</span> ctx</span><br><span class="line"><span class="keyword">from</span> mitmproxy.http <span class="keyword">import</span> HTTPFlow</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">flow: HTTPFlow</span>):</span><br><span class="line">    req = flow.request</span><br><span class="line">    resp = flow.response</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">str</span>(req.host).startswith(<span class="string">&#x27;m.xunxi.com&#x27;</span>):</span><br><span class="line">        ctx.log.error(<span class="built_in">str</span>(req.host))</span><br><span class="line">        ctx.log.error(<span class="built_in">str</span>(req.headers))</span><br><span class="line">        ctx.log.error(<span class="built_in">str</span>(resp.status_code))</span><br><span class="line">        ctx.log.error(resp.text)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>另一个爬取京东商品信息和评论的示例：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fs3ydXmcVP_sOM8K0PF42dHXcVSq.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fs3ydXmcVP_sOM8K0PF42dHXcVSq.png"  lazyload></a></p>
+<h1 id="反爬"><a href="#反爬" class="headerlink" title="反爬"></a>反爬</h1><p>爬虫和反爬虫的攻防战在互联网的战场上永远不会停止。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsq1EB63gYGgeBeJceNI9aqT3Cx_.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fsq1EB63gYGgeBeJceNI9aqT3Cx_.png"  lazyload></a></p>
+<h2 id="验证码"><a href="#验证码" class="headerlink" title="验证码"></a>验证码</h2><p>验证码是最常见的反爬虫手段。</p>
+<ul>
+<li>简单的数字字母验证码可以通过OCR或者OpenCV等机器学习手段识别，识别率可以达到50%+。</li>
+<li>滑块类型验证码需要借助selenium等自动化测试工具，首先通过图像识别技术识别出滑动位置，然后模拟人类滑动行为操作。</li>
+<li>其他更加复杂的验证码需要通过结合图像识别、机器学习等多种技术手段来识别。也可以提交到专门的打码平台，打码平台提供验证码识别api。（对复杂的验证码，打码平台内部会进行人工打码。依据验证码的复杂度，打码工人平均每码收1-2分钱）成本比较低。例如<a target="_blank" rel="noopener" href="https://www.chaojiying.com/">https://www.chaojiying.com/</a>。</li>
+</ul>
+<blockquote>
+<p>参考：<a target="_blank" rel="noopener" href="http://www.geetest.com/">http://www.geetest.com/</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/178132">简述传统图片验证码识别的两种方式</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.atatech.org/articles/187289">爬虫常见的技术难点一-图片验证码</a></p>
+</blockquote>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrBd-0Mk9W_3tHYZf5gLV5M72itl.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrBd-0Mk9W_3tHYZf5gLV5M72itl.png"  lazyload></a></p>
+<p>简单验证码的识别demo。借助tesserocr通过OCR手段识别。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span> _md5 <span class="keyword">import</span> md5</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> tesserocr</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> base.exception <span class="keyword">import</span> RequestException</span><br><span class="line"></span><br><span class="line">cnki_code_url = <span class="string">&#x27;http://my.cnki.net/elibregister/CheckCode.aspx&#x27;</span></span><br><span class="line">sina_code_url = <span class="string">&#x27;https://login.sina.com.cn/cgi/pin.php?r=9967937&amp;s=0&amp;p=gz-d0dc363f6a4523cbd602a5a10f00c59b4784&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_code_image_from_url</span>(<span class="params">i, url</span>):</span><br><span class="line">    response = requests.get(url)</span><br><span class="line">    <span class="keyword">if</span> response.status_code == <span class="number">200</span>:</span><br><span class="line">        file_name = <span class="string">&#x27;&#123;0&#125;.&#123;1&#125;.&#123;2&#125;&#x27;</span>.<span class="built_in">format</span>(i, md5(response.content).hexdigest(), <span class="string">&#x27;jpg&#x27;</span>)</span><br><span class="line">        file_path = os.path.join(path, file_name)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(file_path):</span><br><span class="line">            <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;wb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">                f.write(response.content)</span><br><span class="line">        <span class="keyword">return</span> file_path</span><br><span class="line">    <span class="keyword">raise</span> RequestException(response)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">convert_image</span>(<span class="params">image: Image.Image</span>) -&gt; Image.Image:</span><br><span class="line">    <span class="comment"># 设置二值化阈值</span></span><br><span class="line">    threshold = <span class="number">140</span></span><br><span class="line">    table = []</span><br><span class="line">    table += threshold * [<span class="number">0</span>]</span><br><span class="line">    table += (<span class="number">256</span> - threshold) * [<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 灰度：转换成具有从黑到白256级灰度色阶或等级的单色图像</span></span><br><span class="line">    <span class="comment"># 二值化：像素灰度值少于阈值则设置0（黑），大于阈值则设置1（白）</span></span><br><span class="line">    image = image.convert(<span class="string">&#x27;L&#x27;</span>).point(table, <span class="string">&#x27;1&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> image</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    path = <span class="string">&#x27;/work/tmp/ocr&#x27;</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">        <span class="comment"># image_file = os.path.join(path, &#x27;0.27aa03f8d93dbcb5b3b7a6f1e91e04e3.jpg&#x27;)</span></span><br><span class="line">        image_file = get_code_image_from_url(i, cnki_code_url)</span><br><span class="line">        image = Image.<span class="built_in">open</span>(image_file)</span><br><span class="line">        <span class="comment"># 灰度，二值化（增强图片的对比度，利于后期图片图像处理）</span></span><br><span class="line">        image = convert_image(image)</span><br><span class="line">        image.show()</span><br><span class="line">        result = tesserocr.image_to_text(image)</span><br><span class="line">        <span class="built_in">print</span>(result)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="IP限制"><a href="#IP限制" class="headerlink" title="IP限制"></a>IP限制</h2><p>针对请求IP进行限流，简单、有效，但容易误伤。该策略建立在 IP 稀有的前提下，目前通过代理池购买，ADSL，或者拨号 VPS 等方式，可以低成本获取数十万的 IP 池，导致单纯的封IP策略效果越来越差。</p>
+<p>解决方法：使用IP代理池。</p>
+<p>如果不是大规模爬取，可以找免费代理，否则需要上首付代理（例如：<a target="_blank" rel="noopener" href="http://www.xdaili.cn/">http://www.xdaili.cn/</a>），稳定性更高，速度更快。</p>
+<p>对于公共代理IP，被封的可能性较大，可以考虑使用ADSL拨号代理。</p>
+<blockquote>
+<p><font style="color:#34495E;">更加高级的玩法是购买集群云服务，自己搭建代理。</font></p>
+</blockquote>
+<p>与IP限制类似的是账号限制，这时候就要多备几个账号了。</p>
+<h2 id="上下文关联"><a href="#上下文关联" class="headerlink" title="上下文关联"></a>上下文关联</h2><p>反爬虫可以通过 Token 或网络请求上下文是否进行了完整流程的方式来判断是否真人访问。但对具有协议分析能力的技术人员来说进行全量模拟并没有太大困难。类似案例：知乎，百度登录过程。</p>
+<h2 id="行为分析"><a href="#行为分析" class="headerlink" title="行为分析"></a>行为分析</h2><p>通过分析请求规律，结合用户操作习惯等等，借助算法进行反爬。</p>
+<h2 id="浏览器指纹"><a href="#浏览器指纹" class="headerlink" title="浏览器指纹"></a>浏览器指纹</h2><p>浏览器或者说Http客户端一般都会有一个固定的SSL指纹，部分网站会对该指纹进行校验来识别爬虫。这是独立于常见的Http请求头和body之外的。因此在爬取部分网站时，无论如何设置完整的header或者更换代理，还是会被识别，其有可能对浏览器指纹进行了校验。</p>
+<p>有一些随机指纹的方法，比如说<a target="_blank" rel="noopener" href="https://github.com/salesforce/ja3">JA3</a>是一种用于创建SSL&#x2F;TLS客户端指纹的方法，JA3方法用于收集客户端Hello数据包中以下字段的字节的十进制值：版本，接受的密码，扩展名列表，椭圆曲线和椭圆曲线格式。然后，使用“，”分隔每个字段，使用“-”分隔每个字段中的值，按顺序将这些值连接在一起。</p>
+<p>可以访问：<a target="_blank" rel="noopener" href="https://browserleaks.com/ssl">https://browserleaks.com/ssl</a> 来看看浏览器的指纹信息长什么样。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通用的“反”反爬虫手段：</p>
+<ul>
+<li>模拟正常请求的请求头，比如使用随机User-Agent</li>
+<li><a target="_blank" rel="noopener" href="http://doc.scrapy.org/en/latest/topics/practices.html#avoiding-getting-banned">禁用Cookie</a></li>
+<li>使用随机SSL指纹</li>
+<li>请求限流，限制同时请求数，设置请求间隔</li>
+<li>不要只请求所需页面，适当加载其他资源(图片，CSS，JS等)</li>
+<li>使用代理，把请求均匀分布到不同的代理服务器上</li>
+<li><a target="_blank" rel="noopener" href="http://scrapinghub.com/crawlera/">云爬虫</a></li>
+</ul>
+<blockquote>
+<p>参考：<a target="_blank" rel="noopener" href="http://doc.scrapy.org/en/latest/topics/practices.html#avoiding-getting-banned">http://doc.scrapy.org/en/latest/topics/practices.html#avoiding-getting-banned</a></p>
+</blockquote>
+<h1 id="集团工具"><a href="#集团工具" class="headerlink" title="集团工具"></a>集团工具</h1><p>涉及到敏感信息，这块就不放出来了。</p>
+
+        </div>
+          
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%88%AC%E8%99%AB%E5%9F%BA%E7%A1%80"><span class="top-box-text">爬虫基础</span></a></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E7%88%AC%E8%99%AB%E5%B7%A5%E5%85%B7"><span class="top-box-text">爬虫工具</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#HTTP%E8%AF%B7%E6%B1%82%E5%BA%93"><span class="top-box-text">HTTP请求库</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%A7%A3%E6%9E%90%E5%BA%93"><span class="top-box-text">解析库</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%AD%98%E5%82%A8%E5%BA%93"><span class="top-box-text">存储库</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%88%AC%E8%99%AB%E6%A1%86%E6%9E%B6"><span class="top-box-text">爬虫框架</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E5%85%B6%E4%BB%96%E5%B7%A5%E5%85%B7"><span class="top-box-text">其他工具</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%B5%8F%E8%A7%88%E5%99%A8%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95%E6%A8%A1%E6%8B%9F"><span class="top-box-text">浏览器自动化测试模拟</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%AA%8C%E8%AF%81%E7%A0%81%E5%88%86%E6%9E%90"><span class="top-box-text">验证码分析</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E4%BB%A3%E7%90%86"><span class="top-box-text">代理</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%8A%93%E5%8C%85%E5%B7%A5%E5%85%B7"><span class="top-box-text">抓包工具</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#App%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95%E6%A8%A1%E6%8B%9F"><span class="top-box-text">App自动化测试模拟</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#Web%E5%BA%93"><span class="top-box-text">Web库</span></a></li></ol></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Demo"><span class="top-box-text">Demo</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%88%AC%E5%8F%96%E7%8C%AB%E7%9C%BC%E7%94%B5%E5%BD%B1Top100%EF%BC%8C%E5%AD%98%E5%88%B0MySQL"><span class="top-box-text">爬取猫眼电影Top100，存到MySQL</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%88%AC%E5%8F%96%E5%A4%B4%E6%9D%A1%E5%9B%BE%E7%89%87"><span class="top-box-text">爬取头条图片</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%BD%BF%E7%94%A8%E8%87%AA%E5%8A%A8%E5%8C%96%E6%A8%A1%E6%8B%9F%E5%B7%A5%E5%85%B7%E7%88%AC%E5%8F%96"><span class="top-box-text">使用自动化模拟工具爬取</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E7%88%AC%E5%8F%96%E9%92%89%E9%92%89%E5%B0%8F%E7%A8%8B%E5%BA%8F"><span class="top-box-text">爬取钉钉小程序</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E5%8F%8D%E7%88%AC"><span class="top-box-text">反爬</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%AA%8C%E8%AF%81%E7%A0%81"><span class="top-box-text">验证码</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#IP%E9%99%90%E5%88%B6"><span class="top-box-text">IP限制</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E4%B8%8A%E4%B8%8B%E6%96%87%E5%85%B3%E8%81%94"><span class="top-box-text">上下文关联</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%A1%8C%E4%B8%BA%E5%88%86%E6%9E%90"><span class="top-box-text">行为分析</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%B5%8F%E8%A7%88%E5%99%A8%E6%8C%87%E7%BA%B9"><span class="top-box-text">浏览器指纹</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%80%BB%E7%BB%93"><span class="top-box-text">总结</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E9%9B%86%E5%9B%A2%E5%B7%A5%E5%85%B7"><span class="top-box-text">集团工具</span></a></li></ol>
+        </div>
+          
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2020/12/09/da-xing-jiao-yi-ding-dan-shu-ju-ku-yan-jin-de-can-kao/">
+          <h3 class="post-title">
+            下一篇：大型交易订单数据库演进的参考
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+
