@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+
+    
+<script>!function(){var e=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,t=localStorage.getItem("use-color-scheme")||"auto";("dark"===t||e&&"light"!==t)&&document.documentElement.classList.toggle("dark",!0)}()</script>
+    
+
+<meta charset="utf-8" >
+
+<title>视频生成和试衣模型的发展梳理</title>
+<meta name="keywords" content="视频生成和试衣模型的发展梳理, jffu&#39;s blog">
+<meta name="description" content="简单梳理下视频生成与视频试衣模型的发展">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="视频生成和试衣模型的发展梳理">
+<meta property="og:description" content="简单梳理下视频生成与视频试衣模型的发展">
+
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style/main.css">
+
+  <link rel="stylesheet" href="/style/simple-lightbox.min.css"><meta name="generator" content="Hexo 6.3.0"></head>
+  <body>
+    <div id="app" class="main">
+
+<div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://jffu.github.io">
+        <img class="avatar" src="/images/avatar.jpeg" alt="logo" width="32px" height="32px">
+      </a>
+      <a href="https://jffu.github.io">
+        <h1 class="site-title">jffu&#39;s blog</h1>
+      </a>
+    </div>
+    <div class="right">
+        <i class="icon menu-switch icon-menu-outline" ></i>
+    </div>
+  </div>
+</div>
+
+<div class="menu-container" style="height: 0;opacity: 0;">
+<nav class="menu-list">
+  
+    
+      <a href="/" class="menu purple-link">
+        首页
+      </a>
+    
+  
+    
+      <a href="/tags" class="menu purple-link">
+        标签
+      </a>
+    
+  
+    
+      <a href="/archives" class="menu purple-link">
+        归档
+      </a>
+    
+  
+    
+      <a href="/about" class="menu purple-link">
+        关于
+      </a>
+    
+  
+</nav>
+</div>
+
+
+
+  <div class="content-container">
+    <div class="post-detail">
+      
+      <h2 class="post-title">视频生成和试衣模型的发展梳理</h2>
+      <div class="post-info post-detail-info">
+        <span><i class="icon icon-calendar-outline"></i> 2024-09-20</span>
+        
+          <span>
+          <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/">
+              大模型
+                
+              </a>
+            
+          </span>
+        
+      </div>
+      <div class="post-content-wrapper">
+        <div class="post-content">
+          <h1 id="Video-Diffusion-Models-发展"><a href="#Video-Diffusion-Models-发展" class="headerlink" title="Video Diffusion Models 发展"></a>Video Diffusion Models 发展</h1><h2 id="视频生成模型发展概况"><a href="#视频生成模型发展概况" class="headerlink" title="视频生成模型发展概况"></a>视频生成模型发展概况</h2><p>视频生成模型是视频试衣模型的基础。可以分为：基于 GAN、基于自回 归模型和基于扩散模型 3 类，扩散模型是目前的主流方向。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuVi1TrdzZ3b4LEvqZnCqzCai1GA.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuVi1TrdzZ3b4LEvqZnCqzCai1GA.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsXRV96T6nhUGp4xQv8AJ8nr88Rf.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FsXRV96T6nhUGp4xQv8AJ8nr88Rf.png"  lazyload></a></p>
+<p><strong>整体发展情况：</strong></p>
+<ul>
+<li><p>2022年开始出现video diffusion model（14篇），然后借助在图像生成领域积累的技术快速发展，2023年达到103篇</p>
+</li>
+<li><p>除了视频生成任务（53%）以外，还衍生出了视频编辑（34%）和视频理解（13%）任务</p>
+</li>
+</ul>
+<p><strong>开源模型情况：</strong></p>
+<ul>
+<li>开源模型方面，早期以Stable Diffusion Video等为主流</li>
+<li>Sora 登场后，业界涌现一批 DiT 架构的模型，例如 <a target="_blank" rel="noopener" href="https://github.com/THUDM/CogVideo">CogVideo</a>、<a target="_blank" rel="noopener" href="https://github.com/hpcaitech/Open-Sora">Open-Sora</a>、<a target="_blank" rel="noopener" href="https://github.com/Tencent/HunyuanVideo">HunYuanVideo</a>、<a target="_blank" rel="noopener" href="https://github.com/Wan-Video/Wan2.1">Wan2.1</a></li>
+</ul>
+<p><strong>综述参考：</strong></p>
+<ul>
+<li>综述：<a target="_blank" rel="noopener" href="https://arxiv.org/abs/2310.10647">A Survey on Video Diffusion Models</a> </li>
+<li>Sora技术报告：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552063-f59092ae-e96e-4bf0-82bd-eabdcba1463b.pdf">Sora- A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models.pdf</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/ChenHsing/Awesome-Video-Diffusion-Models">GitHub</a></li>
+</ul>
+<h2 id="重点技术归纳"><a href="#重点技术归纳" class="headerlink" title="重点技术归纳"></a>重点技术归纳</h2><h3 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h3><p>以Sora为例，视频生成的网络架构仍然是脱胎于LDM：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fu4-OrX-QheQT3W3MidiwvkEEuiT.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fu4-OrX-QheQT3W3MidiwvkEEuiT.png"  lazyload></a></p>
+<ul>
+<li>主要框架不变，仍然是<strong>encoder，diffusion model，decoder</strong>，只是在<strong>模型结构</strong>（CNN&#x2F;Transformer）以及<strong>处理数据的维度</strong>（二维&#x2F;三维)进行了适应性改动</li>
+<li>主要模块：<strong>Text Encoder</strong>（Clip、T5等），<strong>VAE</strong>，<strong>Transformer</strong></li>
+<li>仍然压缩到隐空间处理，视频比图像消耗更大的计算量<ol>
+<li>使用扩散模型基本操作，先加噪再去噪。多帧并行编码和去噪</li>
+<li>去噪过程可以引入条件</li>
+</ol>
+</li>
+<li>与图像模型的差异主要在于 2D-VAE 变成了 <strong>3D-VAE</strong>，增加了时间这一维度</li>
+</ul>
+<h3 id="DiT"><a href="#DiT" class="headerlink" title="DiT"></a>DiT</h3><p>经典的基于 U-Net 去噪网络的扩散模型受限于 U-Net 模型本身有限的可伸缩性，难以扩大训练规模和参数规模。图像生成模型，像Stable Diffusion 3、Flux.1 等，已经证明了基于 Transformer 的 DiT 框架的有效性。由 Sora 引领，DiT 架构将 U-Net 替换成 Transformer，具有优秀的可伸缩性，随着训练数据的增多和参数规模的增大，生成质量能稳定提升。</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgpEbVnxOvcFOUz2KlKR38BBkZDv.jpg"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FgpEbVnxOvcFOUz2KlKR38BBkZDv.jpg"  lazyload></a></p>
+<h3 id="视频压缩"><a href="#视频压缩" class="headerlink" title="视频压缩"></a>视频压缩</h3><ul>
+<li><p>生成视频比生成图像需求更大的计算量，更依赖于压缩到隐空间来降低计算量，高质量的 VAE 非常关键。</p>
+</li>
+<li><p>直接将图像领域的LDM的VAE应用于视频会导致闪烁，结果在时序上不连贯</p>
+<ul>
+<li><p>方法一：复用LDM的VAE，仅对decoder进行微调</p>
+<ul>
+<li>用图像的VAE单独对每一帧进行编码，用视频对decoder进行微调，使其具有时间一致性（<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552054-5ada5224-af40-4684-bebc-39518ac1765e.pdf">Align your Latents- High-Resolution Video Synthesis with Latent Diffusion Models.pdf</a>）</li>
+</ul>
+</li>
+<li><p>方法二：构建 3D-VAE，直接对带有时序信息的图像序列进行压缩</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>以通义万相2.1为例，VAE 架构：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Frzf9li2rhnTf6gIaiRQl2zm1i3I.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Frzf9li2rhnTf6gIaiRQl2zm1i3I.png"  lazyload></a></p>
+<h3 id="数据的统一表示"><a href="#数据的统一表示" class="headerlink" title="数据的统一表示"></a>数据的统一表示</h3><p>由于输入为视频，数据格式由（B,C,H,W）变为（B,T,C,H,W），即batch - time - channel - height - width，增加时间维度</p>
+<ul>
+<li><p>方法一：基于UNet，改用3D卷积处理时间序列</p>
+<ul>
+<li>2D卷积改为3D卷积</li>
+<li>在空间注意力之后插入一个时间注意力</li>
+<li>在时间维度上加入位置embedding来区分帧序列</li>
+</ul>
+</li>
+<li><p>方法二：使用 transformer，以patch进行切分</p>
+</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtadaKZPdszLfAlAMUig4S1SraG3.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtadaKZPdszLfAlAMUig4S1SraG3.png"  lazyload></a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtTD3Ei2E_GpyOtFfXpBvMEruEqK.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtTD3Ei2E_GpyOtFfXpBvMEruEqK.png"  lazyload></a></p>
+<h3 id="时序建模方式"><a href="#时序建模方式" class="headerlink" title="时序建模方式"></a>时序建模方式</h3><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrYz5TL3Smal99WgqciMHo12h377.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrYz5TL3Smal99WgqciMHo12h377.png"  lazyload></a><br><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnpedxZrW2NMaVoKeaFqu75YOVlX.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FnpedxZrW2NMaVoKeaFqu75YOVlX.png"  lazyload></a></p>
+<p>在现有的空间注意力的基础上增加时间注意力模块，同时输入的patch需要加入时间编码</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FiCF8hPuKQtGBWf-yliDDXhJy77V.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FiCF8hPuKQtGBWf-yliDDXhJy77V.png"  lazyload></a></p>
+<h3 id="条件引入"><a href="#条件引入" class="headerlink" title="条件引入"></a>条件引入</h3><p>Cross Attention、concate、adaLN等方式</p>
+<h3 id="时长扩展技术"><a href="#时长扩展技术" class="headerlink" title="时长扩展技术"></a>时长扩展技术</h3><ul>
+<li>插帧策略：先生成一些锚点帧，然后对中间帧进行补全</li>
+<li>自回归：基于前几帧预测后几帧</li>
+</ul>
+<h2 id="评估指标"><a href="#评估指标" class="headerlink" title="评估指标"></a>评估指标</h2><ul>
+<li>仍然会使用常见的图像级结果评估指标：SSIM、LIPIS等</li>
+<li>视频级别指标：<ul>
+<li>FVD&#x2F;VFID：利用在Kinetics 上预训练的Inflated-3D Convnets (I3D)从视频clip中提取特征，在 Kinetics-400 数据集上训练</li>
+<li>KVD&#x2F;VKID：Kernel Video Distance (KVD) 也基于I3D特征，但它通过使用最大均值差异（MMD），一种基于核的方法，来评估生成视频的质量</li>
+<li>VIS：使用由3D-Convnets (C3D)提取的特征计算生成视频的Inception分数，在UCF101上训练</li>
+<li>Frame Consistency CLIP Score：通常用于视频编辑任务，用于测量编辑视频的一致性。其计算涉及计算编辑视频的所有帧的CLIP图像query，并报告所有视频帧对之间的平均余弦相似性</li>
+</ul>
+</li>
+</ul>
+<h2 id="挑战"><a href="#挑战" class="headerlink" title="挑战"></a>挑战</h2><ul>
+<li><p>时间一致性</p>
+</li>
+<li><p>计算复杂性</p>
+</li>
+<li><p>生成效率</p>
+</li>
+</ul>
+<h1 id="视频虚拟试衣"><a href="#视频虚拟试衣" class="headerlink" title="视频虚拟试衣"></a>视频虚拟试衣</h1><h2 id="文本-x2F-图像-视频生成方案"><a href="#文本-x2F-图像-视频生成方案" class="headerlink" title="文本&#x2F;图像-视频生成方案"></a>文本&#x2F;图像-视频生成方案</h2><h3 id="阿里巴巴：EasyAnimate"><a href="#阿里巴巴：EasyAnimate" class="headerlink" title="阿里巴巴：EasyAnimate"></a>阿里巴巴：EasyAnimate</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552399-32c0e6a4-1630-4e1d-919c-61f79fa291be.pdf">EasyAnimate.pdf</a></li>
+<li>支持图&#x2F;文生视频，支持首尾图生成视频</li>
+<li>长视频生成：最大支持720p 144帧视频生成</li>
+<li>续写视频支持无限长视频生成</li>
+<li>基于Transformer架构，完整开源</li>
+<li>项目主页：<a target="_blank" rel="noopener" href="https://easyanimate.github.io/">https://easyanimate.github.io/</a></li>
+<li>源码：<a target="_blank" rel="noopener" href="https://github.com/aigc-apps/EasyAnimate">https://github.com/aigc-apps/EasyAnimate</a></li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<h5 id=""><a href="#" class="headerlink" title=""></a><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrFoSwJPFPpjK7F50b9VNdPKipBu.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FrFoSwJPFPpjK7F50b9VNdPKipBu.png"  lazyload></a></h5><ol>
+<li>模型基于PixArt-alpha进行开发（DiT Based）</li>
+<li>包含Text Encoder（T5）、Slice VAE和Hybrid Motion Module based DiT</li>
+</ol>
+<p><strong>Slice VAE</strong></p>
+<p>直接将图像VAE用于处理视频帧的方式缺点：</p>
+<ul>
+<li>忽略时间信息，将视频看作静态图像</li>
+<li>无法压缩时间维度，没有关注帧之间的信息，同时导致显存占用过大</li>
+<li>研究表明同时使用图像和视频训练能够提高训练有效性（图文数据质量更高）</li>
+</ul>
+<p>因此需要能压缩时间维度且同时适应于图像和视频输入的VAE</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqzuRhQ8aHITIHW63rl1HD-vdh0B.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqzuRhQ8aHITIHW63rl1HD-vdh0B.png"  lazyload></a></p>
+<ul>
+<li><p>切分方式分为空间和时间两种 （理解为patch操作）</p>
+</li>
+<li><p>沿空间维度：同时处理较多的帧仍然需要很大的内存</p>
+</li>
+<li><p>沿时间维度：一个视频被分为许多个片段，分别进行编码解码</p>
+</li>
+</ul>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmXOMbn7Xxvb1WOWxDL6P0gUovhu.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmXOMbn7Xxvb1WOWxDL6P0gUovhu.png"  lazyload></a></p>
+<ul>
+<li><p>使用MagViT<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552399-8e1db191-ceb9-46aa-bbc4-a583fd8dd597.pdf">MagViT.pdf</a></p>
+</li>
+<li><p>视频在时间和空间维度压缩，图片输入仅在空间维度压缩</p>
+</li>
+<li><p>解码时共享不同时间轴批次的特征：封装了时间信息，节省计算资源，提高生成结果质量</p>
+</li>
+</ul>
+<p><strong>DiT</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvg3OL2GIo88eljyReU8ZyS079lg.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvg3OL2GIo88eljyReU8ZyS079lg.png"  lazyload></a></p>
+<ol>
+<li><p>DiT输入：</p>
+<ul>
+<li>双流信息输入：需要补全的视频和参考视频</li>
+<li>随机初始化latent：与输出大小匹配，如384x672x144的视频输出需要4x36x48x84的latent</li>
+<li>三个特征concate到一起作为DiT的输入</li>
+</ul>
+</li>
+<li><p>文本条件输入：</p>
+<ul>
+<li>T5提取文本信息，CLIP提取图像信息，经过线性层进行映射后concat</li>
+<li>与DiT结合的方式为Cross Attn</li>
+</ul>
+</li>
+<li><p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtypyTfp4LlZ87HfGQhFM5hUH-0S.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FtypyTfp4LlZ87HfGQhFM5hUH-0S.png"  lazyload></a></p>
+<ul>
+<li><p>时间t采用AdaLN的方式注入</p>
+</li>
+<li><p>在偶数层实行时间注意力，奇数层执行全局注意力</p>
+</li>
+<li><p>增加skip connection构成U-ViT</p>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>训练策略：</strong></p>
+<ol>
+<li><p>数据量：1200万个图像和视频数据</p>
+</li>
+<li><p>训练VAE</p>
+<ul>
+<li>先训练MagViT，然后用训练好的MagViT初始化Slice VAE的权重</li>
+<li>训练VAE：先200k step训练整个VAE，然后100k step训练解码器以提高保真度</li>
+</ul>
+</li>
+<li><p>三阶段训练策略：</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhAOodY5YhYx40XhWHAP9tGZOU3I.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhAOodY5YhYx40XhWHAP9tGZOU3I.png"  lazyload></a></p>
+<ul>
+<li><p>先用图像输入将DiT参数与新的视频VAE对齐</p>
+</li>
+<li><p>使用大规模视频数据集+图像数据集一起训练Motion module，为DiT引入视频生成能力</p>
+</li>
+<li><p>此时输出质量不够高，运动受限且清晰度不足，使用大规模视频数据集训练整个DiT以提高视频质量</p>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>评测结果：</strong></p>
+<p>动作幅度小，很难达到展示服装的目的</p>
+<h3 id="阿里巴巴：AnimateAnyone"><a href="#阿里巴巴：AnimateAnyone" class="headerlink" title="阿里巴巴：AnimateAnyone"></a>阿里巴巴：AnimateAnyone</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552485-3ce4ebdd-d489-4f23-ae3b-327cbff17ad7.pdf">Animate Anyone.pdf</a></li>
+<li>主页：<a target="_blank" rel="noopener" href="https://humanaigc.github.io/animate-anyone/">https://humanaigc.github.io/animate-anyone/</a></li>
+<li>图生视频：给定参考图像实现一致且可控的动画效果</li>
+<li>基于 U-Net 架构</li>
+<li>支持使用pose图序列对视频进行控制</li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqzmTUzKjyBs7z_nbuq2Cls1ZhGE.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FqzmTUzKjyBs7z_nbuq2Cls1ZhGE.png"  lazyload></a></p>
+<p>主要架构包括：</p>
+<ul>
+<li><p>reference net：从参考图像中编码角色外观信息，保持视频中角色id的一致性</p>
+</li>
+<li><p>pose guider：对控制信号进行编码，实现视频角色的动作可控</p>
+</li>
+<li><p>时序层：编码时间关系保证运动连续性</p>
+</li>
+</ul>
+<p><strong>Reference Net：</strong></p>
+<ol>
+<li><p>区别主要来源于：文生视频和图生视频</p>
+<ul>
+<li><p>文本prompt阐述高级语义信息，只需要保证语义相关性即可，所以可以使用clip编码</p>
+</li>
+<li><p>图像prompt包含更多低级细节，要求结果具有更精确的一致性</p>
+</li>
+</ul>
+</li>
+<li><p>网络结构：</p>
+<ul>
+<li><p>使用U-Net架构，直接继承原始SD的权重</p>
+</li>
+<li><p>集成参考图信息的方式：</p>
+<ul>
+<li>将reference net的特征复制t次，然后在w维度与denoising net的特征concat</li>
+<li>自注意力层被换为空间注意力层，取结果的前半部分</li>
+<li>优点：继承SD的特征建模能力，两个网络共享相同的初始化权重且结构相似，有利于学习同一特征空间中的相关特征</li>
+<li>此外还加入了clip的语义特征</li>
+<li>不使用controlnet的原因：控制图在空间上与目标图像对齐（指参考图和结果在空间上对齐），而此任务中参考图与结果没有对齐的空间关系，因此controlnet并适用</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>Pose Guider：</strong></p>
+<ol>
+<li>不使用controlnet的理由：需要微调去噪UNet，防止计算复杂性显著增加</li>
+<li>轻量级姿势引导：四个卷积层，结果与噪声相加</li>
+</ol>
+<p><strong>时间层：</strong></p>
+<ol>
+<li>捕获帧之间的依赖关系</li>
+<li>在空间注意力和交叉注意力之后加入时间注意力模块</li>
+<li>只在去噪网络中应用，参考网络不使用</li>
+</ol>
+<p><strong>训练策略：</strong></p>
+<ol>
+<li><p>数据：互联网收集，5K角色视频剪辑（2到10秒）</p>
+</li>
+<li><p>骨架图序列用DWPose获取</p>
+</li>
+<li><p>4个A100 GPU训练</p>
+</li>
+<li><p>双阶段训练：</p>
+<ul>
+<li><p>独立抽取图片帧训练：768分辨率，30000step，batchsize&#x3D;64</p>
+</li>
+<li><p>使用视频序列对时间层进行10000step的训练</p>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="复旦大学：ECCV-2024：Champ"><a href="#复旦大学：ECCV-2024：Champ" class="headerlink" title="复旦大学：ECCV 2024：Champ"></a>复旦大学：ECCV 2024：Champ</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552619-1eb93363-dee5-410b-be35-034f403cd232.pdf">Champ- Controllable and Consistent Human Image Animation with 3D Parametric Guidance.pdf</a></li>
+<li>主页：<a target="_blank" rel="noopener" href="https://fudan-generative-vision.github.io/champ/#/">https://fudan-generative-vision.github.io/champ/#/</a></li>
+<li>Code：<a target="_blank" rel="noopener" href="https://github.com/fudan-generative-vision/champ/tree/master">https://github.com/fudan-generative-vision/champ/tree/master</a></li>
+<li>人体动画制作方法，图生视频</li>
+<li>基于 U-Net 架构</li>
+<li>与 Animate Anyone 相似，通过输入参考图和控制信息，来生成高质量且时间上一致的动画视频</li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjtvL9pxpN4jCveSdT22yQcDz5jh.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjtvL9pxpN4jCveSdT22yQcDz5jh.png"  lazyload></a></p>
+<p>模型主要分为三个主要模块：</p>
+<ol>
+<li>视频一致性对齐</li>
+<li>多层条件提取和对齐</li>
+<li>多层条件融合</li>
+</ol>
+<p><strong>视频一致性对齐：</strong></p>
+<ol>
+<li><p>与animate anyone类似，生成的视频需要与参考图像具有一致性，同时在时间上具有连贯性</p>
+</li>
+<li><p>采用与animate anyone相似的结构：</p>
+<ul>
+<li><p>使用一个额外的reference net来编码参考图信息</p>
+</li>
+<li><p>使用clip提取参考图的语义信息</p>
+</li>
+<li><p>通过在cross attention后面增加temporal attention模块来增加跨帧注意力，增强生成的视频内容的时间一致性</p>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>多层条件提取和对齐：</strong></p>
+<ol>
+<li><p>本文采用3D信息对结果进行控制，包括四种：Depth，Normal，Semantic、Skeleton</p>
+</li>
+<li><p>控制信息提取流程：<a target="_blank" rel="noopener" href="https://github.com/fudan-generative-vision/champ/blob/master/docs/data_process.md">https://github.com/fudan-generative-vision/champ/blob/master/docs/data_process.md</a></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FiAnj3NMksv4ihyObBbfKoPkbhU6.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FiAnj3NMksv4ihyObBbfKoPkbhU6.png"  lazyload></a></p>
+</li>
+</ol>
+<p><strong>训练策略：</strong></p>
+<ol>
+<li>数据集：构建了约5000个高保真真实人类视频的数据集，共100万帧</li>
+<li>8卡 A100 GPU训练</li>
+<li>双阶段训练：<ul>
+<li>图像训练：提取单个视频帧，采样到768x768，60000 steps，batch size 32</li>
+<li>视频训练：使用视频训练，训练模型的时间层，20000 steps，batch size 8</li>
+</ul>
+</li>
+</ol>
+<p><strong>评测结果：</strong></p>
+<ol>
+<li><p>结果失真，形变扭曲较为严重</p>
+</li>
+<li><p>可能原因为没有应用参考图与动作序列的对齐</p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjS3ouP4xoW6BWEXkb5ixRtULTTI.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FjS3ouP4xoW6BWEXkb5ixRtULTTI.png"  lazyload></a></p>
+</li>
+<li><p>通过观察官方给出的结果，对齐效果并不明显</p>
+</li>
+</ol>
+<h2 id="视频inpainting方案"><a href="#视频inpainting方案" class="headerlink" title="视频inpainting方案"></a>视频inpainting方案</h2><h3 id="阿里拍立淘：Tunnel-Try-on"><a href="#阿里拍立淘：Tunnel-Try-on" class="headerlink" title="阿里拍立淘：Tunnel Try on"></a>阿里拍立淘：Tunnel Try on</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552686-b71a7fdd-c576-474a-818c-c0a66db825b7.pdf">Tunnel Try-on.pdf</a></li>
+<li>主页：<a target="_blank" rel="noopener" href="https://mengtingchen.github.io/tunnel-try-on-page/">https://mengtingchen.github.io/tunnel-try-on-page/</a></li>
+<li>inpainting方案，引入pose作为condition</li>
+<li>基于 U-Net 架构，使用 reference net 编码衣服</li>
+<li>重点提高视频的稳定和流畅</li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvp8_Mwa0Af-GsjmAWs8sObx6Ks_.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/Fvp8_Mwa0Af-GsjmAWs8sObx6Ks_.png"  lazyload></a></p>
+<ol>
+<li>是一种inpainting的方案：即输入初始视频以及对应的衣服mask，由模型绘制该区域得到try on结果</li>
+<li>服装信息由一个 reference net 和一个 clip encoder 提取</li>
+<li>去噪网络基于 U-Net 架构</li>
+</ol>
+<h3 id="字节：VITON-DiT"><a href="#字节：VITON-DiT" class="headerlink" title="字节：VITON-DiT"></a>字节：VITON-DiT</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552787-5b2b1ade-5c81-41d0-abe4-58ed1bed5fc7.pdf">VITON-DiT- Learning In-the-Wild Video Try-On from Human Dance Videos via Diffusion Transformers.pdf</a></li>
+<li>主页：<a target="_blank" rel="noopener" href="https://zhengjun-ai.github.io/viton-dit-page/">https://zhengjun-ai.github.io/viton-dit-page/</a></li>
+<li>基于DiT架构的inpainting方案</li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmAg2Jp3fFI50PidCwLQEkREvJth.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FmAg2Jp3fFI50PidCwLQEkREvJth.png"  lazyload></a></p>
+<ol>
+<li>由一个DiT和一个Garment Extractor组成</li>
+<li>主要包含3个组件：时空DiT块，ID控制网络，服装提取器，注意力融合机制</li>
+</ol>
+<p><strong>时空DiT块：</strong></p>
+<ol>
+<li>在空间注意力和交叉注意力中间增加一个时间注意力块</li>
+<li>输入为原始视频经过VAE提取的特征</li>
+<li>prompt embedding采用cross attention的方式结合</li>
+</ol>
+<p><strong>服装提取器：</strong></p>
+<ol>
+<li>用于从输入的参考服装图像中提取特征， 然后送入DiT和ID ControlNet以确保生成视频中包含服装细节</li>
+<li>不包含时间模块</li>
+<li>与主网络一致，有N个DiT block，每次传递时保存中间特征</li>
+</ol>
+<p><strong>ID控制网络：</strong></p>
+<ol>
+<li>目的是为了在试穿过程中保持人物的姿态和身份信息</li>
+<li>作为虚拟试衣人物，需要接受条件输入来将目标服装放置在参考视频：<ul>
+<li>mask衣服后的视频帧，dense pose，mask，前两者送入VAE Encoder后与mask拼接，得到fxhxwx9的特征</li>
+<li>经过一个线性层后送入ID controlnet</li>
+</ul>
+</li>
+<li>ID Controlnet的数量为N&#x2F;2，输出信号被注入DiT中作为特征残差</li>
+<li>有利于提供精确、像素对齐的控制信号，实现准确的身份信息保留</li>
+</ol>
+<p><strong>注意力融合：</strong></p>
+<ol>
+<li>位置为空间注意力之后，时间注意力之前，即先注入特征，然后再尝试学习时间一致性</li>
+<li>将衣服特征扩充到相同的时间维度后：<ul>
+<li>原始特征做空间自注意力</li>
+<li>原始特征与衣服特征做交叉注意力</li>
+<li>二者求和</li>
+</ul>
+</li>
+</ol>
+<p><strong>长视频生成策略：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuQdezrRUgzBpKZOcoZ9LsxB6PQM.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FuQdezrRUgzBpKZOcoZ9LsxB6PQM.png"  lazyload></a></p>
+<ol>
+<li><p>计算资源有限的情况下很难直接生成长视频</p>
+</li>
+<li><p>分别针对训练和推理提出随机选择策略和IAR技术</p>
+<ul>
+<li><p>随机选择策略：</p>
+<ul>
+<li>随机抽取k帧，将其Xa（mask掉衣服的图像）更换为对应的GT，将其mask设置为全0</li>
+<li>随机改变帧采样的步幅，范围由数据集中clip的平均帧数决定，增加模型看到不同视角的概率</li>
+</ul>
+</li>
+<li><p>IAR技术：</p>
+<ul>
+<li><p>差值自回归推理：Interpolated Auto-Regressive (IAR) Inference</p>
+</li>
+<li><p>直接对所有帧进行回归的方式会导致生成内容的质量随时间下降</p>
+</li>
+<li><p>将视频生成分解成子任务：</p>
+<ul>
+<li>关键帧生成：生成f帧视频，先将其划分为n个子视频，根据条件预测每个视频的起始帧</li>
+<li>帧填充：填补剩下缺失的f-n帧</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>训练策略：</strong></p>
+<ol>
+<li><p>数据集：自行收集15000多个高质量视频片段（unpaired）+FashionVideo+Tiktok dataset</p>
+</li>
+<li><p>自监督训练：为了利用无配对数据使用自监督方式逐步训练</p>
+<ul>
+<li><p>随机分割出视频片段中一帧的服装，随机旋转和大小调整</p>
+</li>
+<li><p>服装提取器图像预训练：只训练服装提取器</p>
+</li>
+<li><p>ID Controlnet图像预训练：加入ID Controlnet一起训练，除了去噪网络的SSA模块以外都开启训练</p>
+</li>
+<li><p>VITIN-DiT的视频微调：除了去噪DiT的SSA模块外所有参数加入训练</p>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="阿里巴巴：ViViD"><a href="#阿里巴巴：ViViD" class="headerlink" title="阿里巴巴：ViViD"></a>阿里巴巴：ViViD</h3><p><strong>概览：</strong></p>
+<ol>
+<li>论文：<a target="_blank" rel="noopener" href="https://yuque.antfin.com/attachments/lark/0/2024/pdf/143556911/1723536552990-55775500-18a4-40ac-92e6-b71714f1fd65.pdf">VIVID.pdf</a></li>
+<li>开源推理代码：<a target="_blank" rel="noopener" href="https://github.com/alibaba-yuanjing-aigclab/ViViD">https://github.com/alibaba-yuanjing-aigclab/ViViD</a></li>
+<li>基于UNet架构，参考图像需要一个mask，引入pose条件提高时序一致性</li>
+<li>收集了一个包含9700对高质量服装饰品样本的多类别数据集【<a target="_blank" rel="noopener" href="https://huggingface.co/datasets/alibaba-yuanjing-aigclab/ViViD">开放获取</a>】</li>
+</ol>
+<p><strong>模型介绍：</strong></p>
+<p><a class="simple-lightbox" target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhduU54bt93y-Hz87_Zk4mOFutc3.png"><img   src="/images/loading.svg" data-src="https://cdn.jsdelivr.net/gh/jffu/jffu-blog-images@main/img/FhduU54bt93y-Hz87_Zk4mOFutc3.png"  lazyload></a></p>
+<ol>
+<li>基于UNet架构，整体与前面几种方法结构一致</li>
+<li>与Animate Anyone结构很相似，将输入扩展为了try on的输入</li>
+</ol>
+<p><strong>训练策略：</strong></p>
+<ol>
+<li><p>数据集：</p>
+<ul>
+<li><p>在两个图像数据集上训练：VITON-HD和Dress Code</p>
+</li>
+<li><p>在一个视频数据集上训练：ViViD（没有使用VVT因为分辨率过低、种类有限、动作简单），ViViD分辨率为832x624，9700对视频图像对，7759用于训练，1941用于测试</p>
+</li>
+</ul>
+</li>
+<li><p>训练：</p>
+<ul>
+<li><p>使用SD1.5初始化权重，AnimeDiff的motion module初始化时间模块</p>
+</li>
+<li><p>训练分辨率采用512x384</p>
+</li>
+<li><p>在4个A100上训练120小时</p>
+</li>
+<li><p>图像视频联合训练：</p>
+<ul>
+<li>图像：随机选择24帧图像，冻结时间模块</li>
+<li>视频：采样24帧序列，激活时间模块</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+
+        </div>
+          
+        <div class="top-div">
+          <ol class="top-box"><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#Video-Diffusion-Models-%E5%8F%91%E5%B1%95"><span class="top-box-text">Video Diffusion Models 发展</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90%E6%A8%A1%E5%9E%8B%E5%8F%91%E5%B1%95%E6%A6%82%E5%86%B5"><span class="top-box-text">视频生成模型发展概况</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E9%87%8D%E7%82%B9%E6%8A%80%E6%9C%AF%E5%BD%92%E7%BA%B3"><span class="top-box-text">重点技术归纳</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84"><span class="top-box-text">整体架构</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#DiT"><span class="top-box-text">DiT</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E8%A7%86%E9%A2%91%E5%8E%8B%E7%BC%A9"><span class="top-box-text">视频压缩</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%95%B0%E6%8D%AE%E7%9A%84%E7%BB%9F%E4%B8%80%E8%A1%A8%E7%A4%BA"><span class="top-box-text">数据的统一表示</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%97%B6%E5%BA%8F%E5%BB%BA%E6%A8%A1%E6%96%B9%E5%BC%8F"><span class="top-box-text">时序建模方式</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%9D%A1%E4%BB%B6%E5%BC%95%E5%85%A5"><span class="top-box-text">条件引入</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E6%97%B6%E9%95%BF%E6%89%A9%E5%B1%95%E6%8A%80%E6%9C%AF"><span class="top-box-text">时长扩展技术</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%AF%84%E4%BC%B0%E6%8C%87%E6%A0%87"><span class="top-box-text">评估指标</span></a></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%8C%91%E6%88%98"><span class="top-box-text">挑战</span></a></li></ol></li><li class="top-box-item top-box-level-1"><a class="top-box-link" href="#%E8%A7%86%E9%A2%91%E8%99%9A%E6%8B%9F%E8%AF%95%E8%A1%A3"><span class="top-box-text">视频虚拟试衣</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E6%96%87%E6%9C%AC-x2F-%E5%9B%BE%E5%83%8F-%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88"><span class="top-box-text">文本&#x2F;图像-视频生成方案</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%98%BF%E9%87%8C%E5%B7%B4%E5%B7%B4%EF%BC%9AEasyAnimate"><span class="top-box-text">阿里巴巴：EasyAnimate</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%98%BF%E9%87%8C%E5%B7%B4%E5%B7%B4%EF%BC%9AAnimateAnyone"><span class="top-box-text">阿里巴巴：AnimateAnyone</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%A4%8D%E6%97%A6%E5%A4%A7%E5%AD%A6%EF%BC%9AECCV-2024%EF%BC%9AChamp"><span class="top-box-text">复旦大学：ECCV 2024：Champ</span></a></li></ol></li><li class="top-box-item top-box-level-2"><a class="top-box-link" href="#%E8%A7%86%E9%A2%91inpainting%E6%96%B9%E6%A1%88"><span class="top-box-text">视频inpainting方案</span></a><ol class="top-box-child"><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%98%BF%E9%87%8C%E6%8B%8D%E7%AB%8B%E6%B7%98%EF%BC%9ATunnel-Try-on"><span class="top-box-text">阿里拍立淘：Tunnel Try on</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E5%AD%97%E8%8A%82%EF%BC%9AVITON-DiT"><span class="top-box-text">字节：VITON-DiT</span></a></li><li class="top-box-item top-box-level-3"><a class="top-box-link" href="#%E9%98%BF%E9%87%8C%E5%B7%B4%E5%B7%B4%EF%BC%9AViViD"><span class="top-box-text">阿里巴巴：ViViD</span></a></li></ol></li></ol></li></ol>
+        </div>
+          
+      </div>
+    </div>
+
+    
+      <div class="next-post">
+        <a class="purple-link" href="/2024/01/09/guan-yu-han-shu-shi-bian-cheng-he-duo-xing-chu-shi-hua-de-yan-shen-si-kao/">
+          <h3 class="post-title">
+            下一篇：关于函数式编程和惰性初始化的延伸思考
+          </h3>
+        </a>
+      </div>
+    
+  </div>
+
+
+
+
+
+
+
+
+
+
+<footer>
+<div class="site-footer">
+  <div class="social-container">
+    
+      
+        <a aria-label="跳转至github" href="https://github.com/f-dong" target="_blank">
+          <i class="icon icon-github"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  
+    Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> <a href="https://github.com/f-dong/hexo-theme-minimalism" target="_blank">Theme</a>
+  
+  
+  
+  
+  
+  
+</div>
+</footer>
+
+
+      </div>
+    </div>
+    
+<script id="hexo-configurations"> window.theme_config = {"image":{"lazyload_enable":true,"photo_zoom":"simple-lightbox"}}; window.is_post = true; </script>
+
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+  <script src="/js/simple-lightbox.min.js"></script><script>document.addEventListener('DOMContentLoaded', function() {new SimpleLightbox('.post-detail .simple-lightbox', {fileExt: false,captionsData:'alt'});});</script></body>
+</html>
+
